@@ -3,24 +3,22 @@ import { Terminal } from "@/components/Terminal";
 
 const PILLARS = [
   {
-    title: "A permanent identity",
+    n: "01",
+    title: "Portable Identity",
     body: "Every agent gets an agenid:<ULID> that never changes — not when it moves platforms, not when its config changes, not when a deployment is retired. Revoked identities stay on record forever.",
     tag: "agenid:01J…",
   },
   {
-    title: "An accountable operator",
-    body: "The operator signs a manifest — name, purpose, channels, disclosure posture — with an Ed25519 key that is discoverable from their own domain. That is a DECLARED claim, and the protocol never lets it masquerade as more.",
-    tag: "ManifestProof",
+    n: "02",
+    title: "Cryptographic Proofs",
+    body: "Operator manifests and authority assertions are bound by pure Ed25519 signatures over RFC 8785 canonical bytes. Anyone can re-verify offline, without trusting AgenID's database.",
+    tag: "Ed25519 · RFC 8785 JCS",
   },
   {
-    title: "Independent verification",
-    body: "An authority verifies one claim against one piece of evidence and signs a VerificationAssertion bound to that exact manifest version. Levels L1–L4. Anyone can re-check the math without trusting AgenID's database.",
-    tag: "VerificationAssertion",
-  },
-  {
-    title: "Machine resolution",
-    body: "The same URL answers a browser with a verification card and a program with the canonical envelope. Agents can ask other agents who they are — and get a signed answer.",
-    tag: "Accept: application/json",
+    n: "03",
+    title: "Machine-to-Machine",
+    body: "The same URL answers a browser with a verification card and a program with the canonical JSON envelope. An agent can ask another agent who it is — and check the signed answer before it transacts.",
+    tag: "Trust before transact",
   },
 ];
 
@@ -53,10 +51,13 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-20">
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-3">
           {PILLARS.map((p) => (
             <div key={p.title} className="card p-6">
-              <div className="mb-3 font-mono text-[11px] text-muted">{p.tag}</div>
+              <div className="mb-4 flex items-baseline justify-between">
+                <span className="font-mono text-[11px] text-muted">{p.n}</span>
+                <span className="font-mono text-[11px] text-muted">{p.tag}</span>
+              </div>
               <h2 className="text-lg font-semibold">{p.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted">{p.body}</p>
             </div>
