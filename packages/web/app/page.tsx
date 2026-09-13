@@ -18,7 +18,7 @@ const PILLARS = [
     n: "03",
     title: "Machine-to-Machine",
     body: "The same URL answers a browser with a verification card and a program with the canonical JSON envelope. An agent can ask another agent who it is — and check the signed answer before it transacts.",
-    tag: "Trust before transact",
+    tag: "Machine-readable by default",
   },
 ];
 
@@ -50,7 +50,29 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="border-b border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <div className="grid gap-10 md:grid-cols-2">
+            <div>
+              <div className="mb-3 font-mono text-[11px] text-muted">PROBLEM</div>
+              <h2 className="text-2xl font-bold tracking-tight">Agents act. Nothing identifies them.</h2>
+              <p className="mt-4 text-muted">
+                A production AI agent can book, pay, escalate, and speak for an organization — but it usually has no identity that outlives its session token or API key. When it moves platforms, changes configuration, or gets rebuilt, any accountability attached to it disappears with it. There is nothing permanent to point to.
+              </p>
+            </div>
+            <div>
+              <div className="mb-3 font-mono text-[11px] text-muted">THREAT</div>
+              <h2 className="text-2xl font-bold tracking-tight">Any claim can be made. Few can be checked.</h2>
+              <p className="mt-4 text-muted">
+                A support agent can claim to represent your bank. A vendor can claim its bot is &ldquo;verified&rdquo; with nothing behind the word. Without a cryptographic proof that a specific party made a specific claim about a specific agent, verification is just a label — and labels can be forged, copied, or asserted by anyone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-5 py-20">
+        <div className="mb-8 font-mono text-[11px] text-muted">SOLUTION</div>
         <div className="grid gap-5 md:grid-cols-3">
           {PILLARS.map((p) => (
             <div key={p.title} className="card p-6">
@@ -68,7 +90,7 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-5 pb-20">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
-            <div className="mb-3 font-mono text-[11px] text-muted">DEVELOPERS</div>
+            <div className="mb-3 font-mono text-[11px] text-muted">CRYPTOGRAPHIC PROOF · DEVELOPERS</div>
             <h2 className="text-3xl font-bold tracking-tight">Three commands to a verifiable agent.</h2>
             <p className="mt-4 text-muted">
               <span className="font-mono text-paper">@agenid/core</span> gives you identifiers, RFC 8785 canonicalization, the normative schemas, and the Ed25519 proof engine — the same code that passes the specification&apos;s deterministic test vectors byte-for-byte.
@@ -78,7 +100,7 @@ export default function Home() {
               <a className="btn btn-ghost" href="https://github.com/AgenID-protocol/spec">Read the spec</a>
             </div>
             <div className="mt-6 rounded-lg border border-line bg-ink-2 p-4 text-sm text-muted">
-              <div className="mb-2 font-semibold text-paper">Embed a live badge</div>
+              <div className="mb-2 font-semibold text-paper">Embed a live status widget</div>
               <code className="block overflow-x-auto font-mono text-[12px] text-paper/90">
                 {'<script src="https://agenid.com/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"></script>'}
               </code>
@@ -91,6 +113,8 @@ export default function Home() {
 
       <section className="border-t border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
+          <div className="mb-3 font-mono text-[11px] text-muted">PROVENANCE</div>
+          <h2 className="mb-8 text-2xl font-bold tracking-tight">Three states. Never inferred from each other.</h2>
           <div className="grid gap-8 md:grid-cols-3">
             <div>
               <div className="font-mono text-[11px] text-muted">DECLARED</div>
@@ -106,6 +130,16 @@ export default function Home() {
             </div>
           </div>
           <p className="mt-8 text-xs text-muted">None of these three states is ever inferred from another. That rule is enforced by key role at verification time, not by convention.</p>
+        </div>
+      </section>
+
+      <section className="border-t border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <div className="mb-3 font-mono text-[11px] text-muted">INDEPENDENT VERIFICATION</div>
+          <h2 className="text-2xl font-bold tracking-tight">The registry is for discovery, not trust.</h2>
+          <p className="mt-4 max-w-3xl text-muted">
+            AgenID&apos;s registry helps you find a manifest and its proofs. It is never the thing you have to trust: every proof is a signature over canonical JSON that you can re-verify yourself, offline, with any RFC 8785 + Ed25519 implementation — including one that shares no code with AgenID&apos;s own. The <a className="text-paper hover:underline" href="https://github.com/AgenID-protocol/conformance">independent conformance suite</a> exists to prove exactly that: the spec holds up when nobody is trusting AgenID&apos;s word for it.
+          </p>
         </div>
       </section>
     </main>
