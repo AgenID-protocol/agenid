@@ -1,0 +1,16 @@
+{
+  "name": "agenid",
+  "version": "1.1.1",
+  "private": true,
+  "description": "AgenID reference implementation monorepo — AI Agent Identity Infrastructure (protocol v1.1.1)",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "packageManager": "pnpm@10.29.1",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "clean": "pnpm -r run clean"
+  }
+}
