@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "pnpm --filter @agenid/core run build && pnpm --filter @agenid/api run build && next build",
     "start": "next start",
     "test": "vitest run",
     "e2e": "next build && node scripts/e2e.mjs",
