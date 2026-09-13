@@ -1,0 +1,16 @@
+{
+  "id": "elevenlabs",
+  "name": "ElevenLabs",
+  "abbr": "11",
+  "category": "voice",
+  "description": "Voice synthesis and conversational agents",
+  "website": "https://elevenlabs.io",
+  "status": "compatible",
+  "integration_type": "Agent client data + tool-call metadata",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Identity is carried as client/dynamic variables on the conversational-agent session and echoed into tool calls, where the operator's tool endpoint re-verifies the signed manifest proof.",
+  "featured": true,
+  "docs": "/docs/partners/elevenlabs-integration"
+}

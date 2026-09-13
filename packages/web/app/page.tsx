@@ -1,14 +1,18 @@
+import Link from "next/link";
 import { SearchBar } from "@/components/SearchBar";
 import { Terminal } from "@/components/Terminal";
+import { IdentityStory } from "@/components/IdentityStory";
 import { LifecycleDiagram, TrustModelDiagram, CryptoChainDiagram, TwoPathDiagram } from "@/components/Diagrams";
+import { EcosystemHub, type HubNode } from "@/components/ecosystem/EcosystemHub";
+import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, getEcosystem, getFeatured } from "@/lib/ecosystem";
 
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/api";
 
 export const metadata: Metadata = {
-  title: "AgenID — Identity Infrastructure for Production AI Agents",
+  title: "AgenID — AI Agents Need an Identity",
   description:
-    "A permanent, portable, independently verifiable identity for every AI agent — who it is, who is accountable for it, what it declares, and what has actually been verified.",
+    "AgenID gives every AI agent a permanent, portable identity that people, businesses, and other AI agents can independently verify. Open protocol · cryptographically verifiable · platform independent.",
   alternates: { canonical: "/" },
 };
 
@@ -41,14 +45,34 @@ const LEVELS = [
   { l: "L5", name: "Continuously Monitored", claim: "—", evidence: "—", issuable: false },
 ];
 
+const AUDIENCES = [
+  { title: "Developers", body: "SDK, API, MCP server, and docs to attach a verifiable identity to an agent you're building.", cta: "Read the Quick Start", href: "/docs/onboarding" },
+  { title: "Businesses", body: "Give the agents you deploy a permanent identity and accountability trail — and verify agents you didn't build.", cta: "Verify an Agent", href: "/verify" },
+  { title: "AI Platforms", body: "Identity infrastructure for the agents built on your platform — see what's actually integrated today.", cta: "See the Ecosystem", href: "/ecosystem" },
+  { title: "Enterprise", body: "Verification methodology, key management, and conformance — everything the Trust Center discloses openly.", cta: "Open the Trust Center", href: "/trust" },
+];
+
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <div className="mb-3 font-mono text-[11px] text-muted">{children}</div>;
 }
 
 export default function Home() {
+  const ecosystemCount = getEcosystem().length;
+  const hubNodes: HubNode[] = getFeatured().map((e) => ({
+    id: e.id,
+    name: e.name,
+    abbr: e.abbr,
+    category: e.category,
+    categoryLabel: ECOSYSTEM_CATEGORIES.find((c) => c.id === e.category)?.label ?? e.category,
+    statusLabel: ECOSYSTEM_STATUSES[e.status].label,
+    integration_type: e.integration_type,
+    compatibility_note: e.compatibility_note,
+    ...(e.docs ? { docs: e.docs } : {}),
+  }));
+
   return (
     <main>
-  {/* eslint-disable-next-line react/no-danger */}
+      {/* eslint-disable-next-line react/no-danger */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -73,36 +97,32 @@ export default function Home() {
           }),
         }}
       />
-      {/* HERO */}
+
+      {/* HERO — "AI agents need an identity." */}
       <section className="grid-bg border-b border-line/70">
-        <div className="mx-auto max-w-6xl px-5 pb-20 pt-20 text-center">
+        <div className="mx-auto max-w-6xl px-5 pb-16 pt-20 text-center">
           <p className="pill mx-auto">
             <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Protocol v1.1.1 · Locked · MIT
           </p>
-          <h1 className="mt-6 text-5xl font-bold tracking-tight md:text-6xl">
-            Identity Infrastructure for Production AI Agents
-          </h1>
+          <h1 className="mt-6 text-5xl font-bold tracking-tight md:text-6xl">AI agents need an identity.</h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted">
-            A permanent, portable, independently verifiable identity for every AI agent — who it is, who is accountable for it, what it declares, and what has actually been verified.
+            AgenID gives every AI agent a permanent, portable identity that people, businesses, and other AI agents
+            can independently verify.
           </p>
-          <div className="mt-10">
-            <SearchBar />
-            <p className="mt-3 text-xs text-muted">
-              Paste any <span className="font-mono">agenid:&lt;ULID&gt;</span> to open its verification card. Programs get JSON from the same URL.
-            </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/verify" className="btn btn-primary">Verify an Agent</Link>
+            <Link href="#get-agenid" className="btn btn-ghost">Give Your Agent an Identity</Link>
           </div>
-          <div className="mx-auto mt-10 flex flex-wrap justify-center gap-2">
-            {["agenid:<ULID>", "RFC 8785 JCS", "Ed25519 (pure)", "L1–L4 verification", "Two-path key discovery"].map((t) => (
-              <span key={t} className="pill">{t}</span>
-            ))}
-          </div>
+          <p className="mt-4 font-mono text-[11px] text-muted">Open protocol · Cryptographically verifiable · Platform independent</p>
+
+          <IdentityStory />
         </div>
       </section>
 
       {/* THE PROBLEM */}
       <section className="border-b border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>THE PROBLEM</Eyebrow>
+          <Eyebrow>YOU CAN TALK TO AN AI AGENT. BUT WHO IS IT?</Eyebrow>
           <div className="grid gap-10 md:grid-cols-2">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Agents act. Nothing identifies them.</h2>
@@ -117,32 +137,54 @@ export default function Home() {
               </p>
             </div>
           </div>
+          <ul className="mt-8 flex flex-wrap gap-2 font-mono text-[11px] text-muted">
+            {["Who operates it?", "Is the identity persistent?", "What does it claim to do?", "What has actually been verified?", "Can another system verify it?"].map((q) => (
+              <li key={q} className="pill !py-1">{q}</li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      {/* THE SOLUTION */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
-        <Eyebrow>THE SOLUTION</Eyebrow>
-        <div className="grid gap-5 md:grid-cols-3">
+      {/* GIVE EVERY AGENT A PERMANENT IDENTITY */}
+      <section id="identity" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-20">
+        <Eyebrow>GIVE EVERY AI AGENT A PERMANENT IDENTITY</Eyebrow>
+        <h2 className="max-w-2xl text-2xl font-bold tracking-tight">
+          A permanent, portable identity that isn&rsquo;t tied to one AI platform.
+        </h2>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
           {PILLARS.map((p) => (
             <div key={p.title} className="card p-6">
               <div className="mb-4 flex items-baseline justify-between">
                 <span className="font-mono text-[11px] text-muted">{p.n}</span>
                 <span className="font-mono text-[11px] text-muted">{p.tag}</span>
               </div>
-              <h2 className="text-lg font-semibold">{p.title}</h2>
+              <h3 className="text-lg font-semibold">{p.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{p.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* WHAT IS ACTUALLY PROVEN */}
+      {/* IDENTITY LIFECYCLE (technical depth, for the reader who scrolls this far) */}
       <section className="border-t border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>WHAT IS ACTUALLY PROVEN?</Eyebrow>
+          <Eyebrow>HOW IT WORKS</Eyebrow>
+          <h2 className="mb-8 text-2xl font-bold tracking-tight">Identity lifecycle.</h2>
+          <LifecycleDiagram />
+          <p className="mt-6 max-w-3xl text-sm text-muted">
+            A Deployment (one platform-scoped run of an Agent) is bound to the Agent by <span className="font-mono">agent_id</span> but never mutates it: retiring a deployment or migrating platforms creates a new deployment under the same permanent identity — accountability survives the move.
+          </p>
+        </div>
+      </section>
+
+      {/* DECLARED VS VERIFIED */}
+      <section className="border-t border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <Eyebrow>FROM DECLARATION TO VERIFICATION</Eyebrow>
           <h2 className="text-2xl font-bold tracking-tight">Cryptography proves signatures. It does not prove behavior.</h2>
-          <div className="mt-8 grid gap-8 md:grid-cols-2">
+          <div className="mt-6"><TrustModelDiagram /></div>
+          <p className="mt-6 max-w-3xl text-xs text-muted">None of these three states is ever inferred from another. That rule is enforced by key role at verification time, not by convention.</p>
+          <div className="mt-10 grid gap-8 md:grid-cols-2">
             <div>
               <h3 className="text-sm font-semibold text-mint">Proven, by signature</h3>
               <ul className="mt-3 space-y-2 text-sm text-muted">
@@ -162,78 +204,6 @@ export default function Home() {
               </ul>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="border-t border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>HOW IT WORKS</Eyebrow>
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">Identity lifecycle.</h2>
-          <LifecycleDiagram />
-          <p className="mt-6 max-w-3xl text-sm text-muted">
-            A Deployment (one platform-scoped run of an Agent) is bound to the Agent by <span className="font-mono">agent_id</span> but never mutates it: retiring a deployment or migrating platforms creates a new deployment under the same permanent identity — accountability survives the move.
-          </p>
-        </div>
-      </section>
-
-      {/* CRYPTOGRAPHIC PROOF */}
-      <section className="border-t border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>CRYPTOGRAPHIC PROOF</Eyebrow>
-          <h2 className="mb-6 text-2xl font-bold tracking-tight">Manifest to verified signature — every step reproducible.</h2>
-          <CryptoChainDiagram />
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
-            <div className="text-sm text-muted">
-              <p><span className="font-mono text-paper">RFC 8785 JSON Canonicalization Scheme (JCS)</span> — signing_input = JCS(signed_object minus &ldquo;signature&rdquo;). The <span className="font-mono">$schema</span> field is part of the signed bytes.</p>
-            </div>
-            <div className="text-sm text-muted">
-              <p><span className="font-mono text-paper">Pure Ed25519 (RFC 8032)</span> — the exact canonical bytes go to Ed25519 directly. No Ed25519ph, no external pre-hash. The only SHA-256 in the protocol is the <span className="font-mono">manifest_digest</span> data value, bound <em>by</em> the signature, not <em>what is</em> signed.</p>
-            </div>
-          </div>
-          <div className="mt-8 grid items-center gap-10 md:grid-cols-2">
-            <div>
-              <p className="text-muted">
-                <span className="font-mono text-paper">@agenid/core</span> gives you identifiers, RFC 8785 canonicalization, the normative schemas, and the Ed25519 proof engine — the same code that passes the specification&apos;s deterministic test vectors byte-for-byte.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <a className="btn btn-primary" href="https://github.com/AgenID-protocol/agenid">Get @agenid/core</a>
-                <a className="btn btn-ghost" href="https://github.com/AgenID-protocol/spec">Read the spec</a>
-              </div>
-              <div className="mt-6 rounded-lg border border-line bg-ink-2 p-4 text-sm text-muted">
-                <div className="mb-2 font-semibold text-paper">Embed a live status widget</div>
-                <code className="block overflow-x-auto font-mono text-[12px] text-paper/90">
-                  {'<script src="https://agenid.com/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"></script>'}
-                </code>
-                <p className="mt-2 text-xs">Renders the current verification level, live — a suspended or revoked identity changes everywhere it&apos;s embedded.</p>
-              </div>
-            </div>
-            <Terminal />
-          </div>
-        </div>
-      </section>
-
-      {/* TRUST MODEL / PROVENANCE */}
-      <section className="border-t border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>PROVENANCE</Eyebrow>
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">Three claim states. Never inferred from each other.</h2>
-          <TrustModelDiagram />
-          <div className="mt-8 grid gap-8 md:grid-cols-3">
-            <div>
-              <div className="font-mono text-[11px] text-muted">DECLARED</div>
-              <p className="mt-2 text-sm text-muted">The operator asserts it. Signed, but not checked. Every manifest starts here.</p>
-            </div>
-            <div>
-              <div className="font-mono text-[11px] text-mint">VERIFIED</div>
-              <p className="mt-2 text-sm text-muted">An independent authority checked a specific claim against specific evidence, and signed that — bound to the exact manifest version.</p>
-            </div>
-            <div>
-              <div className="font-mono text-[11px] text-muted">AUTHORIZED</div>
-              <p className="mt-2 text-sm text-muted">What the operator explicitly permits the agent to do. Reserved for v1.2 — never inferred from platform configuration.</p>
-            </div>
-          </div>
-          <p className="mt-8 text-xs text-muted">None of these three states is ever inferred from another. That rule is enforced by key role at verification time, not by convention.</p>
 
           <div className="mt-12">
             <h3 className="text-lg font-semibold">Verification levels</h3>
@@ -271,7 +241,88 @@ export default function Home() {
         </div>
       </section>
 
-      {/* VERIFY WITHOUT TRUSTING AGENID */}
+      {/* VERIFY — real, interactive, calls the live registry */}
+      <section id="verify" className="scroll-mt-20 border-t border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16 text-center">
+          <Eyebrow>VERIFY AN AGENT</Eyebrow>
+          <h2 className="text-2xl font-bold tracking-tight">Who is this AI agent?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-muted">
+            Paste any <span className="font-mono">agenid:&lt;ULID&gt;</span> below. This calls the live registry, not a
+            mock — an unregistered identifier returns a clean &ldquo;not found,&rdquo; not a fabricated result.
+          </p>
+          <div className="mx-auto mt-8 max-w-xl">
+            <SearchBar />
+          </div>
+          <p className="mt-4 text-xs text-muted">
+            No agent yet?{" "}
+            <Link href="#get-agenid" className="text-paper underline hover:no-underline">Register one</Link> to get an
+            identifier you can resolve here.
+          </p>
+        </div>
+      </section>
+
+      {/* CRYPTOGRAPHIC PROOF + BADGES */}
+      <section id="badges" className="scroll-mt-20 border-t border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <Eyebrow>CRYPTOGRAPHIC PROOF</Eyebrow>
+          <h2 className="mb-6 text-2xl font-bold tracking-tight">Manifest to verified signature — every step reproducible.</h2>
+          <CryptoChainDiagram />
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <div className="text-sm text-muted">
+              <p><span className="font-mono text-paper">RFC 8785 JSON Canonicalization Scheme (JCS)</span> — signing_input = JCS(signed_object minus &ldquo;signature&rdquo;). The <span className="font-mono">$schema</span> field is part of the signed bytes.</p>
+            </div>
+            <div className="text-sm text-muted">
+              <p><span className="font-mono text-paper">Pure Ed25519 (RFC 8032)</span> — the exact canonical bytes go to Ed25519 directly. No Ed25519ph, no external pre-hash. The only SHA-256 in the protocol is the <span className="font-mono">manifest_digest</span> data value, bound <em>by</em> the signature, not <em>what is</em> signed.</p>
+            </div>
+          </div>
+          <div className="mt-8 grid items-center gap-10 md:grid-cols-2">
+            <div>
+              <p className="text-muted">
+                <span className="font-mono text-paper">@agenid/core</span> gives you identifiers, RFC 8785 canonicalization, the normative schemas, and the Ed25519 proof engine — the same code that passes the specification&apos;s deterministic test vectors byte-for-byte.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a className="btn btn-primary" href="https://github.com/AgenID-protocol/agenid">Get @agenid/core</a>
+                <a className="btn btn-ghost" href="https://github.com/AgenID-protocol/spec">Read the spec</a>
+              </div>
+              <div className="mt-6 rounded-lg border border-line bg-ink-2 p-4 text-sm text-muted">
+                <div className="mb-2 font-semibold text-paper">Put your agent&rsquo;s identity where people can see it</div>
+                <code className="block overflow-x-auto font-mono text-[12px] text-paper/90">
+                  {'<script src="https://agenid.com/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"></script>'}
+                </code>
+                <p className="mt-2 text-xs">
+                  Renders the current verification level, live — a suspended or revoked identity changes everywhere it&apos;s embedded. The badge is the human-facing UI; the signed record underneath is what actually carries trust.
+                </p>
+                <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+                  <span className="text-xs text-muted">Live example (points at an unregistered example ID, so it honestly shows &ldquo;unavailable&rdquo;):</span>
+                </div>
+                <div className="mt-2" suppressHydrationWarning>
+                  <script src="/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y" />
+                </div>
+              </div>
+            </div>
+            <Terminal />
+          </div>
+        </div>
+      </section>
+
+      {/* AGENT-TO-AGENT / MCP */}
+      <section className="border-t border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <Eyebrow>AI CAN VERIFY AI</Eyebrow>
+          <h2 className="text-2xl font-bold tracking-tight">One URL, two representations.</h2>
+          <p className="mt-4 max-w-3xl text-muted">
+            <span className="font-mono">GET /a/&lt;agenid&gt;</span> answers a browser with the verification card UI and answers a request sent with <span className="font-mono">Accept: application/json</span> with the raw resolution envelope — manifest, proof, assertions, and key-discovery pointers, ready for a program or another agent to parse and re-verify before it transacts.
+          </p>
+          <p className="mt-4 max-w-3xl text-muted">
+            <span className="font-mono text-paper">@agenid/mcp-server</span> puts that same resolution and verification behind a stdio MCP tool — an agent running in Claude Desktop, Cursor, Windsurf, or a custom MCP client can call <span className="font-mono">resolve_agent_identity</span> and <span className="font-mono">verify_agent_manifest</span> directly, no HTTP client required.
+          </p>
+          <div className="mt-6">
+            <Link href="/docs/partners/mcp-server-integration" className="btn btn-primary">Use AgenID with MCP</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* TWO-PATH KEY DISCOVERY */}
       <section className="border-t border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
           <Eyebrow>VERIFY WITHOUT TRUSTING AGENID</Eyebrow>
@@ -285,50 +336,97 @@ export default function Home() {
         </div>
       </section>
 
-      {/* INTEROPERABILITY */}
+      {/* THE AGENT ECOSYSTEM */}
       <section className="border-t border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>INTEROPERABILITY</Eyebrow>
-          <h2 className="text-2xl font-bold tracking-tight">Vendor-neutral by construction.</h2>
+          <Eyebrow>THE AGENT ECOSYSTEM</Eyebrow>
+          <h2 className="text-2xl font-bold tracking-tight">The platforms change. The identity doesn&apos;t.</h2>
           <p className="mt-4 max-w-3xl text-muted">
-            An <span className="font-mono">agenid:&lt;ULID&gt;</span> identifies the agent, never the model or platform underneath it. The identity survives a change of model provider, agent framework, or hosting infrastructure — nothing in the protocol references OpenAI, Anthropic, Google, an open-source model, or any specific runtime. The same manifest, proof, and verification objects apply whether the agent runs on a managed platform or custom infrastructure.
+            AgenID is designed to work across the platforms where AI agents live. An <span className="font-mono">agenid:&lt;ULID&gt;</span> identifies the agent, never the model or platform underneath it — nothing in the protocol references OpenAI, Anthropic, Google, an open-source model, or any specific runtime. The identity survives a change of model provider, agent framework, or hosting infrastructure.
           </p>
+
+          <div className="mt-10">
+            <EcosystemHub nodes={hubNodes} />
+          </div>
+
+          <p className="mt-8 max-w-3xl text-sm text-muted">
+            {ecosystemCount} platforms across five layers are listed as <span className="font-mono">Compatible</span> — a
+            technical statement about carrying an identity through each platform&apos;s existing, documented API surface. None
+            of them ships AgenID code, none is a partner, and no adapter package exists for any of them.{" "}
+            <Link href="/ecosystem" className="text-paper underline underline-offset-2 hover:no-underline">
+              See the full compatibility matrix
+            </Link>
+            .
+          </p>
+
           <p className="mt-4 max-w-3xl text-muted">
             Interoperability is tested, not assumed: the §8 deterministic test vectors — real Ed25519 signatures over RFC 8785 canonical bytes — let any language implementation prove it produces byte-identical output, independent of AgenID&apos;s own TypeScript reference implementation.
           </p>
         </div>
       </section>
 
-      {/* BUILT FOR MACHINES */}
+      {/* BUILT FOR THE AGENTIC INTERNET */}
       <section className="border-t border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>BUILT FOR MACHINES</Eyebrow>
-          <h2 className="text-2xl font-bold tracking-tight">One URL, two representations.</h2>
+          <Eyebrow>BUILT FOR THE AGENTIC INTERNET</Eyebrow>
+          <h2 className="text-2xl font-bold tracking-tight">AI agents are becoming participants.</h2>
           <p className="mt-4 max-w-3xl text-muted">
-            <span className="font-mono">GET /a/&lt;agenid&gt;</span> answers a browser with the verification card UI and answers a request sent with <span className="font-mono">Accept: application/json</span> with the raw resolution envelope — manifest, proof, assertions, and key-discovery pointers, ready for a program or another agent to parse and re-verify before it transacts.
+            Human → Agent. Agent → Agent. Agent → API. Agent → Business. Agent → Transaction. As agents take on more of these roles, a persistent, independently verifiable identity stops being optional infrastructure and starts being load-bearing. <Link href="/why-agent-identity" className="text-paper underline hover:no-underline">Why agent identity, and why now →</Link>
           </p>
         </div>
       </section>
 
-      {/* DETERMINISTIC CONFORMANCE */}
+      {/* OPEN BY DESIGN */}
       <section className="border-t border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>DETERMINISTIC CONFORMANCE</Eyebrow>
-          <h2 className="text-2xl font-bold tracking-tight">An independent suite, not a self-grade.</h2>
-          <p className="mt-4 max-w-3xl text-muted">
-            <a className="text-paper hover:underline" href="https://github.com/AgenID-protocol/conformance">AgenID-protocol/conformance</a> is a public, MIT-licensed test runner built only on general-purpose libraries with zero AgenID knowledge — it never imports <span className="font-mono">@agenid/core</span> or calls AgenID&apos;s registry. It checks manifest canonicalization and digest, ManifestProof/VerificationAssertion signing and verification (including role enforcement and tamper rejection), key-order independence, the adversarial canonicalization vectors, and JSON Schema validation. 34 of 34 checks pass, verified in CI on every push.
-          </p>
-        </div>
-      </section>
-
-      {/* OPEN STANDARD */}
-      <section className="border-t border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <Eyebrow>OPEN STANDARD</Eyebrow>
+          <Eyebrow>OPEN BY DESIGN</Eyebrow>
           <h2 className="text-2xl font-bold tracking-tight">The spec is the source of truth. Code follows it.</h2>
           <p className="mt-4 max-w-3xl text-muted">
             <a className="text-paper hover:underline" href="https://github.com/AgenID-protocol/spec">AgenID-protocol/spec</a> is public and MIT-licensed — the protocol specification, five normative JSON Schemas, deterministic test vectors, and a public errata log. Changes to identity, cryptography, serialization, or verification semantics require a published erratum before any implementation follows. Two are on record: a key-identifier URI fix and a number-domain canonicalization rule (E1), and the namespace unification onto a single <span className="font-mono">agenid.com</span> domain (E2) — both applied, both re-verified against regenerated test vectors.
           </p>
+          <p className="mt-4 max-w-3xl text-muted">
+            <a className="text-paper hover:underline" href="https://github.com/AgenID-protocol/conformance">AgenID-protocol/conformance</a> is a separate, public, MIT-licensed test runner with zero AgenID knowledge — 34 of 34 checks pass, verified in CI on every push.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2 font-mono text-[11px] text-muted">
+            {["Open protocol", "Open-source specification", "Machine-readable", "Platform independent", "Cryptographically verifiable", "Independent verification"].map((t) => (
+              <span key={t} className="pill !py-1">{t}</span>
+            ))}
+          </div>
+          <div className="mt-6">
+            <a className="btn btn-ghost" href="https://github.com/AgenID-protocol">View on GitHub</a>
+          </div>
+        </div>
+      </section>
+
+      {/* AUDIENCE ROUTING */}
+      <section className="border-t border-line/70">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <Eyebrow>BUILT FOR DEVELOPERS. DESIGNED FOR EVERYONE.</Eyebrow>
+          <h2 className="text-2xl font-bold tracking-tight">What brings you here?</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {AUDIENCES.map((a) => (
+              <div key={a.title} className="card flex flex-col p-5">
+                <h3 className="text-sm font-semibold">{a.title}</h3>
+                <p className="mt-2 flex-1 text-xs text-muted">{a.body}</p>
+                <Link href={a.href} className="btn btn-ghost mt-4 !py-1.5 !text-[12px]">{a.cta}</Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* GET AGENID — registration flow, real */}
+      <section id="get-agenid" className="scroll-mt-20 border-t border-line/70 bg-ink-2/40">
+        <div className="mx-auto max-w-6xl px-5 py-20 text-center">
+          <Eyebrow>GIVE YOUR AI AGENT AN IDENTITY</Eyebrow>
+          <h2 className="text-3xl font-bold tracking-tight">Get AgenID.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-muted">
+            Install <span className="font-mono">@agenid/core</span>, generate an identifier, declare an operator manifest, and sign it — the full path is documented and reproducible, no dashboard sign-up required.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/docs/onboarding" className="btn btn-primary">Read the Quick Start</Link>
+            <Link href="/verify" className="btn btn-ghost">Verify an Agent</Link>
+          </div>
         </div>
       </section>
     </main>

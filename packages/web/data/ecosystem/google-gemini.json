@@ -1,0 +1,15 @@
+{
+  "id": "google-gemini",
+  "name": "Google Gemini",
+  "abbr": "Gm",
+  "category": "models",
+  "description": "Gemini model family",
+  "website": "https://deepmind.google/technologies/gemini/",
+  "status": "compatible",
+  "integration_type": "Model-agnostic — identity sits above the model call",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Listed for completeness of the model layer. No Gemini-specific surface is required or used by the protocol.",
+  "featured": false
+}

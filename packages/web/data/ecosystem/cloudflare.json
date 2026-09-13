@@ -1,0 +1,15 @@
+{
+  "id": "cloudflare",
+  "name": "Cloudflare",
+  "abbr": "CF",
+  "category": "infrastructure",
+  "description": "Edge compute, Workers, and DNS",
+  "website": "https://www.cloudflare.com",
+  "status": "compatible",
+  "integration_type": "Well-known key hosting + edge verification",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Two roles: DNS TXT records satisfy the L2 domain-control evidence type, and /.well-known/agenid/keys.json can be served from Workers or Pages as the domain path of two-path key discovery.",
+  "featured": true
+}

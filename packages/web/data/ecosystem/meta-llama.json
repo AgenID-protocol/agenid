@@ -1,0 +1,15 @@
+{
+  "id": "meta-llama",
+  "name": "Meta Llama",
+  "abbr": "Ll",
+  "category": "models",
+  "description": "Open-weight model family",
+  "website": "https://www.llama.com",
+  "status": "compatible",
+  "integration_type": "Model-agnostic — identity sits above the model call",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Self-hosted inference is fully compatible; the protocol has no hosted-API dependency of any kind.",
+  "featured": false
+}

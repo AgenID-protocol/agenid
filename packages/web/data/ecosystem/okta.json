@@ -1,0 +1,15 @@
+{
+  "id": "okta",
+  "name": "Okta",
+  "abbr": "Ok",
+  "category": "enterprise",
+  "description": "Enterprise identity and access management",
+  "website": "https://www.okta.com",
+  "status": "compatible",
+  "integration_type": "Complementary — workforce identity, not agent identity",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Same composition as any IAM provider: authorize the service principal with Okta, resolve and verify the agent's provenance with AgenID.",
+  "featured": false
+}

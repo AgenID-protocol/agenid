@@ -1,0 +1,15 @@
+{
+  "id": "openai-agents-sdk",
+  "name": "OpenAI Agents SDK",
+  "abbr": "SDK",
+  "category": "frameworks",
+  "description": "Agent runtime and handoffs",
+  "website": "https://openai.github.io/openai-agents-python/",
+  "status": "compatible",
+  "integration_type": "Run context + handoff metadata",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Compatible through the generic pattern: identity persists across handoffs because it lives in the operator's run context, not in the SDK's session state. Not yet tested end to end.",
+  "featured": false
+}

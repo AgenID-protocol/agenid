@@ -1,0 +1,15 @@
+{
+  "id": "mistral",
+  "name": "Mistral AI",
+  "abbr": "Mi",
+  "category": "models",
+  "description": "Open-weight and hosted models",
+  "website": "https://mistral.ai",
+  "status": "compatible",
+  "integration_type": "Model-agnostic — identity sits above the model call",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Including self-hosted open-weight deployments: identity is a property of the operator and the agent, not of where inference runs.",
+  "featured": false
+}

@@ -1,0 +1,15 @@
+{
+  "id": "openai",
+  "name": "OpenAI",
+  "abbr": "OA",
+  "category": "models",
+  "description": "GPT model family and Agents SDK",
+  "website": "https://openai.com",
+  "status": "compatible",
+  "integration_type": "Model-agnostic — identity sits above the model call",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "AgenID never references a model provider. An agent keeps one agenid:<ULID> across a switch of model vendor; the identifier is carried by the operator's own request context, not by the model API.",
+  "featured": true
+}

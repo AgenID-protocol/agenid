@@ -1,0 +1,16 @@
+{
+  "id": "bland",
+  "name": "Bland AI",
+  "abbr": "Bl",
+  "category": "voice",
+  "description": "Outbound and inbound AI phone calls",
+  "website": "https://www.bland.ai",
+  "status": "compatible",
+  "integration_type": "Call request metadata + webhook",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Identity is attached to the call request's metadata object and returned on the completion webhook, where it is resolved and re-verified out-of-band.",
+  "featured": true,
+  "docs": "/docs/partners/bland-ai-integration"
+}

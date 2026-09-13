@@ -1,0 +1,16 @@
+{
+  "id": "vapi",
+  "name": "Vapi",
+  "abbr": "Va",
+  "category": "voice",
+  "description": "Developer voice agent platform",
+  "website": "https://vapi.ai",
+  "status": "compatible",
+  "integration_type": "Assistant metadata + server-message webhook",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "The identifier rides in assistant metadata and every server message; the operator's server verifies the ManifestProof before acting on a call event.",
+  "featured": true,
+  "docs": "/docs/partners/vapi-integration"
+}

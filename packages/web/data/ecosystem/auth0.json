@@ -1,0 +1,15 @@
+{
+  "id": "auth0",
+  "name": "Auth0",
+  "abbr": "A0",
+  "category": "enterprise",
+  "description": "Customer identity and access management",
+  "website": "https://auth0.com",
+  "status": "compatible",
+  "integration_type": "Complementary — end-user identity, not agent identity",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Auth0 identifies the human on the other side of the conversation. AgenID identifies the agent on this side of it.",
+  "featured": false
+}

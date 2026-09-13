@@ -1,0 +1,16 @@
+{
+  "id": "langchain",
+  "name": "LangChain",
+  "abbr": "LC",
+  "category": "frameworks",
+  "description": "Agent orchestration and LangGraph",
+  "website": "https://www.langchain.com",
+  "status": "compatible",
+  "integration_type": "Callback/config metadata threaded through the graph",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "The identifier is carried in the run configuration and surfaced on tool boundaries, so a downstream tool can resolve and verify the calling agent before it executes.",
+  "featured": true,
+  "docs": "/docs/partners/langchain-integration"
+}

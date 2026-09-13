@@ -1,0 +1,15 @@
+{
+  "id": "vercel",
+  "name": "Vercel",
+  "abbr": "▲",
+  "category": "infrastructure",
+  "description": "Edge/serverless application hosting",
+  "website": "https://vercel.com",
+  "status": "compatible",
+  "integration_type": "Hosting for resolvers, key documents, and badge embeds",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "The AgenID reference resolver itself runs here, which makes it a tested host for the read path — not a protocol dependency.",
+  "featured": false
+}

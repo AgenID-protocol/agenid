@@ -1,0 +1,15 @@
+{
+  "id": "crewai",
+  "name": "CrewAI",
+  "abbr": "Cw",
+  "category": "frameworks",
+  "description": "Multi-agent orchestration",
+  "website": "https://www.crewai.com",
+  "status": "compatible",
+  "integration_type": "Agent metadata passed between crew members",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Compatible through the generic pattern: each crew member carries its own agenid:<ULID> in agent metadata so inter-agent calls can be verified. No framework-specific brief has been written or tested.",
+  "featured": false
+}

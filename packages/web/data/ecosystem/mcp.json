@@ -1,0 +1,16 @@
+{
+  "id": "mcp",
+  "name": "Model Context Protocol",
+  "abbr": "MCP",
+  "category": "frameworks",
+  "description": "Open tool/context protocol for agents",
+  "website": "https://modelcontextprotocol.io",
+  "status": "compatible",
+  "integration_type": "Server metadata + @agenid/mcp-server tools",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "@agenid/mcp-server exposes resolution and verification as MCP tools, so any MCP-capable client can check an agent's identity. The package builds and tests in CI; it has not been published to npm (the @agenid scope is unclaimed).",
+  "featured": true,
+  "docs": "/docs/partners/mcp-server-integration"
+}

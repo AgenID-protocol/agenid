@@ -1,0 +1,15 @@
+{
+  "id": "autogen",
+  "name": "AutoGen",
+  "abbr": "AG",
+  "category": "frameworks",
+  "description": "Multi-agent conversation framework",
+  "website": "https://microsoft.github.io/autogen/",
+  "status": "compatible",
+  "integration_type": "Agent metadata passed between participants",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Compatible through the generic pattern only. No framework-specific brief has been written or tested.",
+  "featured": false
+}

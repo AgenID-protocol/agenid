@@ -44,6 +44,17 @@ body { background: var(--color-ink); color: var(--color-paper); }
 @keyframes blink { 50% { opacity: 0; } }
 .caret { animation: blink 1s step-end infinite; }
 
+/* Hero identity-story scene transition (components/IdentityStory.tsx). Off entirely
+ * under reduced motion — the component itself skips applying the class in that case,
+ * and this query is a belt-and-suspenders backstop. */
+@keyframes storyfade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[storyfade_0\.5s_ease\] { animation: none !important; }
+}
+
 /*
  * Article typography for docs/partners and docs/onboarding — rendered markdown
  * (packages/web/lib/markdown.ts). Deliberately plain: headings, code, and lists
@@ -74,4 +85,35 @@ body { background: var(--color-ink); color: var(--color-paper); }
 /* Copy button injected by components/DocCodeCopy.tsx onto rendered markdown code fences. */
 .doc-code-copy-btn {
   @apply absolute right-3 top-2.5 rounded border border-line bg-ink-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted transition hover:text-paper;
+}
+
+/*
+ * Identity-flow visualizer (components/ecosystem/IdentityFlow.tsx).
+ * One identity token travelling across three platforms while its digest stays
+ * byte-identical — the whole ecosystem argument in one loop. Pure CSS: no JS, no
+ * library, no hydration cost, and it degrades to a static diagram under
+ * prefers-reduced-motion (below) rather than freezing mid-transit.
+ */
+@keyframes agenid-travel {
+  0%,  18%  { left: 16.666%; opacity: 1; }
+  36%, 52%  { left: 50%;     opacity: 1; }
+  70%, 90%  { left: 83.333%; opacity: 1; }
+  96%       { left: 83.333%; opacity: 0; }
+  96.5%     { left: 16.666%; opacity: 0; }
+  100%      { left: 16.666%; opacity: 1; }
+}
+@keyframes agenid-stage {
+  0%, 22%   { border-color: var(--color-muted); }
+  30%, 100% { border-color: var(--color-line); }
+}
+.flow-token {
+  animation: agenid-travel 9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+.flow-stage { animation: agenid-stage 9s linear infinite; }
+.flow-stage-1 { animation-delay: 0s; }
+.flow-stage-2 { animation-delay: 3s; }
+.flow-stage-3 { animation-delay: 6s; }
+@media (prefers-reduced-motion: reduce) {
+  .flow-token { animation: none; left: 50%; }
+  .flow-stage { animation: none; }
 }

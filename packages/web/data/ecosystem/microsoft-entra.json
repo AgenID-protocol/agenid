@@ -1,0 +1,15 @@
+{
+  "id": "microsoft-entra",
+  "name": "Microsoft Entra ID",
+  "abbr": "Ent",
+  "category": "enterprise",
+  "description": "Enterprise identity and access management",
+  "website": "https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id",
+  "status": "compatible",
+  "integration_type": "Complementary — workforce identity, not agent identity",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Entra answers 'which principal is calling'. AgenID answers 'which agent is this, who is accountable for it, and what has been independently verified'. The two compose; neither replaces the other.",
+  "featured": true
+}

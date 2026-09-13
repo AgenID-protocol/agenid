@@ -1,0 +1,15 @@
+{
+  "id": "synthflow",
+  "name": "Synthflow",
+  "abbr": "Sy",
+  "category": "voice",
+  "description": "No-code voice assistant builder",
+  "website": "https://synthflow.ai",
+  "status": "compatible",
+  "integration_type": "Custom action headers + webhook payload",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Compatible through the generic pattern only: the identifier is passed as a custom-action header or payload field. No platform-specific brief has been written or tested.",
+  "featured": false
+}

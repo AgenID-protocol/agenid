@@ -1,0 +1,16 @@
+{
+  "id": "xai-grok",
+  "name": "xAI Grok",
+  "abbr": "xAI",
+  "category": "models",
+  "description": "Grok models and Grok bot surfaces",
+  "website": "https://x.ai",
+  "status": "compatible",
+  "integration_type": "Bot profile disclosure + resolver link",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "The documented pattern publishes the agenid:<ULID> in the bot's own profile/disclosure surface so a reader can resolve and verify it independently. Nothing is enforced by the platform.",
+  "featured": true,
+  "docs": "/docs/partners/grok-bot-integration"
+}

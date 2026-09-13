@@ -1,0 +1,15 @@
+{
+  "id": "aws",
+  "name": "AWS",
+  "abbr": "AWS",
+  "category": "infrastructure",
+  "description": "Cloud compute and hosting",
+  "website": "https://aws.amazon.com",
+  "status": "compatible",
+  "integration_type": "Hosting for operator key documents and agent runtimes",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Runtime-neutral. Relevant only as a place an operator hosts the agent, its key document, or its own verification endpoint.",
+  "featured": true
+}

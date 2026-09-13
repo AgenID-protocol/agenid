@@ -1,0 +1,16 @@
+{
+  "id": "openclaw",
+  "name": "OpenClaw",
+  "abbr": "OC",
+  "category": "frameworks",
+  "description": "Local agent gateway",
+  "website": "https://github.com/openclaw",
+  "status": "compatible",
+  "integration_type": "Gateway-level identity header + verification hook",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "The documented pattern attaches the identifier at the gateway so every downstream agent call carries it. Pattern only — no adapter package exists.",
+  "featured": true,
+  "docs": "/docs/partners/openclaw-integration"
+}

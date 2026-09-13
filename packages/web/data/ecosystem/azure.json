@@ -1,0 +1,15 @@
+{
+  "id": "azure",
+  "name": "Microsoft Azure",
+  "abbr": "Az",
+  "category": "infrastructure",
+  "description": "Cloud compute and hosting",
+  "website": "https://azure.microsoft.com",
+  "status": "compatible",
+  "integration_type": "Hosting for operator key documents and agent runtimes",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-13",
+  "compatibility_note": "Runtime-neutral, same as any other host. Route 'is this agent verified' checks through @agenid/core in the operator's own service.",
+  "featured": false
+}
