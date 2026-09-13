@@ -3,11 +3,26 @@ import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
+const TITLE = "AgenID — Identity Infrastructure for Production AI Agents";
+const DESCRIPTION =
+  "The open identity, provenance, and machine-resolution standard for AI agents. Permanent agenid:<ULID> identities, Ed25519 proofs over RFC 8785 canonical JSON, independently verifiable without trusting AgenID's own registry.";
+
 export const metadata: Metadata = {
-  title: { default: "AgenID — Identity Infrastructure for Production AI Agents", template: "%s · AgenID" },
-  description: "The open identity, provenance, and machine-resolution standard for AI agents. Permanent agenid:<ULID> identities, Ed25519 proofs over RFC 8785 canonical JSON, independently verifiable.",
+  title: { default: TITLE, template: "%s · AgenID" },
+  description: DESCRIPTION,
+  keywords: [
+    "AI agent identity protocol",
+    "machine-verifiable identity",
+    "cryptographic provenance",
+    "agent interoperability",
+    "AI agent verification",
+    "Ed25519",
+    "RFC 8785 JCS",
+  ],
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://agenid.com"),
   icons: { icon: "/agenid-mark.png" },
+  openGraph: { title: TITLE, description: DESCRIPTION, url: "/", siteName: "AgenID", type: "website" },
+  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
 };
 
 /** The sealed square — Brand Guide §01. Never recolored, never swapped. */
