@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  core:
-    name: "@agenid/core — build + §8 conformance suite"
+  packages:
+    name: "build + test (core, api) · e2e (web)"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,4 +20,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: cd packages/core && pnpm run build && pnpm test
+      - run: pnpm -r build
+      - run: pnpm --filter @agenid/core test
+      - run: pnpm --filter @agenid/api test
+      - run: pnpm --filter @agenid/web e2e

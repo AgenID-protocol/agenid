@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0f16;
+  --color-ink-2: #11161f;
+  --color-ink-3: #171d28;
+  --color-line: #232b38;
+  --color-paper: #f3f5f8;
+  --color-muted: #8b95a7;
+  --color-blue: #0180ff;
+  --color-cyan: #1dabea;
+  --color-mint: #31d298;
+  --color-mint-deep: #064e3b;
+  --color-amber: #f5b342;
+  --color-red: #ef5a5a;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+html { color-scheme: dark; }
+body { background: var(--color-ink); color: var(--color-paper); }
+
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+.gradient-text {
+  background: linear-gradient(90deg, var(--color-blue), var(--color-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pill { @apply inline-flex items-center gap-2 rounded-md border border-line bg-ink-2 px-3 py-1.5 font-mono text-xs text-muted; }
+.pill-ok { @apply border-mint/40 bg-mint-deep/60 text-mint; }
+.pill-warn { @apply border-amber/40 bg-amber/10 text-amber; }
+.pill-bad { @apply border-red/40 bg-red/10 text-red; }
+.card { @apply rounded-2xl border border-line bg-ink-2 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset,0_20px_60px_-30px_rgba(0,0,0,0.8)]; }
+.btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition; }
+.btn-primary { @apply bg-blue text-white hover:bg-cyan; }
+.btn-ghost { @apply border border-line text-paper hover:border-muted; }
+.kbd { @apply rounded border border-line bg-ink-3 px-1.5 py-0.5 font-mono text-[11px] text-muted; }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none !important; } }
+@keyframes blink { 50% { opacity: 0; } }
+.caret { animation: blink 1s step-end infinite; }
