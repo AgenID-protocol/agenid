@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "AgenID — Identity Infrastructure for Production AI Agents", template: "%s · AgenID" },
   description: "The open identity, provenance, and machine-resolution standard for AI agents. Permanent agenid:<ULID> identities, Ed25519 proofs over RFC 8785 canonical JSON, independently verifiable.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://agenid.org"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://agenid.com"),
+  icons: { icon: "/agenid-mark.png" },
 };
 
+/** The sealed square — Brand Guide §01. Never recolored, never swapped. */
 function Mark() {
-  return (
-    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-blue to-cyan font-mono text-[13px] font-bold text-white" aria-hidden>
-      A/
-    </span>
-  );
+  return <Image src="/agenid-mark.png" alt="" width={28} height={28} className="rounded-md" priority aria-hidden />;
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

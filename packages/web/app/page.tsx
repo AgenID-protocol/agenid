@@ -33,7 +33,7 @@ export default function Home() {
             <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Protocol v1.1.1 · Locked · MIT
           </p>
           <h1 className="mt-6 text-5xl font-bold tracking-tight md:text-6xl">
-            Identity Infrastructure for <span className="gradient-text">Production AI Agents</span>
+            Identity Infrastructure for Production AI Agents
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted">
             A permanent, portable, independently verifiable identity for every AI agent — who it is, who is accountable for it, what it declares, and what has actually been verified.
@@ -56,7 +56,7 @@ export default function Home() {
         <div className="grid gap-5 md:grid-cols-2">
           {PILLARS.map((p) => (
             <div key={p.title} className="card p-6">
-              <div className="mb-3 font-mono text-[11px] text-cyan">{p.tag}</div>
+              <div className="mb-3 font-mono text-[11px] text-muted">{p.tag}</div>
               <h2 className="text-lg font-semibold">{p.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted">{p.body}</p>
             </div>
@@ -67,7 +67,7 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-5 pb-20">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
-            <div className="mb-3 font-mono text-[11px] text-cyan">DEVELOPERS</div>
+            <div className="mb-3 font-mono text-[11px] text-muted">DEVELOPERS</div>
             <h2 className="text-3xl font-bold tracking-tight">Three commands to a verifiable agent.</h2>
             <p className="mt-4 text-muted">
               <span className="font-mono text-paper">@agenid/core</span> gives you identifiers, RFC 8785 canonicalization, the normative schemas, and the Ed25519 proof engine — the same code that passes the specification&apos;s deterministic test vectors byte-for-byte.
@@ -79,7 +79,7 @@ export default function Home() {
             <div className="mt-6 rounded-lg border border-line bg-ink-2 p-4 text-sm text-muted">
               <div className="mb-2 font-semibold text-paper">Embed a live badge</div>
               <code className="block overflow-x-auto font-mono text-[12px] text-paper/90">
-                {'<script src="https://agenid.org/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"></script>'}
+                {'<script src="https://agenid.com/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"></script>'}
               </code>
               <p className="mt-2 text-xs">Renders the current verification level, live — a suspended or revoked identity changes everywhere it&apos;s embedded.</p>
             </div>
@@ -92,15 +92,15 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-5 py-16">
           <div className="grid gap-8 md:grid-cols-3">
             <div>
-              <div className="font-mono text-[11px] text-cyan">DECLARED</div>
+              <div className="font-mono text-[11px] text-muted">DECLARED</div>
               <p className="mt-2 text-sm text-muted">The operator asserts it. Signed, but not checked. Every manifest starts here.</p>
             </div>
             <div>
-              <div className="font-mono text-[11px] text-cyan">VERIFIED</div>
+              <div className="font-mono text-[11px] text-mint">VERIFIED</div>
               <p className="mt-2 text-sm text-muted">An independent authority checked a specific claim against specific evidence, and signed that — bound to the exact manifest version.</p>
             </div>
             <div>
-              <div className="font-mono text-[11px] text-cyan">AUTHORIZED</div>
+              <div className="font-mono text-[11px] text-muted">AUTHORIZED</div>
               <p className="mt-2 text-sm text-muted">What the operator explicitly permits the agent to do. Reserved for v1.2 — never inferred from platform configuration.</p>
             </div>
           </div>

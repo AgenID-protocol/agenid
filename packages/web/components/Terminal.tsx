@@ -11,7 +11,7 @@ const STEPS: Step[] = [
     out: ["agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y", ""],
   },
   {
-    cmd: "curl -s https://agenid.org/a/agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y -H 'Accept: application/json' | jq .verification",
+    cmd: "curl -s https://agenid.com/a/agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y -H 'Accept: application/json' | jq .verification",
     out: ["{", '  "level": "L2_DOMAIN_VERIFIED",', '  "valid_assertions": 1,', '  "total_assertions": 1', "}"],
   },
 ];

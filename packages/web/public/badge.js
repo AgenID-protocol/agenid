@@ -1,5 +1,5 @@
-/* AgenID badge — https://agenid.org/badge.js
- * Usage: <script src="https://agenid.org/badge.js" data-agent="agenid:01J..."></script>
+/* AgenID badge — https://agenid.com/badge.js
+ * Usage: <script src="https://agenid.com/badge.js" data-agent="agenid:01J..."></script>
  * Renders a live badge (current verification level, fetched at load — never a cached image)
  * linking to the agent's public Verification Card. Re-checks nothing itself: the card is
  * where humans verify, and the JSON envelope at the same URL is where machines verify.
@@ -10,7 +10,7 @@
   if (!script) return;
   var agent = script.getAttribute("data-agent");
   var origin;
-  try { origin = new URL(script.src).origin; } catch (e) { origin = "https://agenid.org"; }
+  try { origin = new URL(script.src).origin; } catch (e) { origin = "https://agenid.com"; }
   var re = /^agenid:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
   if (!agent || !re.test(agent)) return;
 
@@ -22,9 +22,9 @@
   el.style.cssText =
     "display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;" +
     "font:600 12px/1 ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;" +
-    "text-decoration:none;color:#f3f5f8;background:#0b0f16;border:1px solid #232b38;letter-spacing:.01em";
+    "text-decoration:none;color:#f8fafc;background:#0b0f17;border:1px solid #1a2233;letter-spacing:.01em";
   var dot = document.createElement("span");
-  dot.style.cssText = "width:8px;height:8px;border-radius:50%;background:#8b95a7;flex:none";
+  dot.style.cssText = "width:8px;height:8px;border-radius:50%;background:#94a3b8;flex:none";
   var txt = document.createElement("span");
   txt.textContent = "AgenID · checking…";
   el.appendChild(dot);
@@ -44,24 +44,24 @@
       var bad = env.status === "SUSPENDED" || env.status === "REVOKED";
       var level = env.verification && env.verification.level;
       if (bad) {
-        dot.style.background = "#ef5a5a";
+        dot.style.background = "#ef4444";
         txt.textContent = "AGENID " + env.status;
         el.title = "This identity is " + env.status.toLowerCase() + ". Click to see the record.";
       } else if (!env.proof_check || !env.proof_check.ok) {
-        dot.style.background = "#ef5a5a";
+        dot.style.background = "#ef4444";
         txt.textContent = "AGENID PROOF INVALID";
       } else if (level === "L1_REGISTERED") {
-        dot.style.background = "#f5b342";
+        dot.style.background = "#f59e0b";
         txt.textContent = labels[level];
         el.title = "Registered (declared by operator), not yet independently verified.";
       } else {
-        dot.style.background = "#31d298";
+        dot.style.background = "#10b981";
         txt.textContent = labels[level] || "AGENID VERIFIED";
         el.title = (env.manifest.identity.name + " — operated by " + env.manifest.ownership.operator);
       }
     })
     .catch(function () {
-      dot.style.background = "#8b95a7";
+      dot.style.background = "#94a3b8";
       txt.textContent = "AGENID · unavailable";
     });
 })();

@@ -2,7 +2,7 @@
  * The resolution envelope (spec §14/§15): everything a verifier needs to check
  * an identity WITHOUT trusting this registry — manifest, operator proof,
  * assertions, and the key-discovery pointers for both required paths.
- * The same envelope is what `agenid.org/a/<id>` returns for
+ * The same envelope is what `agenid.com/a/<id>` returns for
  * `Accept: application/json`.
  */
 import {

@@ -28,7 +28,7 @@ import {
 } from "./identifier.js";
 import { SchemaValidationError } from "./errors.js";
 
-export const SCHEMA_BASE = "https://agenid.org/schemas/v1.1.1" as const;
+export const SCHEMA_BASE = "https://agenid.com/schemas/v1.1.1" as const;
 export const MANIFEST_SCHEMA_ID = `${SCHEMA_BASE}/manifest.json` as const;
 export const MANIFEST_PROOF_SCHEMA_ID = `${SCHEMA_BASE}/manifest-proof.json` as const;
 export const ASSERTION_SCHEMA_ID = `${SCHEMA_BASE}/assertion.json` as const;

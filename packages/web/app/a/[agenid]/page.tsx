@@ -54,7 +54,7 @@ function Card({ env, id }: { env: Envelope; id: string }) {
             <div>
               <div className="font-mono text-[11px] uppercase tracking-wider text-muted">Agent Identity Record</div>
               <h1 className="mt-1 text-2xl font-bold tracking-tight">{m.identity.name}</h1>
-              <div className="mt-1 break-all font-mono text-[13px] text-cyan">{id}</div>
+              <div className="mt-1 break-all font-mono text-[13px] text-muted">{id}</div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`pill ${bad ? "pill-bad" : levelOk ? "pill-ok" : "pill-warn"} !text-sm`}>
@@ -69,7 +69,7 @@ function Card({ env, id }: { env: Envelope; id: string }) {
           <div>
             <h2 className="mb-2 text-sm font-semibold">Declared by the operator</h2>
             <Row k="Operator" v={m.ownership.operator} />
-            <Row k="Domain" v={<a className="text-cyan hover:underline" href={`https://${m.ownership.operator_domain}`} rel="nofollow noopener">{m.ownership.operator_domain}</a>} mono />
+            <Row k="Domain" v={<a className="text-paper hover:underline" href={`https://${m.ownership.operator_domain}`} rel="nofollow noopener">{m.ownership.operator_domain}</a>} mono />
             <Row k="Purpose" v={m.purpose.summary} />
             <Row k="Channels" v={m.purpose.channels.join(", ")} mono />
             <Row k="AI disclosed" v={m.disclosure.is_ai && m.disclosure.discloses_to_user ? "Yes — declares itself as AI to users" : "No"} />
@@ -91,8 +91,8 @@ function Card({ env, id }: { env: Envelope; id: string }) {
         <div className="border-t border-line bg-ink-3/40 px-6 py-4 text-xs text-muted">
           <span className="font-semibold text-paper">Verify this yourself.</span> {env.verify_instructions}
           <div className="mt-2 flex flex-wrap gap-3 font-mono">
-            <a className="text-cyan hover:underline" href={`${SITE_URL}/a/${id}`} rel="alternate" type="application/json">GET this URL with Accept: application/json</a>
-            <a className="text-cyan hover:underline" href={env.operator_key.discovery.well_known_url}>operator keys.json</a>
+            <a className="text-paper hover:underline" href={`${SITE_URL}/a/${id}`} rel="alternate" type="application/json">GET this URL with Accept: application/json</a>
+            <a className="text-paper hover:underline" href={env.operator_key.discovery.well_known_url}>operator keys.json</a>
           </div>
         </div>
       </div>

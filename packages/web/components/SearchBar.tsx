@@ -33,7 +33,7 @@ export function SearchBar({ compact = false }: { compact?: boolean }) {
           placeholder="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"
           spellCheck={false}
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-lg border border-line bg-ink-2 px-4 py-3 font-mono text-sm text-paper placeholder:text-muted/60 focus:border-blue focus:outline-none"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-ink-2 px-4 py-3 font-mono text-sm text-paper placeholder:text-muted/60 focus:border-mint focus:outline-none"
         />
         <button type="submit" className="btn btn-primary">Resolve</button>
       </div>

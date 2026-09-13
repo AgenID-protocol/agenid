@@ -94,10 +94,10 @@ describe("§8.3 ManifestProof (operator-signed)", () => {
     expect(new TextDecoder().decode(signingInputOf(proof))).toBe(V.manifest_proof.signing_input_utf8);
     expect(hex(signingInputOf(proof))).toBe(V.manifest_proof.signing_input_hex);
   });
-  it("Ed25519 signature matches f1b9a811…260c exactly", () => {
+  it("Ed25519 signature matches gtXt3CI3…kBQ exactly", () => {
     expect(hex(b64uDecode(proof.signature))).toBe(V.manifest_proof.signature_hex);
     expect(proof.signature).toBe(V.manifest_proof.signature_b64u);
-    expect(proof.signature.startsWith("8bmoEQHb")).toBe(true);
+    expect(proof.signature.startsWith("gtXt3CI3")).toBe(true);
   });
   it("signed object equals the spec's signed object", () => {
     expect(proof).toEqual(V.manifest_proof.signed_object);
@@ -118,10 +118,10 @@ describe("§8.4 VerificationAssertion (authority-signed)", () => {
     expect(new TextDecoder().decode(signingInputOf(assertion))).toBe(V.verification_assertion.signing_input_utf8);
     expect(hex(signingInputOf(assertion))).toBe(V.verification_assertion.signing_input_hex);
   });
-  it("Ed25519 signature matches 80a0e77a…230e exactly", () => {
+  it("Ed25519 signature matches -j7Uqsje…TCw exactly", () => {
     expect(hex(b64uDecode(assertion.signature))).toBe(V.verification_assertion.signature_hex);
     expect(assertion.signature).toBe(V.verification_assertion.signature_b64u);
-    expect(assertion.signature.startsWith("gKDnej0d")).toBe(true);
+    expect(assertion.signature.startsWith("-j7Uqsje")).toBe(true);
   });
   it("signed object equals the spec's signed object", () => {
     expect(assertion).toEqual(V.verification_assertion.signed_object);
@@ -209,7 +209,11 @@ describe("§8.6 negative vectors", () => {
 
 describe("§8.7 adversarial canonicalization vectors", () => {
   const A = V.adversarial_canonicalization;
-  for (const name of ["numbers", "unicode", "sort_order", "empty_and_null"] as const) {
+  // "numbers" is excluded here: per Erratum E1 that vector documents the *rejection*
+  // (an out-of-domain integer literal), not a successful canonicalization — it carries
+  // an `error` field instead of canonical_utf8/sha256. Its throw behavior is covered
+  // by the dedicated InvalidNumberDomainError tests below.
+  for (const name of ["unicode", "sort_order", "empty_and_null"] as const) {
     it(`${name}: canonical bytes and SHA-256 match the independent implementation`, () => {
       const bytes = canonicalizeToBytes(A[name].input);
       expect(new TextDecoder().decode(bytes)).toBe(A[name].canonical_utf8);
@@ -217,6 +221,9 @@ describe("§8.7 adversarial canonicalization vectors", () => {
       expect(hex(sha256(bytes))).toBe(A[name].sha256);
     });
   }
+  it("numbers: the documented out-of-domain literal is rejected, matching the recorded error", () => {
+    expect(() => canonicalizeToBytes(A.numbers.input)).toThrow(InvalidNumberDomainError);
+  });
   it("numbers: 1.0→1, -0.0→0, 1e21→1e+21, 1e-7→1e-7", () => {
     expect(canonicalize({ b: 1.0, f: -0.0, c: 1e21, e: 1e-7, d: 0.000001 })).toBe('{"b":1,"c":1e+21,"d":0.000001,"e":1e-7,"f":0}');
   });

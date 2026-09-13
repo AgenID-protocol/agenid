@@ -6,7 +6,7 @@ Reference implementation of the [AgenID Protocol](https://github.com/AgenID-prot
 |---|---|
 | [`packages/core`](packages/core) — `@agenid/core` | Identifiers, RFC 8785 canonicalization, normative schemas, Ed25519 proof engine, §8 conformance suite |
 | [`packages/api`](packages/api) — `@agenid/api` | Fastify Registry REST API over a storage-independent store |
-| [`packages/web`](packages/web) — `@agenid/web` | agenid.org: landing, universal resolver `/a/<agenid>` (HTML + JSON), `badge.js` |
+| [`packages/web`](packages/web) — `@agenid/web` | agenid.com: landing, universal resolver `/a/<agenid>` (HTML + JSON), `badge.js` |
 
 ```bash
 pnpm install

@@ -1,6 +1,6 @@
 /** Server-side helpers for talking to the Registry API. Never imported by client components. */
 export const API_URL = (process.env.AGENID_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://agenid.org").replace(/\/$/, "");
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://agenid.com").replace(/\/$/, "");
 
 export const AGENT_ID_RE = /^agenid:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 

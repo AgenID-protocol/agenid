@@ -120,7 +120,7 @@ describe("§11 verification levels", () => {
   });
   it("level ↔ claim.type and subject_type ↔ L4 rules are enforced", () => {
     const base = {
-      $schema: "https://agenid.org/schemas/v1.1.1/assertion.json",
+      $schema: "https://agenid.com/schemas/v1.1.1/assertion.json",
       assertion_id: "assertion:01J8Z3P2K8VW4RN7XTQ6MYD5HC",
       subject: AGENT,
       subject_type: "agent",
