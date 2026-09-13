@@ -1,0 +1,33 @@
+{
+  "name": "@agenid/core",
+  "version": "1.1.1",
+  "description": "AgenID v1.1.1 protocol core: identifiers, RFC 8785 canonicalization, normative schemas, and the Ed25519 proof engine. No storage, no server, no UI.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}
