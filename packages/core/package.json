@@ -3,6 +3,15 @@
   "version": "1.1.1",
   "description": "AgenID v1.1.1 protocol core: identifiers, RFC 8785 canonicalization, normative schemas, and the Ed25519 proof engine. No storage, no server, no UI.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgenID-protocol/agenid.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://agenid.com",
+  "bugs": {
+    "url": "https://github.com/AgenID-protocol/agenid/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,7 +21,10 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "engines": {
     "node": ">=20"
   },
