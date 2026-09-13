@@ -2,7 +2,7 @@
   "name": "@agenid/web",
   "version": "0.1.0",
   "private": true,
-  "description": "agenid.com — landing page, universal resolver (/a/<agenid>), and badge.js embed.",
+  "description": "agenid.com \u2014 landing page, universal resolver (/a/<agenid>), and badge.js embed.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -16,13 +16,13 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@agenid/api": "workspace:*",
+    "@agenid/core": "workspace:*",
     "next": "^16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
-    "@agenid/api": "workspace:*",
-    "@agenid/core": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.5.1",
     "@types/react": "^19.2.0",

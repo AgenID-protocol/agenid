@@ -42,6 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-1 text-sm text-muted">
               <a className="rounded-md px-3 py-1.5 hover:text-paper" href="https://github.com/AgenID-protocol/spec">Spec</a>
               <a className="rounded-md px-3 py-1.5 hover:text-paper" href="https://github.com/AgenID-protocol/spec/tree/main/schemas">Schemas</a>
+              <Link className="rounded-md px-3 py-1.5 hover:text-paper" href="/docs/onboarding">Onboarding</Link>
+              <Link className="rounded-md px-3 py-1.5 hover:text-paper" href="/docs/partners">Partners</Link>
               <a className="rounded-md px-3 py-1.5 hover:text-paper" href="https://github.com/AgenID-protocol/agenid">@agenid/core</a>
               <a className="btn btn-ghost ml-2 !py-1.5" href="https://github.com/AgenID-protocol">GitHub</a>
             </div>

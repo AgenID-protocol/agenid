@@ -44,20 +44,6 @@ body { background: var(--color-ink); color: var(--color-paper); }
 @keyframes blink { 50% { opacity: 0; } }
 .caret { animation: blink 1s step-end infinite; }
 
-/* Rendered markdown (partner integration briefs, docs). Mirrors the brand
- * guide's dark palette and plain-text-underline link rule above. */
-.prose-agenid h1 { @apply mt-0 mb-4 text-3xl font-bold tracking-tight; }
-.prose-agenid h2 { @apply mb-3 mt-10 text-xl font-semibold tracking-tight; }
-.prose-agenid p { @apply mb-4 leading-relaxed text-paper/90; }
-.prose-agenid ul { @apply mb-4 list-disc space-y-1.5 pl-5 text-paper/90; }
-.prose-agenid li { @apply leading-relaxed; }
-.prose-agenid a { @apply underline hover:text-paper; }
-.prose-agenid code { @apply rounded border border-line bg-ink-3 px-1 py-0.5 font-mono text-[13px] text-mint; }
-.prose-agenid pre { @apply mb-4 overflow-x-auto rounded-xl border border-line bg-ink-3 p-4 text-[13px]; }
-.prose-agenid pre code { @apply border-0 bg-transparent p-0 text-paper; }
-.prose-agenid hr { @apply my-8 border-line; }
-.prose-agenid strong { @apply font-semibold text-paper; }
-
 /*
  * Article typography for docs/partners and docs/onboarding — rendered markdown
  * (packages/web/lib/markdown.ts). Deliberately plain: headings, code, and lists
@@ -73,7 +59,7 @@ body { background: var(--color-ink); color: var(--color-paper); }
 .prose-agenid li { @apply pl-1; }
 .prose-agenid hr { @apply my-8 border-line; }
 .prose-agenid strong { @apply font-semibold text-paper; }
-.prose-agenid a { @apply text-paper underline underline-offset-2 hover:text-mint; }
+.prose-agenid a { @apply text-paper underline underline-offset-2 hover:no-underline; }
 .prose-agenid code { @apply rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[13px] text-muted; }
 .prose-agenid pre {
   @apply relative my-5 overflow-x-auto rounded-xl border border-line bg-ink-3 p-4 pt-8 font-mono text-[13px] leading-6 text-paper/90;

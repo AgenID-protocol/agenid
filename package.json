@@ -5,9 +5,13 @@
   "description": "AgenID reference implementation monorepo — AI Agent Identity Infrastructure (protocol v1.1.1)",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=20" },
-  "packageManager": "pnpm@10.29.1",
-  "workspaces": ["packages/*"],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.29.1+sha512.48dae233635a645768a3028d19545cacc1688639eeb1f3734e42d6d6b971afbf22aa1ac9af52a173d9c3a20c15857cfa400f19994d79a2f626fcc73fccda9bbc",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
