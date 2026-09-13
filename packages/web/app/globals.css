@@ -71,3 +71,7 @@ body { background: var(--color-ink); color: var(--color-paper); }
   content: attr(data-lang);
   @apply absolute left-4 top-2.5 font-mono text-[10px] uppercase tracking-wider text-muted;
 }
+/* Copy button injected by components/DocCodeCopy.tsx onto rendered markdown code fences. */
+.doc-code-copy-btn {
+  @apply absolute right-3 top-2.5 rounded border border-line bg-ink-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted transition hover:text-paper;
+}

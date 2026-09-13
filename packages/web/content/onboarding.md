@@ -114,3 +114,81 @@ Every resolved envelope includes `verify_instructions` and everything needed to 
 4. For each assertion, fetch the issuing authority's key the same way, verify its signature, and check its validity window and that `assertion.manifest_digest` matches your current manifest.
 
 None of this requires AgenID's registry to be honest or even online. See [`AgenID-protocol/conformance`](https://github.com/AgenID-protocol/conformance) for an independent reference implementation of the same checks that deliberately never imports `@agenid/core` or talks to any registry.
+
+## Ecosystem distribution
+
+The same registry and verification primitives are reachable from outside a browser: an MCP-compatible AI client can call AgenID tools directly, an OpenAI Custom GPT or Assistant can import the REST surface as an Action, and any Gemini-style function-calling agent can wire up the same two operations by hand. All three paths hit the exact routes documented above — nothing here is a separate, undocumented surface.
+
+### Claude Desktop / Cursor / Windsurf (MCP)
+
+[`@agenid/mcp-server`](https://github.com/AgenID-protocol/agenid/tree/main/packages/mcp-server) is a stdio MCP server exposing `resolve_agent_identity`, `verify_agent_manifest`, and `generate_keypair`. It runs via `npx` — no local install or build step required.
+
+Add this to the client's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "agenid": {
+      "command": "npx",
+      "args": ["-y", "@agenid/mcp-server"]
+    }
+  }
+}
+```
+
+- **Claude Desktop** — `Settings → Developer → Edit Config`, add the block above to `claude_desktop_config.json`, restart Claude Desktop.
+- **Cursor** — add the block to `.cursor/mcp.json` (project-level) or the global MCP settings, then reload the MCP servers.
+- **Windsurf** — add the block to `~/.codeium/windsurf/mcp_config.json`, then reload MCP servers from Windsurf's settings panel.
+
+`resolve_agent_identity` and `verify_agent_manifest` need no credentials. `generate_keypair` never transmits the private key anywhere — it returns it once, in the tool response, for the caller to store.
+
+### OpenAI Custom GPTs / Assistants
+
+Import the OpenAPI 3.0 spec directly — no manual schema authoring:
+
+```
+https://www.agenid.com/api/v1/openapi.json
+```
+
+1. In the GPT Builder, open **Configure → Actions → Create new action**.
+2. Choose **Import from URL** and paste the link above.
+3. Authentication: **None** — both operations (`resolveAgentIdentity`, `verifyAgentPayload`) are public and unauthenticated.
+4. Save, then test with a sample `agenid:<ULID>` or a signed payload.
+
+The same spec works as an Assistants API tool definition (`tools: [{ type: "function", ... }]` generated from the imported schema) for any code path that consumes OpenAPI directly.
+
+### Gemini / custom agents (function declarations)
+
+For a Gemini-style function-calling agent, or any custom agent framework that takes hand-written function declarations rather than an OpenAPI import:
+
+```json
+{
+  "name": "resolve_agent_identity",
+  "description": "Resolve an AI agent's AgenID identity record and current verification level by its agenid:<ULID> identifier.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "agenid": { "type": "string", "description": "Agent identifier, e.g. agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y" }
+    },
+    "required": ["agenid"]
+  }
+}
+```
+
+```json
+{
+  "name": "verify_agent_payload",
+  "description": "Stateless Ed25519 signature verification over an RFC 8785 JCS canonicalized AgenID payload. No registry lookup.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "manifest": { "type": "object", "description": "The signed payload, without its signature field." },
+      "signature": { "type": "string", "description": "Base64url or hex-encoded Ed25519 signature." },
+      "public_key_hex": { "type": "string", "description": "64-character hex-encoded Ed25519 public key." }
+    },
+    "required": ["manifest", "signature", "public_key_hex"]
+  }
+}
+```
+
+Wire `resolve_agent_identity` to `GET https://www.agenid.com/api/resolve/{agenid}` and `verify_agent_payload` to `POST https://www.agenid.com/api/v1/verify` with the arguments as the JSON body.

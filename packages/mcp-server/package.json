@@ -1,0 +1,49 @@
+{
+  "name": "@agenid/mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for AgenID — resolve agent identities, verify manifests, and generate operator keypairs from any MCP-compatible client (Claude Desktop, Cursor, Windsurf).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgenID-protocol/agenid.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://agenid.com",
+  "bugs": {
+    "url": "https://github.com/AgenID-protocol/agenid/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agenid-mcp": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/index.js",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@agenid/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOnboardingDoc } from "@/lib/onboarding";
+import { DocCodeCopy } from "@/components/DocCodeCopy";
 import { SITE_URL } from "@/lib/api";
 
 const DESCRIPTION =
@@ -34,6 +35,7 @@ export default function OnboardingPage() {
     <main className="mx-auto max-w-3xl px-5 py-16">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <DocCodeCopy />
 
       <div className="mb-6 font-mono text-[11px] text-muted">
         <Link href="/" className="hover:text-paper">AgenID</Link> / Operator onboarding
