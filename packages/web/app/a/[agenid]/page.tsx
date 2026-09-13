@@ -15,6 +15,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title: name ? `${name} · ${id}` : id,
     description: envelope ? `${name} — operated by ${envelope.manifest.ownership.operator}. Verification: ${levelLabel(envelope.verification.level)}.` : "AgenID resolver",
+    alternates: { canonical: `/a/${agenid}` },
   };
 }
 

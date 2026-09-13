@@ -2,6 +2,16 @@ import { SearchBar } from "@/components/SearchBar";
 import { Terminal } from "@/components/Terminal";
 import { LifecycleDiagram, TrustModelDiagram, CryptoChainDiagram, TwoPathDiagram } from "@/components/Diagrams";
 
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/api";
+
+export const metadata: Metadata = {
+  title: "AgenID — Identity Infrastructure for Production AI Agents",
+  description:
+    "A permanent, portable, independently verifiable identity for every AI agent — who it is, who is accountable for it, what it declares, and what has actually been verified.",
+  alternates: { canonical: "/" },
+};
+
 const PILLARS = [
   {
     n: "01",
@@ -38,6 +48,31 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export default function Home() {
   return (
     <main>
+  {/* eslint-disable-next-line react/no-danger */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "AgenID",
+            applicationCategory: "SecurityApplication",
+            operatingSystem: "Any",
+            url: SITE_URL,
+            description: metadata.description,
+            about: {
+              "@type": "DefinedTermSet",
+              name: "AgenID Identifiers",
+              hasDefinedTerm: {
+                "@type": "DefinedTerm",
+                name: "agenid:<ULID>",
+                description:
+                  "A permanent, portable identifier for an AI agent, bound to a signed operator manifest.",
+              },
+            },
+          }),
+        }}
+      />
       {/* HERO */}
       <section className="grid-bg border-b border-line/70">
         <div className="mx-auto max-w-6xl px-5 pb-20 pt-20 text-center">
