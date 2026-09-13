@@ -29,7 +29,11 @@ npm run build && npm test
 - **`crypto.sign(null, …)`** is PureEdDSA in Node; there is no code path that could produce Ed25519ph. A test proves that signing a SHA-256 of the input does *not* reproduce the spec signature.
 - **JCS is implemented in-package**, built on the two ECMAScript primitives RFC 8785 is defined in terms of (`JSON.stringify` for strings/numbers, UTF-16 code-unit key ordering). Conformance is proven byte-for-byte against the Python `rfc8785` vectors, including DEL/NBSP/astral characters and the `"10" < "9" < "B" < "a"` ordering case.
 
-## ERRATUM raised against the spec (§5 number-domain rule)
+## Erratum E1 (spec §5 number-domain rule) — applied upstream
+
+Status: **applied** in [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec) as Erratum E1 (see its `ERRATA.md`). The text below is the original finding, kept for the record.
+
+### Original finding
 
 The spec's §5 prose says integers with magnitude > 2^53−1 are rejected. That sentence was written from the Python implementation's behavior, where `int` and `float` are distinct types — Python accepts the float `1e20` but rejects the int `100000000000000000000`. JavaScript has one number type, so the rule as worded is not implementable language-neutrally (JS cannot tell `1e20` from `100000000000000000000`).
 
@@ -37,7 +41,7 @@ The spec's §5 prose says integers with magnitude > 2^53−1 are rejected. That 
 
 > A number is rejected if it is non-finite, or if its RFC 8785 canonical token is an integer literal (no `.` and no `e`) with magnitude > 2^53−1.
 
-Consequences: `9007199254740991` ok · `9007199254740992` rejected · `1e20` (token `100000000000000000000`) rejected · `1e21` (token `1e+21`) ok · `1e100` ok. This is *stricter* than Python's behavior for large floats and identical for ints; it never changes the bytes of any accepted value, so all §8 vectors still pass unchanged. Because no v1.1.1 schema field is a JSON number, no conformant document can reach this edge either way. The spec text should be updated to this wording; a test (`number-domain rule is defined on the canonical token`) pins the behavior.
+Consequences: `9007199254740991` ok · `9007199254740992` rejected · `1e20` (token `100000000000000000000`) rejected · `1e21` (token `1e+21`) ok · `1e100` ok. This is *stricter* than Python's behavior for large floats and identical for ints; it never changes the bytes of any accepted value, so all §8 vectors still pass unchanged. Because no v1.1.1 schema field is a JSON number, no conformant document can reach this edge either way. A test (`number-domain rule is defined on the canonical token`) pins the behavior.
 
 ## Not implemented by design
 
