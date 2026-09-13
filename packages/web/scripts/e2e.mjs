@@ -77,7 +77,28 @@ const js = await r.text();
 r.status === 200 && r.headers.get("access-control-allow-origin") === "*" && js.includes("/api/resolve/") ? ok("3d. /badge.js served with CORS and points at the resolver") : fail("3d. badge.js");
 
 r = await fetch(`${W}/`, { headers: { accept: "text/html" } });
-(await r.text()).includes("Identity Infrastructure for") ? ok("3e. landing page renders") : fail("3e. landing page");
+const home = await r.text();
+// Asserted on structure, not marketing copy: the previous check pinned an exact H1
+// string and went red the moment the hero was rewritten, which says nothing about
+// whether the page works. These three are load-bearing — the resolver entry point,
+// the identifier format, and the ecosystem entry point.
+r.status === 200 && home.includes("agenid-search") && home.includes("agenid:") && home.includes('href="/ecosystem"')
+  ? ok("3e. landing page renders (resolver input, identifier, ecosystem link)")
+  : fail(`3e. landing page (status ${r.status})`);
+
+r = await fetch(`${W}/ecosystem`, { headers: { accept: "text/html" } });
+const eco = await r.text();
+// The page must ship the status *definitions* (so "Compatible" can never be read as
+// "integrated"), and must carry the no-endorsement line. Both are honesty requirements,
+// not decoration — if a redesign drops them, this goes red.
+r.status === 200 &&
+eco.includes("The Agent Ecosystem") &&
+eco.includes("Compatible") &&
+eco.includes("Verified Integration") &&
+eco.includes("Official Partner") &&
+eco.includes("not an endorsement")
+  ? ok("3f. /ecosystem renders the matrix with its status definitions and no-endorsement notice")
+  : fail(`3f. /ecosystem (status ${r.status})`);
 
 await new Promise((res) => web.close(res));
 await api.close();

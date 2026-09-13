@@ -7,7 +7,7 @@ on:
 
 jobs:
   packages:
-    name: "build + test (core, api) · e2e (web)"
+    name: "build + test (core, api, mcp-server, web) · e2e (web)"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,4 +24,5 @@ jobs:
       - run: pnpm --filter @agenid/core test
       - run: pnpm --filter @agenid/api test
       - run: pnpm --filter @agenid/mcp-server test
+      - run: pnpm --filter @agenid/web test
       - run: pnpm --filter @agenid/web e2e
