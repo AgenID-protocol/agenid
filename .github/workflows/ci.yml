@@ -23,4 +23,5 @@ jobs:
       - run: pnpm -r build
       - run: pnpm --filter @agenid/core test
       - run: pnpm --filter @agenid/api test
+      - run: pnpm --filter @agenid/mcp-server test
       - run: pnpm --filter @agenid/web e2e

@@ -108,21 +108,25 @@ server.registerTool(
 server.registerTool(
   "verify_agent_manifest",
   {
-    title: "Verify AgenID Manifest Signature",
+    title: "Verify AgenID Signed Payload (Ed25519 / RFC 8785 JCS)",
     description:
       "Stateless, offline Ed25519 (RFC 8032) signature verification over an RFC 8785 JCS canonicalized payload. " +
-      "Give it the manifest (or any AgenID JSON payload), its base64url-encoded signature, and the signer's " +
-      "hex-encoded Ed25519 public key — no network call, no registry lookup, no trust in AgenID's own servers. " +
-      "This is the same canonicalization + verification primitive the AgenID-protocol/conformance suite uses.",
+      "No network call, no registry lookup, no trust in AgenID's own servers. This is the same low-level " +
+      "canonicalization + verification primitive @agenid/core uses internally. " +
+      "IMPORTANT — the AgenID protocol never signs a bare Manifest: a ManifestProof signs the ManifestProof " +
+      "payload (agent_id, manifest_version, manifest_digest, key_id, created_at, expires_at), not the manifest " +
+      "itself. To verify a real ManifestProof, pass that proof object (every field except `signature`) as " +
+      "`payload` — passing the bare manifest will correctly report `valid: false`, not throw, since it is " +
+      "signing a different set of bytes than the proof committed to.",
     inputSchema: {
-      manifest: z.record(z.string(), z.unknown()).describe("The manifest (or other signed payload) as a JSON object, without its `signature` field."),
+      payload: z.record(z.string(), z.unknown()).describe("The exact signed object as a JSON object, without its `signature` field — for a ManifestProof this is the proof payload (agent_id, manifest_version, manifest_digest, key_id, created_at, expires_at), NOT the bare manifest."),
       signature: z.string().describe("Base64url-encoded (unpadded) 64-byte Ed25519 signature, e.g. from a ManifestProof's `signature` field."),
       publicKey: z.string().describe("Hex-encoded 32-byte Ed25519 public key of the signer."),
     },
   },
-  async ({ manifest, signature, publicKey }) => {
+  async ({ payload, signature, publicKey }) => {
     try {
-      const canonicalBytes = canonicalizeToBytes(manifest);
+      const canonicalBytes = canonicalizeToBytes(payload);
       const sigBytes = decodeSignature(signature);
       const pubKeyBytes = decodePublicKey(publicKey);
       const valid = verifyBytes(pubKeyBytes, canonicalBytes, sigBytes);
@@ -209,7 +213,9 @@ server.registerTool(
               next_steps: [
                 "Fill in identity.name, identity.description, ownership.operator, purpose.summary, and purpose.channels.",
                 "Sign the completed manifest with signManifestProof() from @agenid/core using this private key.",
-                "POST { manifest, proof, key_document } to https://www.agenid.com/v1/agents to register (see docs/OPERATOR_ONBOARDING.md).",
+                "POST { manifest, proof, key_document } to a running @agenid/api registry instance's /v1/agents endpoint to register. " +
+                  "As of this build, https://www.agenid.com does not itself expose a write endpoint — it only resolves " +
+                  "already-registered agents (see docs/OPERATOR_ONBOARDING.md for current registry access).",
               ],
             },
             null,
