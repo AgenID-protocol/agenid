@@ -1,0 +1,18 @@
+{
+  "name": "@agenid/cli",
+  "version": "0.1.0",
+  "description": "AgenID operator CLI — generate keys, build a manifest, and sign a ManifestProof locally. Private keys never leave your machine.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "agenid": "dist/index.js" },
+  "main": "dist/index.js",
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": { "@agenid/core": "workspace:*" },
+  "devDependencies": { "typescript": "^5.9.3", "vitest": "^5.0.0", "@types/node": "^22.0.0" }
+}
