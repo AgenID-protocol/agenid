@@ -1,0 +1,19 @@
+{
+  "providerId": "agenid.com",
+  "providerName": "AgenID",
+  "serviceId": "agent-identity",
+  "serviceName": "AI Agent Identity Verification",
+  "version": 1,
+  "logoUrl": "https://www.agenid.com/icon.svg",
+  "description": "Publishes a single TXT record proving you control this domain, so an AI agent registered under it can be attributed to you.",
+  "syncBlock": false,
+  "syncPubKeyDomain": "agenid.com",
+  "records": [
+    {
+      "type": "TXT",
+      "host": "_agenid",
+      "data": "agenid-site-verification=%token%",
+      "ttl": 300
+    }
+  ]
+}
