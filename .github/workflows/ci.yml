@@ -7,7 +7,7 @@ on:
 
 jobs:
   packages:
-    name: "build + test (core, api, mcp-server, web) · e2e (web)"
+    name: "build + test (core, api, cli, mcp-server, web) · e2e (web)"
     runs-on: ubuntu-latest
     strategy:
       matrix:

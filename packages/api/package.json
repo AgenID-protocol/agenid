@@ -2,6 +2,11 @@
   "name": "@agenid/api",
   "version": "0.1.0",
   "description": "AgenID Registry REST API — Fastify. Implements the v1.1.1 §13 endpoints over a storage-independent RegistryStore.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgenID-protocol/agenid.git",
+    "directory": "packages/api"
+  },
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

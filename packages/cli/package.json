@@ -2,6 +2,7 @@
   "name": "@agenid/cli",
   "version": "0.1.0",
   "description": "AgenID operator CLI — generate keys, build a manifest, and sign a ManifestProof locally. Private keys never leave your machine.",
+  "repository": { "type": "git", "url": "git+https://github.com/AgenID-protocol/agenid.git", "directory": "packages/cli" },
   "license": "MIT",
   "type": "module",
   "bin": { "agenid": "dist/index.js" },
