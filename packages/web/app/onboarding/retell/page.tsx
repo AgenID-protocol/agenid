@@ -32,9 +32,10 @@ interface BindResult {
     manifest_digest: string;
     key_id: string;
     proof_expires_at: string;
+    registered_at: string;
+    links: { card: string; envelope: string };
   }>;
   persisted: boolean;
-  registered_at: string;
   disclosures: string[];
 }
 
@@ -485,14 +486,19 @@ export default function RetellOnboardingWizard() {
               {bindResult ? (
                 <div className="space-y-6">
                   {/*
-                    DECLARED renders AMBER, never emerald. Verified Emerald is reserved for
-                    third-party-verified state; DECLARED is a self-declaration and sits below
-                    L1. The SVG badge, badge.js and /issue all agree on this — if this panel
-                    used emerald, the same identity would read as verified here and unverified
-                    everywhere else in the product.
+                    The registration level renders AMBER, never emerald. Verified Emerald is
+                    reserved for third-party-verified state; L1 is a self-declaration. The SVG
+                    badge, badge.js, /issue and the Verification Card all agree on this — if
+                    this panel used emerald, the same identity would read as verified here and
+                    unverified everywhere else in the product.
+
+                    The level is taken from the server response, never asserted by this
+                    component: a presentation layer must not decide what trust state a record
+                    is in. (It read a hardcoded "DECLARED" while the route returned something
+                    else, which is exactly the drift this rule exists to stop.)
                   */}
                   <div className="relative bg-amber/10 border border-amber/40 p-6 rounded-xl text-center space-y-3 overflow-hidden">
-                    <div className="text-amber text-2xl font-bold tracking-tight">DECLARED</div>
+                    <div className="text-amber text-2xl font-bold tracking-tight">{bindResult.level}</div>
                     <div className="font-mono text-xs text-amber/70">{bindResult.domain}</div>
                     <div className="text-xs text-paper/60">
                       {bindResult.agents.length} agent{bindResult.agents.length !== 1 ? "s" : ""} signed with Ed25519

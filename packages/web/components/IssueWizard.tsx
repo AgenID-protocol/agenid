@@ -79,8 +79,15 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
   const [purpose, setPurpose] = useState("");
   const [contact, setContact] = useState("");
   const [channels, setChannels] = useState<Channel[]>(["voice"]);
-  const [discloses, setDiscloses] = useState(true);
-  const [escalation, setEscalation] = useState(true);
+  /**
+   * Both start FALSE. These are behavioral claims about a real deployment, they are not
+   * discoverable from any API, and they go under the operator's own Ed25519 signature —
+   * so a pre-checked box would sign a claim the operator never made. Pre-checking is the
+   * quiet version of hardcoding; it was hardcoded `true` in the Retell wizard and
+   * pre-checked `true` here, which is the same defect at two different volumes.
+   */
+  const [discloses, setDiscloses] = useState(false);
+  const [escalation, setEscalation] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

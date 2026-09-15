@@ -1,29 +1,25 @@
 /**
- * POST /api/retell/bind — validate client-signed ManifestProofs and persist
- * public material to the canonical protocol tables.
+ * POST /api/retell/bind — register a fleet of Retell-hosted agents in one call.
  *
- * SECURITY INVARIANT: this route NEVER generates, receives, or stores private
- * keys. The operator generates their Ed25519 keypair in the browser and signs
- * locally. This route only sees:
- *   - Manifest (public assertion about the agent)
- *   - ManifestProof (signed by the operator's private key)
- *   - KeyDocument (operator's public key metadata)
+ * This route is a BATCH WRAPPER, not a second registry. Every agent goes through
+ * `lib/register.ts` — the same implementation `POST /api/v1/agents` uses. It used to
+ * reimplement registration with raw Supabase upserts, its own clock, no event ledger
+ * and no key-substitution check, which meant the same signed manifest got different
+ * security semantics depending on which door it came through. See lib/register.ts.
  *
- * It validates the proof using @agenid/core.verifyManifestProof(), then writes
- * the verified material to the canonical protocol tables (agents, keys).
+ * SECURITY INVARIANT: this route NEVER generates, receives, or stores private keys.
+ * The operator generates their Ed25519 keypair in the browser and signs locally. This
+ * route only ever sees the manifest, the proof, and the public key document.
  *
- * The protocol level is DECLARED — an operator self-declaration. Levels above
- * DECLARED require an authority-signed VerificationAssertion, which is a
- * separate ceremony not performed by this route.
+ * LEVEL SEMANTICS: registration yields L1_REGISTERED — an operator self-declaration.
+ * Nothing here can produce a level above it; levels above L1 require an
+ * authority-signed VerificationAssertion, which is a separate ceremony.
+ *
+ * `domain` is accepted because the wizard collects it and it appears in each
+ * manifest's `ownership.operator_domain`. It is NOT independently checked here and
+ * confers nothing — domain control is evidence an authority would weigh, not a level.
  */
-import {
-  Manifest,
-  ManifestProof,
-  KeyDocument,
-  verifyManifestProof,
-  manifestDigestHex,
-} from "@agenid/core";
-import { getSupabaseServiceClient } from "@/lib/supabase";
+import { registerAgent, L1_DISCLOSURES } from "@/lib/register";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,8 +31,8 @@ interface AgentSubmission {
   manifest: unknown;
   proof: unknown;
   key_document: unknown;
-  retell_agent_id: string;
-  agent_name: string;
+  retell_agent_id?: unknown;
+  agent_name?: unknown;
 }
 
 export async function POST(req: Request) {
@@ -55,129 +51,76 @@ export async function POST(req: Request) {
     return json({ error: "invalid_domain", message: "`domain` is required" }, 400);
   }
   if (!Array.isArray(agentsRaw) || agentsRaw.length === 0) {
-    return json({ error: "invalid_agents", message: "`agents` must be a non-empty array of signed agent submissions" }, 400);
+    return json(
+      { error: "invalid_agents", message: "`agents` must be a non-empty array of signed agent submissions" },
+      400,
+    );
   }
 
   const agents = agentsRaw as AgentSubmission[];
-  const now = new Date().toISOString();
-
-  // ---------------------------------------------------------------------------
-  // 1. Validate every agent's ManifestProof using @agenid/core
-  // ---------------------------------------------------------------------------
-  const verified: Array<{
-    agent_id: string;
-    manifest: Manifest;
-    manifest_digest: string;
-    proof: ManifestProof;
-    key_document: KeyDocument;
-    retell_agent_id: string;
-    agent_name: string;
-  }> = [];
+  const registered: Array<Record<string, unknown>> = [];
 
   for (let i = 0; i < agents.length; i++) {
     const a = agents[i];
-    if (!a.manifest || !a.proof || !a.key_document) {
-      return json({ error: "incomplete_agent", message: `agents[${i}] must include manifest, proof, and key_document` }, 400);
+    if (!a || !a.manifest || !a.proof || !a.key_document) {
+      return json(
+        { error: "incomplete_agent", index: i, message: `agents[${i}] must include manifest, proof, and key_document` },
+        400,
+      );
     }
 
-    // Schema-validate each piece
-    const parsedManifest = Manifest.safeParse(a.manifest);
-    if (!parsedManifest.success) {
-      return json({ error: "invalid_manifest", index: i, issues: parsedManifest.error.issues }, 400);
-    }
-    const parsedProof = ManifestProof.safeParse(a.proof);
-    if (!parsedProof.success) {
-      return json({ error: "invalid_proof", index: i, issues: parsedProof.error.issues }, 400);
-    }
-    const parsedKey = KeyDocument.safeParse(a.key_document);
-    if (!parsedKey.success) {
-      return json({ error: "invalid_key_document", index: i, issues: parsedKey.error.issues }, 400);
-    }
+    // Exactly the three canonical members — registerAgent rejects anything else, so the
+    // Retell-specific fields are carried alongside the call rather than inside it.
+    const result = await registerAgent({
+      manifest: a.manifest,
+      proof: a.proof,
+      key_document: a.key_document,
+    });
 
-    // Verify the ManifestProof cryptographically (§7.1)
-    const result = verifyManifestProof(parsedProof.data, parsedManifest.data, parsedKey.data, { now });
     if (!result.ok) {
-      return json({
-        error: "proof_verification_failed",
-        index: i,
-        code: result.code,
-        message: result.message,
-      }, 422);
+      // Fail the whole batch on the first bad agent rather than reporting a partial
+      // success: a fleet half-registered under one operator key is a state nobody asked
+      // for, and the agents already written are individually valid and re-resolvable.
+      return json(
+        {
+          error: result.error,
+          message: result.message,
+          index: i,
+          registered_before_failure: registered.map((r) => r.agent_id),
+          ...(result.issues ? { issues: result.issues } : {}),
+        },
+        result.status,
+      );
     }
 
-    verified.push({
-      agent_id: parsedManifest.data.agent_id,
-      manifest: parsedManifest.data,
-      manifest_digest: manifestDigestHex(parsedManifest.data),
-      proof: parsedProof.data,
-      key_document: parsedKey.data,
+    registered.push({
+      agent_id: result.record.agent_id,
       retell_agent_id: typeof a.retell_agent_id === "string" ? a.retell_agent_id : "",
       agent_name: typeof a.agent_name === "string" ? a.agent_name : "",
+      manifest_digest: result.record.manifest_digest,
+      key_id: result.keyDocument.key_id,
+      proof_expires_at: result.record.proof.expires_at,
+      registered_at: result.record.registered_at,
+      links: {
+        card: `/a/${result.record.agent_id}`,
+        envelope: `/api/resolve/${result.record.agent_id}`,
+      },
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // 2. Persist to canonical protocol tables (agents, keys)
-  // ---------------------------------------------------------------------------
-  let persisted = false;
-  try {
-    const supabase = getSupabaseServiceClient();
-
-    for (const v of verified) {
-      // Write to `keys` table (protocol §9 — public key only)
-      const { error: keyErr } = await supabase.from("keys").upsert(
-        { key_id: v.key_document.key_id, document: v.key_document },
-        { onConflict: "key_id" },
-      );
-      if (keyErr) throw new Error(`keys upsert: ${keyErr.message}`);
-
-      // Write to `agents` table (protocol §6.1, §6.2)
-      const { error: agentErr } = await supabase.from("agents").upsert(
-        {
-          agent_id: v.agent_id,
-          manifest: v.manifest,
-          manifest_digest: v.manifest_digest,
-          proof: v.proof,
-          status: "ACTIVE",
-          registered_at: now,
-          updated_at: now,
-        },
-        { onConflict: "agent_id" },
-      );
-      if (agentErr) throw new Error(`agents upsert: ${agentErr.message}`);
-    }
-
-    persisted = true;
-  } catch (e) {
-    // Supabase not configured or write failed — the verified proofs are still
-    // cryptographically valid and returned to the caller.
-    console.error("[bind] persistence failed:", e instanceof Error ? e.message : e);
-  }
-
-  // ---------------------------------------------------------------------------
-  // 3. Return results — DECLARED level only
-  // ---------------------------------------------------------------------------
   return json(
     {
       ok: true,
       domain,
-      level: "DECLARED",
-      agents: verified.map((v) => ({
-        agent_id: v.agent_id,
-        retell_agent_id: v.retell_agent_id,
-        agent_name: v.agent_name,
-        manifest_digest: v.manifest_digest,
-        key_id: v.key_document.key_id,
-        proof_expires_at: v.proof.expires_at,
-      })),
-      persisted,
-      registered_at: now,
-      disclosures: [
-        "DECLARED is an operator self-declaration. It attests who signed, not that any third party checked them.",
-        "Levels above DECLARED require an authority-signed VerificationAssertion.",
-      ],
+      level: "L1_REGISTERED",
+      agents: registered,
+      // Persistence is no longer conditional: registerAgent returns 503 rather than
+      // reporting success on an unwritten record, so reaching here means every agent
+      // above is durably stored and resolvable.
+      persisted: true,
+      disclosures: L1_DISCLOSURES,
     },
-    200,
+    201,
   );
 }
 

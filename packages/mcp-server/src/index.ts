@@ -178,7 +178,11 @@ server.registerTool(
     const keyPair = generateKeyPair();
     const agentId = generateAgentId();
     const keyId = generateKeyId();
-    const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    // NOT truncated to whole seconds. `Rfc3339Utc` permits fractional seconds, and
+    // truncation only ever moves an instant backward — the fourth surviving copy of a
+    // pattern that was removed from three other files after it failed registrations
+    // outright. Normalize a timestamp's spelling, never its precision.
+    const createdAt = new Date().toISOString();
     const keyDocument = makeKeyDocument({
       keyId,
       publicKey: keyPair.publicKey,
@@ -192,7 +196,19 @@ server.registerTool(
       identity: { name: "REPLACE_WITH_AGENT_NAME", description: "REPLACE_WITH_A_SHORT_DESCRIPTION" },
       ownership: { operator: "REPLACE_WITH_OPERATOR_LEGAL_NAME", operator_domain: domain },
       purpose: { summary: "REPLACE_WITH_WHAT_THIS_AGENT_DOES", channels: ["api"] },
-      disclosure: { is_ai: true, discloses_to_user: true, human_escalation: true },
+      /**
+       * `discloses_to_user` and `human_escalation` default to FALSE, deliberately.
+       *
+       * Every other field in this skeleton is a REPLACE_WITH_ marker, which makes the
+       * contract obvious: the caller supplies it. These two were the exception — they
+       * arrived pre-set to `true`, so a caller who filled in the markers and signed
+       * would publish two behavioral claims nobody ever made, under their own key.
+       *
+       * They cannot be inferred from a domain or from anything this tool can see, and
+       * `false` is the only safe default for a claim about real-world behavior: it
+       * under-claims, which is recoverable, instead of over-claiming, which is not.
+       */
+      disclosure: { is_ai: true, discloses_to_user: false, human_escalation: false },
     };
     return {
       content: [
@@ -212,10 +228,12 @@ server.registerTool(
               manifest_skeleton: manifestSkeleton,
               next_steps: [
                 "Fill in identity.name, identity.description, ownership.operator, purpose.summary, and purpose.channels.",
+                "Set disclosure.discloses_to_user and disclosure.human_escalation to what is ACTUALLY true of this agent. They default to false. They are signed claims about real-world behavior, so do not set either to true unless the operator has confirmed it.",
                 "Sign the completed manifest with signManifestProof() from @agenid/core using this private key.",
-                "POST { manifest, proof, key_document } to a running @agenid/api registry instance's /v1/agents endpoint to register. " +
-                  "As of this build, https://www.agenid.com does not itself expose a write endpoint — it only resolves " +
-                  "already-registered agents (see docs/OPERATOR_ONBOARDING.md for current registry access).",
+                "POST { manifest, proof, key_document } to https://www.agenid.com/api/v1/agents to register. " +
+                  "A 201 returns your agenid and confirms L1_REGISTERED — a self-declaration that verifies, not a " +
+                  "third-party check of the operator or domain. (A self-hosted @agenid/api instance exposes the same " +
+                  "contract at /v1/agents.)",
               ],
             },
             null,
