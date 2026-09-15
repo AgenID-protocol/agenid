@@ -1,81 +1,208 @@
 # Project State
 
-**Authoritative status of the AgenID reference implementation.** Updated as implementation status changes — if this document and the product disagree, this document is the defect.
+**Authoritative current-state control document for the AgenID reference implementation.** If this document and the implementation disagree, the implementation wins and this document is the defect.
 
-**Last updated:** 2026-09-15 · **Protocol:** v1.1.1 + errata E1, E2 · **Production:** [www.agenid.com](https://www.agenid.com)
+## Project
 
-**Suite at this revision:** 187 tests green — core 54, api 32, cli 8, mcp-server 4, web 89. `pnpm install --frozen-lockfile` and `pnpm -r build` both clean on Node 22.
-
----
-
-## Verified in production
-
-Demonstrably operational, checked against the live deployment rather than inferred from the code.
-
-| Capability | Evidence |
+| | |
 |---|---|
-| **Browser issuance** — `/issue` generates an Ed25519 key in the tab, signs a manifest locally, and registers it | Registered live; private key never in a request body or browser storage (test-enforced) |
-| **`POST /api/v1/agents`** — signature, digest binding, key role, and controller all verified before storage; returns `L1_REGISTERED` | Tamper, wrong-key, authority-role, unknown-member, and replay all rejected against production |
-| **Durable registry** — Supabase Postgres via `SupabaseStore`, RLS enabled | Cross-invocation persistence proven with real data: the Verification Card is a different serverless function from the POST route and resolved the record through Supabase; direct SQL confirmed the agent row, the operator key row (`role=operator`, no private-key field), and the ledger events |
-| **Resolution** — `GET /api/resolve/<agenid>`, `GET /a/<agenid>` (HTML card and JSON envelope) | Envelope independently re-verified **offline** with `@agenid/core` alone; a one-character manifest tamper is rejected with `manifest_digest_mismatch` |
-| **`POST /api/v1/verify`** — verify a manifest and proof without registering | Live; 400 on malformed input, correct algorithm and canonicalization reported |
-| **Badges** — `/badge.js` and `GET /badge/<agenid>/shield.svg` | Level→colour mapping pinned across both badges by a test that reads both files; unknown identifiers render neutral grey, never red |
-| **`/ecosystem`** — 25 platform entries, all three status definitions, and the no-endorsement notice | Build-breaking e2e assertion plus a live fetch |
-| **OpenAPI 3.0.3** at `/api/v1/openapi.json` | Documents all four live API paths |
-| **Public site** — apex → www redirect, full IA, SEO metadata, schema endpoint | Verified by direct `curl`, not claimed |
+| **Name** | AgenID — cryptographic identity infrastructure for AI agents |
+| **Purpose** | An open protocol giving an AI agent a portable identifier, a signed manifest, and a resolution envelope **any third party can re-verify offline without trusting the AgenID registry** |
+| **Repository** | [`AgenID-protocol/agenid`](https://github.com/AgenID-protocol/agenid) (private), [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec) (public, normative), [`AgenID-protocol/conformance`](https://github.com/AgenID-protocol/conformance) (public) |
+| **Production URL** | [www.agenid.com](https://www.agenid.com) — apex redirects to www |
 
-**The honest ceiling: `L1_REGISTERED` is the highest level this deployment can issue.** L1 is a self-declaration. Every surface renders it amber, never emerald.
+## Current status
 
-## Implemented, not production-verified
-
-| Component | Note |
+| | |
 |---|---|
-| `@agenid/core` | Full protocol library. Conformance vectors pass. Not published to npm. |
-| `@agenid/api` | Standalone Fastify registry. Production serves the equivalent routes from `packages/web` instead; this package is not separately deployed. |
-| `@agenid/cli` | Real key generation and local signing. Not published to npm. |
-| `@agenid/mcp-server` | Needs a line-by-line read before it is vouched for publicly. Not published to npm. |
-| `/api/dns/verify`, `/api/verify-dns` | Real `_agenid.<domain>` TXT lookup, chunked records joined. Reports domain control as *evidence*, never as a level. Two routes perform the same check — one must go. |
-| `/api/dns/auto-add` | Cloudflare and GoDaddy TXT writes. **Unconfigured in production** — neither credential is set, and `/api/dns/detect` gates on their presence, so it is unreachable from the UI. Dead code in production until a decision is made. |
-| `0002_onboarding_tables.sql` | Written, deliberately unapplied. Wizard-specific state only. |
+| **Protocol version** | v1.1.1 + errata E1, E2 |
+| **Phase** | Reference implementation live at L1; trust root not yet established |
+| **Production status** | **PRODUCTION** for registration, resolution, verification cards and badges |
+| **Deployment status** | Vercel, deployed from `main`, root directory `packages/web` |
+| **Last verified** | 2026-09-15, commit `a95928b`, by calling every live endpoint and diffing the served OpenAPI document against the routes |
+| **Test suite** | 187 green — core 54, api 32, cli 8, mcp-server 4, web 89 |
+| **CI** | **Green on Node 20, 22 and 24.** Previously red on the Node 20 leg for several commits; root-caused and fixed in `a95928b`. |
+| **npm** | Nothing published. `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server` all 404 on the registry. |
+
+**The honest ceiling: `L1_REGISTERED` is the highest level this deployment can issue, and L1 is a self-declaration.** Every surface renders it amber, never emerald.
+
+## Implemented
+
+Capabilities that exist in code. Implemented is not the same as deployed, and neither is the same as production verified.
+
+| Capability | Where |
+|---|---|
+| Identifiers, RFC 8785 JCS, normative strict schemas, Ed25519 proof engine, §8 conformance vectors | `@agenid/core` |
+| Fastify registry over `RegistryStore`, resolution envelope construction, registration clock policy | `@agenid/api` |
+| Operator CLI — key generation, manifest construction from explicit attestations, local signing | `@agenid/cli` |
+| MCP server — resolve identities, verify manifests, generate keypairs from any MCP client | `@agenid/mcp-server` |
+| Site, `/issue`, resolver, badges, and the deployed API routes | `@agenid/web` |
+| Browser Ed25519 signer with an independent JCS implementation | `packages/web/lib/client-crypto.ts` |
+| Assertion write path (`POST /v1/agents/:id/assertions`) | `@agenid/api` — **not deployed** |
+| DNS auto-add via Cloudflare and GoDaddy | `packages/web` — **not configured in production** |
+| Ecosystem registry and validator — 25 platforms, one reviewable JSON file each | `packages/web/data/ecosystem/`, `lib/ecosystem.ts` |
+
+## Production verified
+
+Independently checked against the deployed system on 2026-09-15 — not inferred from the code, and not the same list as *Implemented*.
+
+| Capability | How it was verified |
+|---|---|
+| **Browser issuance** (`/issue`) | Registered a real agent live; private key never in a request body or browser storage (test-enforced) |
+| **`POST /api/v1/agents`** | `201 L1_REGISTERED` against production; tamper, wrong-key, authority-role, unknown-member and replay all rejected |
+| **Durable Supabase-backed registry** | **Cross-invocation persistence proven with real data** — the Verification Card is a different serverless function from the POST route and resolved the record through Supabase; direct SQL confirmed the agent row, the operator key row (`role=operator`, no private-key field) and the ledger events |
+| **Resolution** (`/api/resolve/`, `/a/`) | Envelope re-verified **offline** with `@agenid/core` alone; a one-character manifest tamper rejected with `manifest_digest_mismatch` |
+| **Representation split on `/a/`** | HTML returns `200` with a neutral *Not registered* card for an unknown identifier; `Accept: application/json` returns `404 agent_not_found`. Both confirmed by live request. |
+| **`POST /api/v1/verify`** | Live; raw Ed25519 check over JCS bytes; `400` with `invalid_manifest` on empty body |
+| **Badges** | `/badge/<id>/shield.svg` returns 200 for an unknown identifier and renders neutral grey; `/badge.js` live |
+| **OpenAPI 3.0.3** | Fetched live; four paths and six component schemas, matching the implementation |
+| **Every "not deployed" claim** | `/v1/keys/…`, `/v1/agents/…/assertions` and `/.well-known/agenid/authorities.json` each confirmed `404` |
+| **Public site** | All 11 pages return 200; `/sitemap.xml` and `/robots.txt` live; `/onboarding/retell` serves `noindex, nofollow` |
 
 ## In development
 
 | Item | State |
 |---|---|
-| Root authority key ceremony | Custody **decided**: Google Cloud KMS, `EC_SIGN_ED25519`, HSM protection level. Policy and ceremony runbook drafted and awaiting approval. **No key has been generated.** |
-| Protocol v1.2 delegation object | Design drafted. Would restore the offline-root / online-intermediate pattern and sharply reduce root-compromise blast radius. |
+| Root authority key ceremony | Custody **decided** — Google Cloud KMS, `EC_SIGN_ED25519`, HSM protection level. Policy and runbook drafted, awaiting approval. **No key has been generated.** |
+| Protocol v1.2 delegation object | Design drafted. Would restore the offline-root pattern and sharply cut root-compromise blast radius. |
 
 ## Planned
 
-- `GET /v1/keys/<key-ulid>` — the second key-discovery path. Read-only over data already in the store, so it is small, and it should ship before any external party is invited to verify anything.
-- `POST /v1/agents/:id/assertions` — the assertion write path. Blocked on the root key.
+- `GET /v1/keys/{key-ulid}` — the second key-discovery path. Read-only over data already in the store; should ship before any external party is invited to verify anything.
+- `POST /v1/agents/{id}/assertions` — blocked on the root key.
 - `L2_DOMAIN_VERIFIED` issuance. **L2 first and only**: its evidence is a DNS record any third party can re-derive, so a bad L2 is externally detectable. L3's evidence is offline documentation nobody outside can re-check.
+- Rate limiting on the public write endpoints and on the Retell relay.
+- OpenAPI coverage for the nine deployed routes it currently omits.
 - `@agenid/adapter-*` packages for the eight documented platforms. Not started.
 - npm publication of `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server`. Scope confirmed unclaimed; the `@agenid` org does not yet exist.
-- Rate limiting on the public write endpoints.
 - Flip this repository public at launch.
-- Conformance suite roadmap: Go and Rust reference implementations, CI matrix, automated vector re-sync from the spec.
+- Go and Rust reference implementations; automated conformance-vector re-sync from the spec.
 - Rendered-browser visual QA and Lighthouse pass; reduced-motion and keyboard navigation confirmed in a real browser.
+
+## Not deployed
+
+Exists in code, unavailable in production.
+
+| Item | Why |
+|---|---|
+| `POST /v1/agents/{id}/assertions` | No root authority key exists to sign an assertion with |
+| `GET /v1/keys/{key-ulid}` | Not built as a web route; returns 404 |
+| `/.well-known/agenid/authorities.json` | Correctly absent — publishing a pin for a nonexistent key would be the worst possible false claim |
+| `@agenid/api` as a running service | Production serves the equivalent routes from `packages/web`; the Fastify server is not deployed anywhere |
+| `POST /api/dns/auto-add` | Neither `CLOUDFLARE_API_TOKEN` nor `GODADDY_API_KEY` is set in production; `/api/dns/detect` gates on their presence, so it is unreachable from the UI |
+| `0002_onboarding_tables.sql` | Written, deliberately unapplied. Wizard-specific state only; the wizard persists to the canonical tables today. |
+| Agent statuses `CHANGED`, `STALE`, `SUSPENDED`, `REVOKED` | The column and enum exist so the envelope shape is stable, but no transition writes them. Every registered agent is `ACTIVE`. |
 
 ## Deprecated
 
-Nothing is currently deprecated. `_quarantine/` holds removed fabricated stubs for the incident record and is gitignored; nothing in it should ever be restored without a line-by-line read.
+Nothing is currently deprecated. `_quarantine/` holds removed fabricated stubs for the incident record and is gitignored; nothing in it should be restored without a line-by-line read.
+
+## Current user flows
+
+**Issue an identity (browser, ~60 seconds).** `/issue` → name the agent and supply operator fields and two attestations that start `false` → the browser generates an Ed25519 keypair and signs the manifest locally → `POST /api/v1/agents` with public material only → `201 L1_REGISTERED` → post-issuance panel offers the card link, the JSON envelope, an HTML embed, README markdown and a curl one-liner. The private key never leaves the tab and a one-time download is the only persistence offered.
+
+**Issue an identity (CLI).** `@agenid/cli` generates a keypair, writes the private key `0600` without printing it, builds a manifest from *explicit* operator attestations, signs a `ManifestProof`, and re-verifies before reporting. It reports `DECLARED` and nothing above it.
+
+**Verify an agent (third party).** Resolve `/a/<agenid>` in a browser for the Verification Card, or with `Accept: application/json` for the envelope → re-run verification offline with `@agenid/core` → compare the envelope's operator key against the operator's `.well-known` copy. The full two-path check cannot be completed against `agenid.com` yet.
+
+**Retell fleet onboarding.** `/onboarding/retell` (`noindex`, linked from nothing) collects operator identity and attestations, signs client-side, and batch-registers through `POST /api/retell/bind`, which delegates to the same registration implementation as the public write path.
+
+**Prove domain control.** Publish a `_agenid.<domain>` TXT record, then `POST /api/dns/verify`. This reports evidence of domain control. **It does not and cannot issue L2** — that needs the root key.
+
+## Current API surfaces
+
+Full reference, verified live: [docs/api.md](docs/api.md).
+
+| Route | Status |
+|---|---|
+| `POST /api/v1/agents` · `GET /api/resolve/{agenid}` · `GET /a/{agenid}` · `POST /api/v1/verify` · `GET /api/v1/openapi.json` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` | **Production** |
+| `POST /api/verify-dns` · `POST /api/dns/verify` | Production — two routes, one behavior; one will be removed |
+| `POST /api/dns/detect` | Production, returns `manual` |
+| `POST /api/dns/auto-add` | Implemented, unconfigured |
+| `POST /api/retell/declare` · `/bind` · `/agents` | Production |
+| `GET /v1/keys/{key-ulid}` · `POST /v1/agents/{id}/assertions` · `/.well-known/agenid/authorities.json` | **Not deployed** (404) |
+
+## Current data model
+
+Supabase Postgres, one migration applied (`0001_registry_store.sql`). RLS is enabled on all four tables with public-read policies; all writes go through the service role.
+
+| Table | Key | Contents |
+|---|---|---|
+| `agents` | `agent_id` (`agenid:<ULID>`) | `manifest` jsonb, `manifest_digest`, `proof` jsonb, `status` (checked against the five-value enum), `registered_at`, `updated_at` |
+| `keys` | `key_id` (ULID) | `document` jsonb; `role` and `controller` are **generated columns** extracted from the jsonb (immutable, so they are legal generated expressions), indexed on `role` |
+| `assertions` | `assertion_id` | `subject`, `level`, `key_id`, `document` jsonb, `manifest_digest` generated from the jsonb, `verified_at` as a **plain** timestamptz column, indexed on `subject` |
+| `events` | `event_id` | Append-only ledger: `agent_id`, `type`, `occurred_at`, `detail_ref` jsonb — **pointers and hashes only, never raw evidence** |
+
+Relationships are by identifier rather than by foreign key: an assertion's `subject` names an agent, and both a proof and an assertion name a `key_id`. Verification never relies on referential integrity — it re-derives everything from signatures.
+
+`verified_at` is deliberately **not** stored as `text`: `Rfc3339Utc` permits optional fractional seconds, and lexicographic order disagrees with chronological order across mixed precision. It is equally deliberately not a generated column cast from jsonb, which Postgres rejects as non-immutable (`42P17`).
+
+Ledger event types: `agent.registered`, `key.published`, `assertion.issued`, `manifest.changed`, `agent.status_changed`, `agent.revoked`. Only the first two are written today.
+
+## Current integrations
+
+| Integration | State |
+|---|---|
+| Supabase Postgres | **Active** — production registry store, project `prljrmgickpkkunrrkxq` |
+| Vercel | **Active** — hosting and deployment for `packages/web` |
+| GitHub Actions | **Active** — CI on Node 20/22/24, all five packages plus e2e |
+| DNS TXT lookup | **Active** — read-only, for domain-control evidence |
+| Cloudflare / GoDaddy DNS write APIs | **Implemented, not configured** — no credential in production; gated so nothing is advertised that cannot run |
+| Retell API | **Active** — one read-only call with a caller-supplied key, never stored |
+| npm registry | **Unavailable** — the `@agenid` org does not exist; nothing published |
+| Retell, Vapi, Bland, ElevenLabs, Grok Bot, LangChain, MCP Server, OpenClaw adapter packages | **Planned** — `docs/partners/` holds integration *patterns*; each carries its own "no adapter package exists" disclaimer |
+
+## Security status
+
+Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-model.md](docs/threat-model.md).
+
+**Controls in place.** Strict schema validation rejecting unknown members · Ed25519 signature and digest-binding verification on every write · key role and controller enforcement · bounded forward clock skew at registration with none at verification · operator keys generated and held client-side only, never transmitted or stored · RLS enabled on every table with public-read policies and service-role writes · append-only event ledger storing pointers, never evidence · a public-surface test suite that makes each honesty rule a build-breaking assertion.
+
+**Known gaps.** No authentication or rate limiting on public write endpoints · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · two-path key discovery half-deployed · no private vulnerability reporting channel enabled on the repository yet.
 
 ## Known limitations
 
-1. **No trust root exists.** Nothing above `L1_REGISTERED` can be signed. `/.well-known/agenid/authorities.json` correctly returns 404.
+1. **No trust root exists.** Nothing above `L1_REGISTERED` can be signed.
 2. **No delegation object in v1.1.1.** The pinned root must sign every assertion, so the offline-root CA pattern is unavailable and a root compromise would invalidate historical assertions — a verifier cannot distinguish a legitimate historical signature from a backdated forgery.
-3. **Two-path key discovery is half-deployed.** The registry path works; the key path 404s. A verifier can compare the envelope's operator key against the operator's `.well-known` copy, but cannot complete the full check against `agenid.com`.
-4. **The trust root's security ceiling is control of the `agenid.com` zone and the `AgenID-protocol` GitHub org**, not key storage. Domain and repository hardening are prerequisites of the ceremony, not adjacent chores.
-5. **Public write endpoints are unauthenticated and unrated.** Every write is signature-verified and self-attributed, but registration volume is unbounded. `/api/retell/agents` is additionally an unauthenticated relay to a third-party API from AgenID's domain.
+3. **Two-path key discovery is half-deployed.** The registry key route 404s, so the full check cannot be completed against `agenid.com`.
+4. **The trust root's real ceiling is control of the `agenid.com` zone and the `AgenID-protocol` GitHub org**, not key storage. An attacker controlling either publishes a different pin using none of AgenID's key material.
+5. **Public write endpoints are unauthenticated and unrated.** Every write is signature-verified and self-attributed, but volume is unbounded, and `/api/retell/bind` accepts an unbounded array.
 6. **`packages/web` carries a second registry implementation** mirroring `@agenid/api`'s validation, because `zod` is not resolvable inside `packages/web`. Equivalence is held by test, not by shared code.
-7. **`/onboarding/retell` is publicly reachable, crawlable, and linked from nothing** — neither a real public entry point nor an internal one. It is also where the most recent fabricated claims were found.
-8. **Some content is manually mirrored.** `packages/web/public/schemas/`, `content/partners/`, and `content/onboarding.md` are byte-identical twins of their sources, kept in sync by hand. A `diff` in CI would cost nothing.
+7. **The OpenAPI document covers 4 of 13 deployed routes.**
+8. **`/api/verify-dns` and `/api/dns/verify` are duplicates.**
+9. **Agent lifecycle statuses are stored but never written.** Every agent is `ACTIVE`; there is no revocation or status-change path in production.
+10. **Some content is manually mirrored** — `packages/web/public/schemas/`, `content/partners/` and `content/onboarding.md` are byte-identical twins of their sources, kept in sync by hand.
+11. **`/onboarding/retell` has never been rendered in a browser.** It has been exercised over HTTP and by grepping the shipped JS bundle only.
 
-## Current blocker
+## Known risks
 
-**The root authority key ceremony.** It is no longer only a protocol-completeness item — it is the blocker on the product's main conversion path. `/issue` gets an operator to L1 in a minute, L1 is honestly labelled a self-declaration, and the next question every new operator asks is how to get the verified one. There is currently no answer that ships.
+- **Root compromise would be unbounded and retroactive** (limitation 2). This is the single largest unresolved architectural risk, and it is why custody is a callable audit-logged KMS key rather than air-gapped hardware.
+- **Domain or GitHub org compromise defeats the trust root entirely** (limitation 4), independent of key storage. The hardening checklist is a prerequisite of the ceremony, not an adjacent chore.
+- **Unbounded registration volume** (limitation 5) is a cost and availability risk today, and a spam risk the moment a public directory exists.
+- **Two implementations of registration validation** (limitation 6) can drift. They are tested for equivalence; the test is the only thing preventing divergence.
+- **Fabricated verification claims have reached this repository repeatedly** — seven instances, one of which shipped to production for a day inside a commit whose headline change was a genuine security improvement. The controls are now tests rather than review conventions, but the class is live.
 
-The ceremony is gated on a hardening checklist that must complete first — registrar lock, DNSSEC, hardware-key 2FA on the DNS account, enforced 2FA on the GitHub org, branch protection and required signed commits on the spec repository, and an audit-log export before key creation. HSM custody before that hardening is theater, because an attacker controlling the domain or the org can publish a different pin using none of AgenID's key material.
+## Recent changes
 
-Three open items must close before Section 8 of the ceremony runbook begins: empirical confirmation that `EC_SIGN_ED25519` is available at HSM protection level; the final permanent `authority_id` string; and the v1.2 delegation decision.
+| Date | Change |
+|---|---|
+| 2026-09-15 | Documentation architecture audit — five core documents brought to standard; six fabricated claims in the previous API reference found and corrected by live verification |
+| 2026-09-15 | `a95928b` — `SupabaseStore` required a global `WebSocket` it never uses; CI had been red on Node 20 for several commits. Fixed at both call sites with a proven regression test. |
+| 2026-09-15 | `6390934` — repository front door: README, LICENSE, SECURITY, CONTRIBUTING, CHANGELOG, PROJECT_STATE, four architecture docs |
+| 2026-09-15 | `ea3ff9b` — public-surface integrity sweep: two more defaulted attestations, registration implemented twice, presentation layer deciding trust state |
+| 2026-09-15 | `1a52a2c` — product ↔ website sync: fabricated attestations, dead hosts, verified-state colour drift |
+| 2026-09-15 | `de83f5b`, `be41a0a`, `f9c68d7` — browser issuance flow, registry clock truncation fixed, store timestamp shape normalized |
+| 2026-09-14 | `3c97435` — Supabase provisioned; the migration could never have applied (non-immutable generated column) |
+| 2026-09-14 | `80672ca`, `798c75d` — fabricated verification stubs replaced with real Ed25519; server-side key generation deleted outright |
+
+## Next priority
+
+**Build `GET /v1/keys/{key-ulid}`.** It is the registry half of two-path key discovery — the mechanism that makes the registry non-authoritative in practice rather than in principle. It is a read-only route over data already in the store, so it is small, and until it ships, every Verification Card has to tell verifiers that half the protocol's trust story is unavailable. Nothing external should be invited to verify anything before it exists.
+
+## Next blocker
+
+**The root authority key ceremony.** It is no longer only a protocol-completeness item — it is the blocker on the product's main conversion path. `/issue` gets an operator to L1 in a minute, L1 is honestly labelled a self-declaration, and the next question every operator asks is how to get the verified one. There is no answer that ships.
+
+The ceremony is gated on hardening that must complete first: registrar lock, DNSSEC, hardware-key 2FA on the DNS account, enforced 2FA on the GitHub org, branch protection and required signed commits on the spec repository, and an audit-log export before key creation. HSM custody before that hardening is theater, because an attacker controlling the domain or the org publishes a different pin using none of AgenID's key material.
+
+Three open items must close before the ceremony begins: empirical confirmation that `EC_SIGN_ED25519` is available at HSM protection level; the final permanent `authority_id` string; and the v1.2 delegation decision.

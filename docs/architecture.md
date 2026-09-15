@@ -1,164 +1,238 @@
 # Architecture
 
-**Audience:** engineers evaluating or extending the AgenID reference implementation.
-**Status of this document:** current as of 2026-09-15, protocol v1.1.1 + errata E1/E2.
+**How the system is actually built.** Current as of 2026-09-15, commit `a95928b`, protocol v1.1.1 + errata E1/E2. Verified against the source tree and the live deployment, not inferred from filenames.
 
-This document explains *why* the system is shaped the way it is. For what is deployed and what is not, see [PROJECT_STATE.md](../PROJECT_STATE.md).
+For what is deployed versus what is not, see [PROJECT_STATE.md](../PROJECT_STATE.md).
+
+## System overview
+
+AgenID gives an AI agent a portable cryptographic identity. An operator generates an Ed25519 keypair, signs a manifest describing the agent, and registers the public material. Anyone who later encounters that agent can resolve its identifier and **re-verify the whole claim offline, without trusting the AgenID registry.**
 
 ## The one architectural commitment
 
-**The registry is not an authority.** Every other decision here follows from that.
+**The registry is not an authority.** Every other decision follows from it.
 
-A verifier who resolves an identity receives an envelope containing the manifest, the proof, the operator's key document, every assertion, and the key-discovery pointers. They can re-run the entire verification locally with `@agenid/core` and reach the same conclusion without ever trusting `agenid.com`. If the registry lied, a verifier following the documented procedure detects it.
+A resolution envelope contains the manifest, the proof, the operator's key document, every assertion and the key-discovery pointers. A verifier re-runs verification locally with `@agenid/core` and reaches their own conclusion. If the registry lied, a verifier following the documented procedure detects it.
 
-This is why the registry never holds an operator private key, why verification is a pure function with no I/O, and why the conformance suite is forbidden from depending on `@agenid/core`. A system that grades its own homework proves nothing.
+This is why the registry never holds an operator private key, why verification is a pure function with no I/O and no clock of its own, and why the conformance suite is forbidden from depending on `@agenid/core`. A system that grades its own homework proves nothing.
 
-## Components
+## Architecture diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  @agenid/core          pure protocol. no storage, no network.   │
-│    identifier.ts   agenid:<ULID> parsing and construction        │
-│    jcs.ts          RFC 8785 canonicalization                     │
-│    schemas.ts      normative zod schemas (strict)                │
-│    crypto.ts       Ed25519 sign / verify, digest binding         │
-│    errors.ts       verification outcomes as values, never throws │
-└───────────────┬─────────────────────────────────────────────────┘
-                │ depended on by everything below
-   ┌────────────┼────────────┬──────────────┬────────────────┐
-   │            │            │              │                │
-┌──▼──────┐ ┌───▼───────┐ ┌──▼──────────┐ ┌─▼─────────────┐  │
-│ @agenid │ │ @agenid   │ │ @agenid     │ │ @agenid/web   │  │
-│ /api    │ │ /cli      │ │ /mcp-server │ │  (production) │  │
-│ Fastify │ │ operator  │ │ MCP tools   │ │  Next 16      │  │
-│ registry│ │ signing   │ │ for agents  │ │  site + API   │  │
-└──┬──────┘ └───────────┘ └─────────────┘ └─┬─────────────┘  │
-   │                                        │                │
-   │      RegistryStore (interface)         │                │
-   └────────────┬───────────────────────────┘                │
-     ┌──────────┴───────────┐                                │
-┌────▼──────┐        ┌──────▼────────┐                       │
-│ MemoryStore│       │ SupabaseStore │  ◄────── production    │
-│ dev/test   │       │ Postgres, RLS │                        │
-└────────────┘       └───────────────┘                        │
-                                                              │
-   packages/web/lib/client-crypto.ts ─────────────────────────┘
-   browser Ed25519 + its own JCS — the operator's signer
+Operator's browser or machine            Registry (www.agenid.com)           Any third party
+─────────────────────────────            ─────────────────────────           ───────────────
+  generate Ed25519 keypair
+  build Manifest
+  sign ManifestProof
+  (private key never leaves)
+          │
+          │ POST /api/v1/agents
+          │ { manifest, proof, key_document }      public material only
+          ▼
+                                     ┌──────────────────────────┐
+                                     │  Next 16 route handler   │
+                                     │  packages/web/app/api    │
+                                     └────────────┬─────────────┘
+                                                  │
+                                     ┌────────────▼─────────────┐
+                                     │  lib/register.ts         │  ← the single
+                                     │  schema · clock · proof  │    implementation
+                                     └────────────┬─────────────┘
+                                                  │
+                                     ┌────────────▼─────────────┐
+                                     │  @agenid/core            │  pure: no I/O,
+                                     │  JCS · Ed25519 · schemas │  no clock, no throw
+                                     └────────────┬─────────────┘
+                                                  │
+                                     ┌────────────▼─────────────┐
+                                     │  RegistryStore (iface)   │
+                                     │  MemoryStore │ Supabase  │
+                                     └────────────┬─────────────┘
+                                                  │
+                                       Supabase Postgres (RLS)
+                                       agents · keys · assertions · events
+                                                  │
+                                                  │ GET /a/<agenid>
+                                                  ▼
+                                                              re-verify offline
+                                                              with @agenid/core
 ```
+
+## Repository structure
+
+pnpm workspace, root lockfile only, five packages.
+
+| Path | Package | Responsibility |
+|---|---|---|
+| `packages/core` | `@agenid/core` | The protocol, and nothing else |
+| `packages/api` | `@agenid/api` | Fastify registry over `RegistryStore` — **not deployed**; production serves equivalent routes from `packages/web` |
+| `packages/cli` | `@agenid/cli` | Operator CLI: keygen, manifest, local signing |
+| `packages/mcp-server` | `@agenid/mcp-server` | MCP tools: resolve, verify, generate keypair |
+| `packages/web` | `@agenid/web` | `agenid.com` — site, resolver, badges, and the deployed API |
+| `docs/` | — | This documentation plus eight partner integration briefs |
+| `_quarantine/` | — | Removed fabricated stubs, gitignored, kept for the incident record |
+
+## Component responsibilities
 
 ### `@agenid/core`
 
-The protocol, and nothing else. No storage, no server, no UI, no clock of its own — `now` is always passed in explicitly, because a verification function that reads the wall clock cannot be tested deterministically and cannot be reasoned about by a third party.
+**Responsibility** — the protocol. **Inputs** — plain JavaScript values. **Outputs** — canonical bytes, signatures, and `VerifyResult` values. **Dependencies** — Node's native `crypto` and zod 3. **Boundaries** — no storage, no server, no UI, no network, and no clock of its own.
 
-Verification outcomes are **values with stable codes, never exceptions**. `verifyManifestProof` returns `{ ok: false, code: "manifest_digest_mismatch" }`. A thrown exception invites a `catch` that swallows it, and a swallowed verification failure is indistinguishable from success.
+`identifier.ts` (`agenid:<ULID>` grammar) · `jcs.ts` (RFC 8785) · `schemas.ts` (normative strict zod schemas) · `crypto.ts` (sign, verify, digest binding) · `errors.ts`.
 
-Number-domain rule (Erratum E1): non-finite values are rejected, and integer-literal canonical tokens with magnitude greater than 2^53−1 are rejected — outside that range, JSON round-tripping is not lossless and two implementations can disagree about what was signed.
+Two design rules carry real weight:
 
-### `@agenid/api` and the web registry routes
+**`now` is always passed in explicitly.** A verification function that reads the wall clock cannot be tested deterministically and cannot be reasoned about by a third party.
 
-`@agenid/api` is a Fastify registry over the `RegistryStore` interface. **Production does not deploy it.** The registration and resolution routes ship inside `packages/web` instead, because the write path belongs where the read path already is and Vercel already hosts that.
+**Verification outcomes are values, never exceptions.** `verifyManifestProof` returns `{ ok: false, code: "manifest_digest_mismatch", message }`. Thrown `AgenIdError`s are reserved for programming and input errors — malformed input, illegal number domains, signing-time key misuse. A thrown verification failure invites a `catch` that swallows it, and a swallowed verification failure is indistinguishable from success.
 
-That leaves two implementations of the same validation. This is a real cost, taken deliberately: `zod` is a dependency of `@agenid/core`, and pnpm's strict `node_modules` makes it a phantom dependency inside `packages/web` that fails `next build`. Adding it would also risk a second zod instance disagreeing with core's at an `instanceof` boundary. The web route therefore composes validation from the core schemas' own `.safeParse`. Equivalence between the two is held by test, not by shared code. If the packages ever merge, this is the seam to remove.
+Erratum E1 rejects non-finite numbers and integer tokens beyond 2^53−1, outside which JSON round-tripping is not lossless and two implementations can disagree about what was signed.
 
-### `@agenid/web`
+### `@agenid/web` — the deployed system
 
-Next 16 + Tailwind 4. Serves the public site, the resolver, the badges, and the deployed API. Hosted on Vercel; the production store is Supabase.
+Next 16 + Tailwind 4 on Vercel. Serves eleven pages, thirteen API routes, both badges and the OpenAPI document.
 
-`lib/client-crypto.ts` is the operator's signer: browser Ed25519 via `@noble/curves`, with **its own independent RFC 8785 implementation**. That duplication is the point. Two independently-written canonicalizers must agree byte-for-byte or the protocol has quietly forked, and there is a test asserting `@agenid/core` accepts a proof the browser produced.
+`lib/register.ts` is **the single implementation of registration.** Both `POST /api/v1/agents` and `POST /api/retell/bind` delegate to it, and a test forbids either route from calling `verifyManifestProof`, touching a Supabase table, or applying a clock policy of its own. A route shapes a request and a response; it does not decide what an operation means. This exists because registration was briefly implemented twice with different clock semantics, different audit trails and different key-conflict behavior — the same signed manifest got different security semantics depending on which door it entered.
+
+`lib/client-crypto.ts` is the operator's signer: browser Ed25519 via `@noble/curves` with **its own independent RFC 8785 implementation**. That duplication is deliberate. Two independently written canonicalizers must agree byte-for-byte or the protocol has quietly forked, and a test asserts `@agenid/core` accepts a proof the browser produced.
+
+### `@agenid/api`
+
+Fastify registry over the same `RegistryStore` interface, including the assertion write path gated by `AGENID_AUTHORITY_TOKEN`. **It is not deployed anywhere.** Production ships registration and resolution as Next routes, because the write path belongs where the read path already is.
+
+That leaves two implementations of the same validation — a real cost, taken deliberately. `zod` is a dependency of `@agenid/core`, and pnpm's strict `node_modules` makes it a phantom dependency inside `packages/web` that fails `next build`; adding it would also risk a second zod instance disagreeing with core's at an `instanceof` boundary. The web route therefore composes validation from the core schemas' own `.safeParse`. Equivalence is held by test, not by shared code. If the packages ever merge, this is the seam to remove.
 
 ## Data flow: registration
 
 ```
-browser                          registry                      storage
-───────                          ────────                      ───────
+browser                          registry                        storage
+───────                          ────────                        ───────
 generate Ed25519 keypair
 build Manifest
 compute manifest digest
 sign ManifestProof over
-  JCS(proof payload minus
-      "signature")
-   │
-   │  POST /api/v1/agents
-   │  { manifest, proof, key_document }      ← public material only
+  JCS(payload minus "signature")
+   │  POST { manifest, proof, key_document }
    ├────────────────────────────►
                                  strict schema validation
                                  reject unknown top-level members
-                                 registrationTime(): bound
-                                   forward client skew at 120s
+                                 identifier grammar
+                                 registrationTime(): bound forward
+                                   client skew at 120s
                                  verifyManifestProof()
-                                   ├ signature
                                    ├ digest binding
+                                   ├ Ed25519 signature
                                    ├ key_id match
                                    ├ role === "operator"
                                    ├ controller === agent_id
                                    └ key active at created_at
-                                 assign registered_at
-                                   from the registry's clock
-                                          │
-                                          ├──────────────────► agents
-                                          ├──────────────────► keys
-                                          └──────────────────► events
+                                 uniqueness + key-conflict check
+                                 registered_at ← registry's clock
+                                          ├───────────────────────► agents
+                                          ├───────────────────────► keys
+                                          └───────────────────────► events ×2
    ◄─────────────────────────────
-   201 { agent_id, level: "L1_REGISTERED", disclosures }
+   201 { agent_id, status, verification:{level}, manifest_digest,
+         registered_at, links, disclosures }
 ```
 
-The private key never enters this diagram's right-hand side. It is generated in the tab, used in the tab, and offered once as a download. It is never written to `localStorage` or `sessionStorage` — a test enforces this, because "we would not do that" is not a guarantee.
+The private key never appears on the right-hand side. It is generated in the tab, used in the tab, and offered once as a download — never written to `localStorage` or `sessionStorage`, which a test enforces, because "we would not do that" is not a guarantee.
 
 ## Data flow: resolution and independent verification
 
-`GET /a/<agenid>` serves two representations of one resource: HTML for browsers, the canonical envelope for `Accept: application/json`.
+`buildEnvelope` assembles the manifest and digest, the proof and `proof_check`, the operator key document with **both** discovery pointers, every assertion with its own `check`, and `verification.level` — the highest level among currently-valid assertions bound to the *current* manifest, defaulting to `L1_REGISTERED`.
 
-`buildEnvelope` assembles: the manifest and its digest; the proof and `proof_check`; the operator key document plus **both** discovery pointers (the registry path and the operator's `.well-known` URL); every assertion with its own per-assertion `check`; and `verification.level` — the highest level among currently-valid assertions bound to the *current* manifest, defaulting to `L1_REGISTERED`.
+**Assertions are re-checked at resolution time against the current manifest.** An operator who edits their manifest invalidates every assertion bound to the old one, automatically.
 
-Two properties of that computation matter more than they look:
+**Only L1–L4 have ranks.** `L5_CONTINUOUSLY_MONITORED` is a reserved *name* and is deliberately absent from the `VerificationLevel` enum, so it cannot be issued in v1.1.1 — the type system, not a policy document, is what makes L5 unreachable.
 
-**Assertions are re-checked at resolution time, against the current manifest.** They are not trusted because they were valid when issued. An operator who edits their manifest invalidates every assertion bound to the old one, automatically.
+## Trust boundaries
 
-**Only L1–L4 have ranks.** `L5` is spec-reserved and has no rank, so it cannot be reached by any code path — the type system, not a policy document, is what makes L5 unissuable.
+| Boundary | What changes |
+|---|---|
+| Operator → registry | Everything received is untrusted input: strict validation, unknown members rejected, signature and role verified before anything is stored |
+| Registry → verifier | Everything emitted is re-checkable by the recipient. **The registry's honesty is not a security assumption of the protocol** — which is exactly why it is safe to run one. |
+| Application → cryptography | All signing and verification lives in `@agenid/core` and `client-crypto.ts`. No other module constructs signing input, and no route may report a verification result it did not obtain from one of them. Test-enforced. |
+| Application → storage | `RegistryStore`. Implementations must be observationally identical — same records, same ordering, and the same *serialization* of protocol fields. |
+| Presentation → trust state | A presentation layer **displays** trust state; it never decides it. Rendering a hardcoded level string while the route returns a different one is a defect that shipped here once. |
+| Browser → network | Only public material crosses. The private key does not. |
 
-The envelope carries `verify_instructions` in free text describing how a third party re-verifies it without the registry. Because the second discovery path is not deployed, those instructions currently say so and name the check that *can* be completed today: compare the envelope's `operator_key.document` against the operator's own `.well-known` copy.
+## Authentication and authorization
 
-## Boundaries
+There is essentially none, deliberately. **The Ed25519 signature is the authentication.** A registration is self-attributed — you can only register an agent whose key you hold, and registering says nothing about you that anyone should believe. This is why L1 is honestly labelled a self-declaration.
 
-**Trust boundary.** Everything the registry receives from an operator is untrusted input, validated strictly and rejected on any unknown member. Everything the registry emits is re-checkable by the recipient. The registry's own honesty is *not* a security assumption of the protocol — which is exactly why it is safe to run one.
+The consequence is that nothing bounds registration *volume*. That is a real, documented gap.
 
-**Cryptographic boundary.** All signing and verification lives in `@agenid/core` and `client-crypto.ts`. No other module constructs signing input, and no route may report a verification result it did not obtain from one of them. This is enforced by test: no file under `packages/web/app` may assert a level or status above what the code computes.
+Authorization exists in exactly one place: the assertion write path, gated by `AGENID_AUTHORITY_TOKEN` in `@agenid/api`, and **not deployed**, because there is no root key to sign with.
 
-**Storage boundary.** `RegistryStore` is the seam. Its implementations must be observationally identical: same records, same ordering, and — a defect that actually shipped — the same *serialization* of protocol fields. Postgres renders `timestamptz` with a numeric offset while an in-memory store round-trips `Z`, so a protocol field's shape came to depend on the backend. Normalization at the store boundary is what makes the interface's storage independence true rather than merely structural.
+Database access is authorized by RLS: public-read policies on all four tables, with every write going through the service role.
 
-**Clock boundary.** Two deliberately separate decisions. *Registration* tolerates up to 120 seconds of forward client skew, because the signer and the registry are different machines in one request; beyond that it refuses with `clock_skew_too_large`. *Verification* tolerates none and `verifyManifestProof` is untouched — a third party checking a proof has no business assuming the signer's clock was honest. Never normalize a protocol timestamp's precision, only its spelling: truncating fractional seconds moves an instant backward, which once caused the registry to reject its own freshly-issued proofs.
+## Persistence
+
+Supabase Postgres, reached through `RegistryStore`. `MemoryStore` is the dev/test implementation and is non-durable; with no Supabase credentials configured, the registry falls back to it.
+
+| Table | Key | Notes |
+|---|---|---|
+| `agents` | `agent_id` | `manifest`/`proof` jsonb, `manifest_digest`, `status` (CHECK against five values), `registered_at`, `updated_at` |
+| `keys` | `key_id` | `document` jsonb; `role` and `controller` are generated columns extracted from the jsonb, indexed on `role` |
+| `assertions` | `assertion_id` | `document` jsonb; `manifest_digest` generated from jsonb; `verified_at` a **plain** timestamptz; indexed on `subject` |
+| `events` | `event_id` | Append-only ledger: `type`, `occurred_at`, `detail_ref` jsonb — **pointers and hashes only, never raw evidence** |
+
+Relationships are by identifier, not by foreign key. Verification never relies on referential integrity; it re-derives everything from signatures.
+
+**Consistency.** `createAgent` is an atomic insert that reports `false` on a unique violation rather than overwriting — a replayed registration is a `409`. There are no multi-statement transactions: a registration writes the agent, the key and two events as separate statements, so a mid-sequence failure can leave an agent without its ledger events. That is an accepted trade today; it degrades the audit trail, not the verifiability of the identity, because the envelope is reconstructed from the agent and key rows alone.
+
+Two constraints learned the hard way, both from defects that reached the repository:
+
+- **A `timestamptz` generated column cast from jsonb is not immutable** and Postgres rejects the migration (`42P17`). jsonb extraction is immutable; a text→timestamptz cast depends on the `DateStyle`/`TimeZone` GUCs. `keys.role` and `assertions.manifest_digest` are legal generated columns precisely because they stay in the text domain.
+- **Never store a protocol timestamp as `text`.** `Rfc3339Utc` permits optional fractional seconds, and lexicographic order disagrees with chronological order across mixed precision.
 
 ## External dependencies
 
 | Dependency | Role | Failure behavior |
 |---|---|---|
-| Supabase Postgres | Production registry store | Reads and writes fail. Resolution of already-distributed envelopes is unaffected — they re-verify offline. |
-| Vercel | Hosting for `packages/web` | Site and API unavailable. Same note as above: availability, not trust. |
-| DNS (`_agenid.<domain>` TXT) | Domain-control evidence for a future L2 | Reported as evidence, never as a level |
-| Cloudflare / GoDaddy APIs | Optional DNS auto-add | **Unconfigured in production.** `/api/dns/detect` gates on credential presence, so the feature is never advertised where it cannot run. |
-| Retell API | One read-only upstream call in the Retell flow, using a caller-supplied key | Caller-supplied key is used once and never stored |
+| Supabase Postgres | Production registry store | Writes return `503 registry_unavailable` and **nothing is stored**; reads return `503` meaning *status unknown, not disproven*. Already-distributed envelopes are unaffected — they re-verify offline. |
+| Vercel | Hosting for `packages/web` | Site and API unavailable. Availability, not trust. |
+| DNS (`_agenid.<domain>` TXT) | Domain-control evidence | `dns_error`; reported as evidence, never as a level |
+| Cloudflare / GoDaddy DNS APIs | Optional TXT auto-add | **Unconfigured in production**; `/api/dns/detect` gates on credential presence so the feature is never advertised where it cannot run |
+| Retell API | One read-only call with a caller-supplied key | `retell_unauthorized` / `retell_error`; key used once, never stored |
 
-No external dependency can raise a verification level. That is the point of listing them.
+**No external dependency can raise a verification level.** That is the point of listing them.
 
-## Authentication and authorization
+## Deployment architecture
 
-There is essentially none, deliberately. The public write endpoints are unauthenticated: **the Ed25519 signature is the authentication.** A registration is self-attributed — you can only register an agent you hold the key for, and registering says nothing about you that anyone should believe. This is why L1 is honestly labelled a self-declaration.
+`packages/web` deploys to Vercel from `main`, root directory `packages/web`. Its build script builds `@agenid/core` and `@agenid/api` first — Vercel does not do this on its own, and omitting it once broke production.
 
-The consequence is that nothing bounds registration *volume*. That is a real, documented gap; see [PROJECT_STATE.md](../PROJECT_STATE.md).
+`.github/workflows/ci.yml` runs on Node 20, 22 and 24: `pnpm install --frozen-lockfile`, a full recursive build, all five packages' test suites, and an e2e suite that boots the site and exercises register → resolve → card → badge. Every package's suite must be listed explicitly; three of the five were silently excluded at different points, so the matrix's completeness is itself something to re-check when a package is added.
 
-The assertion write path — the one that would let a third party say something about an agent — is authorization-gated by `AGENID_AUTHORITY_TOKEN` and is **not deployed**, because there is no root key to sign with.
-
-## Deployment
-
-`packages/web` deploys to Vercel from `main`, with `packages/web` as the root directory. Its build script builds `@agenid/core` and `@agenid/api` first — Vercel does not do this on its own, and omitting it once broke production.
-
-CI (`.github/workflows/ci.yml`) runs on Node 20, 22, and 24: `pnpm install --frozen-lockfile`, a full recursive build, all five packages' test suites, and the end-to-end suite that boots the site and exercises register → resolve → card → badge. Every package's suite must be listed explicitly; three of the five were silently excluded at different points, so the matrix's completeness is itself something to re-check when a package is added.
+Configuration is entirely by environment variable; `.env*` is gitignored and `.env.example` files are the templates. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 **"Pushed to main" does not mean "live."** Cross-check the deployment for the pushed SHA and confirm it reached a ready state.
 
 ## Failure behavior
 
-- **Unknown identifier** → clean `404 agent_not_found`, never a 500. The read path fails safe.
-- **Unknown or malformed identifier on a badge** → HTTP **200** with a neutral grey `NOT REGISTERED` badge. A non-200 renders as a broken image rather than a badge, and absence of verification is never a negative finding.
-- **Verification failure** → a value with a stable code, surfaced in the envelope's `proof_check` or per-assertion `check`. The envelope is still served; the verifier is told what failed.
-- **Store unavailable** → the API errors. Already-distributed envelopes remain verifiable offline, which is the design working as intended.
+| Condition | Behavior |
+|---|---|
+| Unknown identifier, JSON | `404 agent_not_found` — clean, never a 500. Documented as *not evidence of anything beyond "not registered"*. |
+| Unknown identifier, HTML card | **`200`** with a neutral *Not registered* card. A 404 error page would frame absence of registration as a failure, which this product does not do. |
+| Unknown identifier, SVG badge | **`200`**, neutral grey, `NOT REGISTERED`. A non-200 renders as a broken image rather than a badge. |
+| Verification failure | A value with a stable code, surfaced in `proof_check` or a per-assertion `check`. The envelope is still served; the verifier is told what failed. |
+| Store unavailable | `503`, and on a write **nothing is stored** — never a partial or optimistic success. |
+| Malformed input | `400` with a stable error code and, for schema failures, the zod `issues`. |
+| Realtime subsystem reached | Throws loudly. AgenID never opens a Supabase realtime channel; the transport is stubbed so nothing can quietly open one. |
+
+## Architectural decisions
+
+**The registry is not authoritative.** Everything above follows from this.
+
+**Storage independence is enforced at the boundary, not just structurally.** Postgres renders `timestamptz` with a numeric offset while an in-memory store round-trips `Z`, so a protocol field's shape came to depend on the backend. Normalizing at the store boundary is what makes `RegistryStore`'s independence actually true.
+
+**Registration tolerates bounded forward client skew; verification tolerates none.** `registrationTime()` exists because signer and registry are different machines in one request. `verifyManifestProof` stays strict — a third party checking a proof has no business assuming the signer's clock was honest. These two decisions are deliberately separate and must stay separate.
+
+**One implementation per security-critical business rule.** See `lib/register.ts` above.
+
+**The second registry implementation in `packages/web` is a known, bounded cost**, taken to avoid a phantom zod dependency and a duplicate zod instance.
+
+**Never truncate a timestamp the protocol will compare.** Truncation only moves an instant backward, which once made the registry reject its own freshly-issued proofs. Normalize a timestamp's spelling, never its precision.
+
+**Every honesty rule is a test.** If a rule can be grepped for, it belongs in `packages/web/test/public-surface.test.ts`. A rule that lives only in a document is one the next contributor re-breaks — one was written down and violated by deployed code for a full day afterwards.

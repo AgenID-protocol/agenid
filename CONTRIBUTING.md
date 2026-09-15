@@ -81,9 +81,10 @@ Before a change is considered done:
 3. **Tests pass for all five packages.** `pnpm -r test`, plus `pnpm --filter @agenid/web e2e` for anything touching the registration or resolution path.
 4. **Negative cases are covered.** A change to verification adds the test that proves the bad input is still rejected, not only that the good input still passes.
 5. **Any grep-able rule the change introduces becomes a test in the same commit.** See [SECURITY.md](SECURITY.md).
-6. **Documentation moves with the implementation.** README, `docs/`, `PROJECT_STATE.md`, the OpenAPI spec, and any public copy that referenced the changed behavior — in the same cycle.
-7. **`next build` is clean** for anything touching `packages/web`.
-8. **The root `package.json` still has `"private": true`.** It is the only guard preventing a root `npm publish` from publishing the entire monorepo source.
+6. **`pnpm run check:docs` passes**, and `pnpm run check:docs:live` before anything that changes a public endpoint or a status claim.
+7. **Documentation moves with the implementation.** README, `docs/`, `PROJECT_STATE.md`, the OpenAPI spec, and any public copy that referenced the changed behavior — in the same cycle.
+8. **`next build` is clean** for anything touching `packages/web`.
+9. **The root `package.json` still has `"private": true`.** It is the only guard preventing a root `npm publish` from publishing the entire monorepo source.
 
 ## Documentation is part of the change
 

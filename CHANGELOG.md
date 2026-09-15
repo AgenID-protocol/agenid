@@ -9,10 +9,12 @@ Notable changes to the AgenID reference implementation. Format follows [Keep a C
 ## [Unreleased]
 
 ### Added
+- **`scripts/check-docs.mjs`** — documentation consistency check, wired into CI. Resolves every relative link, asserts the README's package list against the workspace, forbids dead hosts and overclaim vocabulary, asserts `L5` stays out of the issuable enum, and with `--live` verifies twelve documented endpoint claims plus the OpenAPI version and path coverage against production.
 - Regression test asserting `SupabaseStore` constructs on a runtime with no global `WebSocket`.
 - Repository front door: `README.md` rewritten as a technical landing page, plus `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `PROJECT_STATE.md`, and `docs/architecture.md`, `docs/trust-model.md`, `docs/threat-model.md`, `docs/api.md`.
 
 ### Fixed
+- **Six fabricated claims in the API reference**, found by verifying it against the live deployment rather than re-reading it. The registration response shape was wrong (the level is nested under `verification`, and `status`, `manifest_digest` and `links` were missing); a `422` status was documented that the API never returns; `POST /api/v1/verify` was described as `ManifestProof` verification when it is a raw Ed25519 signature check taking `{manifest, signature, public_key_hex}`; the error-code table conflated three separate namespaces; the `503`/`registry_unavailable` path was undocumented; and `/a/<agenid>`'s deliberate representation split — `200` HTML card, `404` JSON — was documented as a flat `404`.
 - **CI was red on the Node 20 leg of the matrix, and had been for several commits.** `createClient` builds a RealtimeClient eagerly, which probes for a global `WebSocket` — absent before Node 22 — so merely *constructing* a `SupabaseStore` threw on a runtime the package's `engines` field claims to support. The other two matrix legs stayed green and hid it. Both call sites now supply a transport that short-circuits the probe and throws loudly if a realtime channel is ever opened, since AgenID never uses one.
 
 ---

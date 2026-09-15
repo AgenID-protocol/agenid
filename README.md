@@ -98,6 +98,8 @@ With no Supabase credentials configured, the registry falls back to `MemoryStore
 pnpm -r test                          # all five packages
 pnpm --filter @agenid/core test       # protocol conformance vectors
 pnpm --filter @agenid/web e2e         # builds the site, boots the registry, exercises register → resolve → card → badge
+pnpm run check:docs                   # documentation consistency (links, packages, claims)
+pnpm run check:docs:live              # ...plus every documented endpoint claim against production
 ```
 
 CI runs the full matrix on Node 20, 22, and 24. Tests live in `packages/*/test/` and `packages/*/tests/`.
@@ -108,6 +110,7 @@ The suites worth knowing about, because they protect invariants rather than beha
 - `packages/web/test/public-surface.test.ts` — forbids dead hosts in public copy, forbids any hardcoded `true` disclosure attestation, and requires self-declared states to render amber rather than emerald.
 - `packages/web/test/issuance.test.ts` and `packages/cli/test/cli.test.ts` — no surface may assert a verification level the code did not compute.
 - `packages/api/tests/store-timestamp-shape.test.ts` — `MemoryStore` and `SupabaseStore` must serialize protocol fields identically.
+- `packages/api/tests/supabase-store-runtime.test.ts` — the store must construct on a runtime with no global `WebSocket`, which `engines: node >=20` promises.
 
 Those tests exist because each one guards a defect that actually shipped. See [SECURITY.md](SECURITY.md).
 
@@ -121,8 +124,8 @@ Live in production today:
 |---|---|
 | `POST /api/v1/agents` | Register a signed manifest. Returns `L1_REGISTERED`. |
 | `GET /api/resolve/<agenid>` | Resolution envelope (JSON). |
-| `GET /a/<agenid>` | Verification Card (HTML) or envelope (`Accept: application/json`). |
-| `POST /api/v1/verify` | Verify a manifest + proof without registering. |
+| `GET /a/<agenid>` | Verification Card (HTML, always `200`) or envelope (`Accept: application/json`, `404` when unknown). |
+| `POST /api/v1/verify` | Stateless Ed25519 signature check over JCS-canonicalized bytes. Not `ManifestProof` verification — see [docs/api.md](docs/api.md). |
 | `GET /badge/<agenid>/shield.svg` | Static SVG badge for Markdown surfaces. |
 | `/badge.js` | Embeddable live badge. |
 
@@ -149,7 +152,7 @@ Stated plainly, because a trust product that hides these is not a trust product:
 
 | Document | Contents |
 |---|---|
-| [PROJECT_STATE.md](PROJECT_STATE.md) | What is verified in production, implemented, in development, planned, and blocked |
+| [PROJECT_STATE.md](PROJECT_STATE.md) | **Start here.** Implemented vs production-verified vs not deployed, data model, integrations, limitations, current blocker |
 | [docs/architecture.md](docs/architecture.md) | Components, data flow, trust and storage boundaries, deployment, failure behavior |
 | [docs/trust-model.md](docs/trust-model.md) | What a verifier must trust, what they can check themselves, and the verification levels |
 | [docs/threat-model.md](docs/threat-model.md) | Adversaries, assumptions, what the protocol defends against, and what it does not |

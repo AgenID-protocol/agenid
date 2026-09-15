@@ -15,6 +15,8 @@
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "clean": "pnpm -r run clean"
+    "clean": "pnpm -r run clean",
+    "check:docs": "node scripts/check-docs.mjs",
+    "check:docs:live": "node scripts/check-docs.mjs --live"
   }
 }

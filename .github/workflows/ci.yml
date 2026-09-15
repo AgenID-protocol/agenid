@@ -27,3 +27,4 @@ jobs:
       - run: pnpm --filter @agenid/cli test
       - run: pnpm --filter @agenid/web test
       - run: pnpm --filter @agenid/web e2e
+      - run: pnpm run check:docs
