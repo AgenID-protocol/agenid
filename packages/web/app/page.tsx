@@ -111,7 +111,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/verify" className="btn btn-primary">Verify an Agent</Link>
-            <Link href="#get-agenid" className="btn btn-ghost">Give Your Agent an Identity</Link>
+            <Link href="/issue" className="btn btn-ghost">Give Your Agent an Identity</Link>
           </div>
           <p className="mt-4 font-mono text-[11px] text-muted">Open protocol · Cryptographically verifiable · Platform independent</p>
 
@@ -255,7 +255,7 @@ export default function Home() {
           </div>
           <p className="mt-4 text-xs text-muted">
             No agent yet?{" "}
-            <Link href="#get-agenid" className="text-paper underline hover:no-underline">Register one</Link> to get an
+            <Link href="/issue" className="text-paper underline hover:no-underline">Register one</Link> to get an
             identifier you can resolve here.
           </p>
         </div>
@@ -421,12 +421,18 @@ export default function Home() {
           <Eyebrow>GIVE YOUR AI AGENT AN IDENTITY</Eyebrow>
           <h2 className="text-3xl font-bold tracking-tight">Get AgenID.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted">
-            Install <span className="font-mono">@agenid/core</span>, generate an identifier, declare an operator manifest, and sign it — the full path is documented and reproducible, no dashboard sign-up required.
+            Name your agent and your browser does the rest: it generates an Ed25519 key, signs the operator manifest
+            locally, and registers the public half. You get a resolvable identifier and a Verification Card in about a
+            minute — no account, and no private key ever leaves your machine.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/docs/onboarding" className="btn btn-primary">Read the Quick Start</Link>
-            <Link href="/verify" className="btn btn-ghost">Verify an Agent</Link>
+            <Link href="/issue" className="btn btn-primary">Give Your Agent an Identity</Link>
+            <Link href="/docs/onboarding" className="btn btn-ghost">Do it from a terminal</Link>
           </div>
+          <p className="mx-auto mt-5 max-w-2xl text-xs text-muted">
+            Issues L1_REGISTERED — registered here, operator self-declaration verified. Not a third-party check of the
+            operator, the domain, or the organization.
+          </p>
         </div>
       </section>
     </main>

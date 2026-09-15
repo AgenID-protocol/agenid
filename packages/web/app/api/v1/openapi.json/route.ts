@@ -1,8 +1,9 @@
 /**
- * GET /api/v1/openapi.json — OpenAPI 3.0 spec for the AgenID resolver and stateless
- * verifier, built for OpenAI Custom GPT Actions and Assistants API tool use. Only
- * describes routes that actually exist and are handled elsewhere in this app
- * (`app/api/resolve/[agenid]/route.ts`, `app/api/v1/verify/route.ts`) — never a
+ * GET /api/v1/openapi.json — OpenAPI 3.0 spec for the AgenID resolver, registration
+ * endpoint, badge, and stateless verifier, built for OpenAI Custom GPT Actions and
+ * Assistants API tool use. Only describes routes that actually exist and are handled
+ * elsewhere in this app (`app/api/resolve/[agenid]/route.ts`, `app/api/v1/verify/route.ts`,
+ * `app/api/v1/agents/route.ts`, `app/badge/[agenid]/shield.svg/route.ts`) — never a
  * fabricated surface, per this repo's standing "docs never outrun shipped code" rule.
  */
 import { SITE_URL } from "@/lib/api";
@@ -13,11 +14,16 @@ function buildSpec(origin: string) {
   return {
     openapi: "3.0.3",
     info: {
-      title: "AgenID Resolver & Verification API",
+      title: "AgenID Registry, Resolver & Verification API",
       description:
-        "Public, read-only endpoints for resolving an AI agent's AgenID identity record and for stateless, offline " +
-        "verification of Ed25519-signed AgenID payloads. Part of the open AgenID protocol (https://github.com/AgenID-protocol/spec). " +
-        "No API key required for either endpoint.",
+        "Public endpoints for registering an AI agent, resolving its AgenID identity record, and performing stateless " +
+        "offline verification of Ed25519-signed AgenID payloads. Part of the open AgenID protocol " +
+        "(https://github.com/AgenID-protocol/spec). No API key required for any endpoint.\n\n" +
+        "Registration accepts PUBLIC material only — a manifest, an operator-signed proof, and a public key. No endpoint " +
+        "here accepts a private key, and the registry cannot sign on an operator's behalf.\n\n" +
+        "Registration issues L1_REGISTERED: the agent is registered here and its operator self-declaration verifies. It " +
+        "is not a third-party check of the operator, domain, or organization. No higher level is currently issuable by " +
+        "anyone, because AgenID's root authority key ceremony has not been performed.",
       version: "1.1.1",
       contact: { name: "AgenID", url: "https://www.agenid.com" },
       license: { name: "MIT", url: "https://github.com/AgenID-protocol/spec/blob/main/LICENSE" },
@@ -87,9 +93,145 @@ function buildSpec(origin: string) {
           },
         },
       },
+      "/api/v1/agents": {
+        post: {
+          operationId: "registerAgent",
+          summary: "Register an agent (issues L1_REGISTERED)",
+          description:
+            "Registers an agent from PUBLIC material only: its manifest, an operator-signed ManifestProof over that " +
+            "manifest's digest, and the operator's Ed25519 KeyDocument. A private key is not a field of this request and " +
+            "must never be sent — operators generate and hold their own keys. The registry re-verifies the signature, the " +
+            "digest binding, the key's role and controller, and the proof's validity window before storing anything.\n\n" +
+            "A successful registration is L1_REGISTERED and nothing above it: this agent is registered in this registry and " +
+            "its operator self-declaration verifies. That is NOT a third-party check of the operator, the domain, or the " +
+            "organization. Levels above L1 come only from authority-signed VerificationAssertions, and AgenID's root " +
+            "authority key ceremony has not been performed, so none can be issued yet.",
+          tags: ["Register"],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/RegisterRequest" } } },
+          },
+          responses: {
+            "201": {
+              description: "Agent registered at L1_REGISTERED.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/RegisterResponse" } } },
+            },
+            "400": {
+              description:
+                "Schema validation failed, the proof did not verify, the key's role/controller was wrong, or the signing " +
+                "machine's clock is more than 120s ahead of the registry (`clock_skew_too_large`).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+            },
+            "409": {
+              description: "This agent_id is already registered, or a different key document is published under this key_id.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+            },
+            "503": {
+              description: "The registry could not be written to. Nothing was stored.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+            },
+          },
+        },
+      },
+      "/badge/{agenid}/shield.svg": {
+        get: {
+          operationId: "getAgentBadge",
+          summary: "Live status badge as an SVG image",
+          description:
+            "Renders the agent's current registry status as an SVG, for READMEs and other Markdown surfaces that strip " +
+            "scripts (use /badge.js where scripts run). Always responds 200 — a non-200 would render as a broken image " +
+            "rather than a badge — so the badge's own text and color carry the outcome. An unregistered or malformed " +
+            "identifier renders neutral grey and reads \"NOT REGISTERED\", never red and never \"invalid\": absence of a " +
+            "record is not a negative finding.",
+          tags: ["Resolve"],
+          parameters: [
+            {
+              name: "agenid",
+              in: "path",
+              required: true,
+              description: "Agent identifier, e.g. agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y",
+              schema: { type: "string", example: "agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "An SVG badge. Cached for at most 60s so a revocation propagates quickly.",
+              content: { "image/svg+xml": { schema: { type: "string" } } },
+            },
+          },
+        },
+      },
     },
     components: {
       schemas: {
+        RegisterRequest: {
+          type: "object",
+          required: ["manifest", "proof", "key_document"],
+          additionalProperties: false,
+          description:
+            "Exactly three members. Unknown top-level members are rejected rather than ignored, so a client cannot " +
+            "smuggle in a field the registry silently drops — notably a verification level it is not entitled to claim.",
+          properties: {
+            manifest: {
+              type: "object",
+              description: "The §6.1 agent manifest. Strict: reserved keys from future protocol versions are rejected.",
+              additionalProperties: true,
+            },
+            proof: {
+              type: "object",
+              description:
+                "The §6.2 ManifestProof: the operator's Ed25519 signature over the RFC 8785 canonical bytes of the proof " +
+                "payload (the payload WITHOUT its `signature` member), binding agent_id, manifest digest, key_id, and a " +
+                "created_at/expires_at window.",
+              additionalProperties: true,
+            },
+            key_document: {
+              type: "object",
+              description:
+                "The §9.1 operator KeyDocument. PUBLIC KEY ONLY. `role` must be `operator` and `controller` must equal " +
+                "`manifest.agent_id`.",
+              additionalProperties: true,
+            },
+          },
+        },
+        RegisterResponse: {
+          type: "object",
+          properties: {
+            agent_id: { type: "string", example: "agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y" },
+            status: { type: "string", example: "ACTIVE" },
+            verification: {
+              type: "object",
+              properties: {
+                level: {
+                  type: "string",
+                  enum: ["L1_REGISTERED"],
+                  description: "Always L1_REGISTERED. Registration cannot produce any higher level.",
+                },
+              },
+            },
+            manifest_digest: {
+              type: "object",
+              properties: { alg: { type: "string", example: "sha-256" }, value: { type: "string" } },
+            },
+            registered_at: {
+              type: "string",
+              format: "date-time",
+              description: "The registry's own clock, never the client's.",
+            },
+            links: {
+              type: "object",
+              properties: {
+                card: { type: "string", description: "Public Verification Card path." },
+                envelope: { type: "string", description: "Canonical resolution envelope path." },
+              },
+            },
+            disclosures: {
+              type: "array",
+              items: { type: "string" },
+              description: "Plain-language statements of what this level does and does not assert. Surface them verbatim.",
+            },
+          },
+        },
         VerifyRequest: {
           type: "object",
           required: ["manifest", "signature", "public_key_hex"],

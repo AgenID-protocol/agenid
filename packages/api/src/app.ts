@@ -22,6 +22,7 @@ import {
 } from "@agenid/core";
 import { MemoryStore, type RegistryStore, type AgentRecord } from "./store.js";
 import { buildEnvelope } from "./envelope.js";
+import { registrationTime } from "./registration-time.js";
 
 export interface AppOptions {
   store?: RegistryStore;
@@ -53,7 +54,10 @@ function zodMessage(e: z.ZodError): string {
 
 export function buildApp(opts: AppOptions = {}): FastifyInstance {
   const store = opts.store ?? new MemoryStore();
-  const now = opts.now ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
+  // Full precision. Truncating to whole seconds only ever moves the registry's clock
+  // BACKWARD (by up to 999ms), which made same-second registrations fail `not_yet_valid`.
+  // See registration-time.ts.
+  const now = opts.now ?? (() => new Date().toISOString());
   const app = Fastify({ logger: opts.logger ?? false });
   app.register(cors, { origin: true, methods: ["GET", "POST", "OPTIONS"] });
 
@@ -84,7 +88,13 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
     if (key_document.role !== "operator") return err(reply, 400, "key_role_mismatch", "registration key must have role=operator");
     if (key_document.controller !== manifest.agent_id) return err(reply, 400, "key_controller_mismatch", "operator key controller must equal manifest.agent_id");
 
-    const check = verifyManifestProof(proof, manifest, key_document, { now: now() });
+    // Signer and registry are different machines milliseconds apart. registrationTime()
+    // decides the evaluation instant under an explicit, bounded forward-skew policy; it
+    // weakens no check, and every check below still runs against whatever it returns.
+    const rt = registrationTime(proof.created_at, new Date(now()));
+    if (!rt.ok) return err(reply, 400, rt.code, rt.message);
+
+    const check = verifyManifestProof(proof, manifest, key_document, { now: rt.now });
     if (!check.ok) return err(reply, 400, check.code, check.message);
 
     // If this key_id is already published, it must be byte-identical (no silent key substitution via re-registration).

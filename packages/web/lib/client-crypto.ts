@@ -146,6 +146,103 @@ export interface ManifestInput {
   purposeSummary: string;
   contact?: string;
   description?: string;
+  /** §6.1 purpose.channels. Defaults to ["voice"] for the Retell path that predates this field. */
+  channels?: Array<"voice" | "sms" | "chat" | "email" | "api">;
+}
+
+/** One signed agent: manifest + operator-signed ManifestProof + operator KeyDocument. */
+export interface SignedAgent {
+  agentId: string;
+  keyId: string;
+  manifest: Record<string, unknown>;
+  proof: Record<string, unknown>;
+  keyDocument: Record<string, unknown>;
+  manifestDigest: string;
+}
+
+/**
+ * Build, digest and sign ONE agent's manifest. This is the single signing path in the
+ * browser — `signAgentFleet` is a loop over it, so the Retell flow and the generic
+ * issuance flow can never drift into producing differently-shaped proofs.
+ *
+ * The private key is used here and never returned, serialized or transmitted.
+ */
+export async function signAgent(
+  keyPair: ClientKeyPair,
+  agentName: string,
+  input: ManifestInput,
+  clock: { now?: Date } = {},
+): Promise<SignedAgent> {
+  const nowDate = clock.now ?? new Date();
+  const now = nowDate.toISOString();
+  const expiresAt = new Date(nowDate.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
+
+  const agentId = `agenid:${generateUlid()}`;
+  const keyId = `agenid:key:${generateUlid()}`;
+
+  // §6.1 Manifest
+  const manifest: Record<string, unknown> = {
+    manifest_version: "1.0",
+    agent_id: agentId,
+    identity: {
+      name: agentName,
+      ...(input.description ? { description: input.description } : {}),
+    },
+    ownership: {
+      operator: input.operator,
+      operator_domain: input.operatorDomain,
+      ...(input.contact ? { contact: input.contact } : {}),
+    },
+    purpose: {
+      summary: input.purposeSummary,
+      channels: input.channels && input.channels.length > 0 ? input.channels : ["voice"],
+    },
+    disclosure: {
+      is_ai: true,
+      discloses_to_user: input.disclosesToUser,
+      human_escalation: input.humanEscalation,
+    },
+  };
+
+  // §6.1 / §8.2 — digest over RFC 8785 canonical bytes.
+  const manifestDigest = await sha256Hex(canonicalizeToBytes(manifest));
+
+  // §9.1 KeyDocument — public material only.
+  const keyDocument: Record<string, unknown> = {
+    key_id: keyId,
+    key_type: "Ed25519",
+    public_key_b64u: keyPair.publicKeyB64u,
+    role: "operator",
+    controller: agentId,
+    created_at: now,
+    status: "active",
+    retired_at: null,
+    revoked_at: null,
+  };
+
+  // §6.2 ManifestProof payload.
+  const proofPayload: Record<string, unknown> = {
+    $schema: "https://agenid.com/schemas/v1.1.1/manifest-proof.json",
+    proof_type: "manifest_self_declaration",
+    agent_id: agentId,
+    manifest_version: "1.0",
+    manifest_digest: { alg: "sha-256", value: manifestDigest },
+    key_id: keyId,
+    created_at: now,
+    expires_at: expiresAt,
+  };
+
+  // §7 — sign the canonical bytes of the payload WITHOUT a `signature` member.
+  const signature = ed25519.sign(canonicalizeToBytes(proofPayload), keyPair.privateKey);
+
+  return {
+    agentId,
+    keyId,
+    manifest,
+    proof: { ...proofPayload, signature: b64uEncode(signature) },
+    keyDocument,
+    manifestDigest,
+  };
 }
 
 export interface AgentBinding {
@@ -160,93 +257,25 @@ export interface AgentBinding {
 
 /**
  * Build manifests and sign ManifestProofs for a fleet of Retell agents.
- * All crypto happens client-side. Returns only public material for the server.
+ * A thin loop over `signAgent` — all crypto lives there. Returns only public material.
  */
 export async function signAgentFleet(
   keyPair: ClientKeyPair,
   agents: Array<{ agent_id: string; agent_name: string }>,
   input: ManifestInput,
 ): Promise<AgentBinding[]> {
-  const now = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
   const results: AgentBinding[] = [];
-
   for (const agent of agents) {
-    const agentId = `agenid:${generateUlid()}`;
-    const keyId = `agenid:key:${generateUlid()}`;
-
-    // Build manifest (§6.1)
-    const manifest: Record<string, unknown> = {
-      manifest_version: "1.0",
-      agent_id: agentId,
-      identity: {
-        name: agent.agent_name || "Unnamed Retell Agent",
-        ...(input.description ? { description: input.description } : {}),
-      },
-      ownership: {
-        operator: input.operator,
-        operator_domain: input.operatorDomain,
-        ...(input.contact ? { contact: input.contact } : {}),
-      },
-      purpose: {
-        summary: input.purposeSummary,
-        channels: ["voice"],
-      },
-      disclosure: {
-        is_ai: true,
-        discloses_to_user: input.disclosesToUser,
-        human_escalation: input.humanEscalation,
-      },
-    };
-
-    // Compute manifest digest (§6.1 / §8.2)
-    const manifestBytes = canonicalizeToBytes(manifest);
-    const manifestDigest = await sha256Hex(manifestBytes);
-
-    // Build key document (§9.1)
-    const keyDocument: Record<string, unknown> = {
-      key_id: keyId,
-      key_type: "Ed25519",
-      public_key_b64u: keyPair.publicKeyB64u,
-      role: "operator",
-      controller: agentId,
-      created_at: now,
-      status: "active",
-      retired_at: null,
-      revoked_at: null,
-    };
-
-    // Build ManifestProof payload (§6.2)
-    const proofPayload: Record<string, unknown> = {
-      $schema: "https://agenid.com/schemas/v1.1.1/manifest-proof.json",
-      proof_type: "manifest_self_declaration",
-      agent_id: agentId,
-      manifest_version: "1.0",
-      manifest_digest: { alg: "sha-256", value: manifestDigest },
-      key_id: keyId,
-      created_at: now,
-      expires_at: expiresAt,
-    };
-
-    // Sign: strip "signature", canonicalize, Ed25519.sign (§7)
-    const signingInput = canonicalizeToBytes(proofPayload);
-    const signature = ed25519.sign(signingInput, keyPair.privateKey);
-
-    const proof: Record<string, unknown> = {
-      ...proofPayload,
-      signature: b64uEncode(signature),
-    };
-
+    const signed = await signAgent(keyPair, agent.agent_name || "Unnamed Retell Agent", input);
     results.push({
       retellAgentId: agent.agent_id,
       agentName: agent.agent_name,
-      agentId,
-      manifest,
-      proof,
-      keyDocument,
-      manifestDigest,
+      agentId: signed.agentId,
+      manifest: signed.manifest,
+      proof: signed.proof,
+      keyDocument: signed.keyDocument,
+      manifestDigest: signed.manifestDigest,
     });
   }
-
   return results;
 }

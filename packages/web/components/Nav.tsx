@@ -10,6 +10,7 @@ const GROUPS: NavGroup[] = [
   {
     label: "Product",
     links: [
+      { href: "/issue", label: "Get an AgenID", note: "Sign and register in your browser" },
       { href: "/verify", label: "Verify an Agent", note: "Resolve any agenid:<ULID>" },
       { href: "/#identity", label: "Agent Identity", note: "What agenid:<ULID> actually is" },
       { href: "/#badges", label: "Agent Badges", note: "Embed live verification status" },
@@ -129,7 +130,7 @@ export function Nav() {
           <Link href="/verify" className="btn btn-ghost !py-1.5 !text-[13px]">
             Verify an Agent
           </Link>
-          <Link href="/#get-agenid" className="btn btn-primary !py-1.5 !text-[13px]">
+          <Link href="/issue" className="btn btn-primary !py-1.5 !text-[13px]">
             Give Your Agent an Identity
           </Link>
         </div>
@@ -163,7 +164,7 @@ export function Nav() {
               <Link href="/verify" onClick={() => setDrawer(false)} className="btn btn-primary w-full">
                 Verify an Agent
               </Link>
-              <Link href="/#get-agenid" onClick={() => setDrawer(false)} className="btn btn-ghost w-full">
+              <Link href="/issue" onClick={() => setDrawer(false)} className="btn btn-ghost w-full">
                 Give Your Agent an Identity
               </Link>
             </div>

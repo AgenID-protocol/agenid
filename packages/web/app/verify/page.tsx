@@ -58,7 +58,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
       <div className="mt-10 rounded-lg border border-line bg-ink-2 p-5 text-sm text-muted">
         <span className="font-semibold text-paper">No result?</span> An unregistered identifier is not evidence of
         anything — it simply has no record yet.{" "}
-        <Link href="/#get-agenid" className="text-paper underline hover:no-underline">Register an agent →</Link>
+        <Link href="/issue" className="text-paper underline hover:no-underline">Register an agent →</Link>
       </div>
     </main>
   );

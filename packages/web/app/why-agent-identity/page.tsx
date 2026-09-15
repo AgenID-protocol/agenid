@@ -54,7 +54,7 @@ export default function WhyAgentIdentityPage() {
 
       <div className="mt-12 flex flex-wrap gap-3">
         <Link href="/verify" className="btn btn-primary">Verify an Agent</Link>
-        <Link href="/#get-agenid" className="btn btn-ghost">Give Your Agent an Identity</Link>
+        <Link href="/issue" className="btn btn-ghost">Give Your Agent an Identity</Link>
       </div>
     </main>
   );

@@ -33,13 +33,22 @@ export type Envelope = ResolutionEnvelope;
 
 let cachedStore: RegistryStore | null = null;
 /** Lazily constructed once per warm serverless instance / process. Only used when AGENID_API_URL is unset. */
-function getStore(): RegistryStore {
+export function getStore(): RegistryStore {
   if (!cachedStore) cachedStore = supabaseStoreFromEnv() ?? new MemoryStore();
   return cachedStore;
 }
 
+/**
+ * Full precision, deliberately. buildEnvelope re-verifies the operator proof against this
+ * instant, and truncating to whole seconds moves it BACKWARD by up to 999ms — so an agent
+ * resolved in the same second it was registered would have its own fresh proof judged
+ * "not yet valid", and the envelope would report proof_check.ok === false. badge.js and
+ * the SVG badge both render that as a red PROOF INVALID, so a brand-new agent's badge
+ * would briefly accuse its owner of a broken signature. Rfc3339Utc permits fractional
+ * seconds; there was never a reason to strip them.
+ */
 function nowIso(): string {
-  return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+  return new Date().toISOString();
 }
 
 async function fetchEnvelopeOverHttp(agentId: string): Promise<{ status: number; envelope: Envelope | null; error?: string }> {
