@@ -4,3 +4,5 @@ dist/
 .DS_Store
 .pnpm-store/
 _quarantine/
+.vercel
+.env*

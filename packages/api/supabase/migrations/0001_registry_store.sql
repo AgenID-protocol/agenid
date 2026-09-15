@@ -33,9 +33,19 @@ create table if not exists assertions (
   subject          text not null,
   level            text not null,
   key_id           text not null,
+  -- jsonb extraction is IMMUTABLE, so this generated column is legal.
   manifest_digest  text not null generated always as (document->'manifest_digest'->>'value') stored,
   document         jsonb not null,
-  verified_at      timestamptz not null generated always as (((document->>'verified_at'))::timestamptz) stored
+  -- NOT a generated column: text -> timestamptz depends on the DateStyle/TimeZone
+  -- GUCs, so Postgres rejects that cast in a generation expression ("generation
+  -- expression is not immutable", 42P17) -- this migration had never been applied
+  -- to a real database. Storing it as text is also unsafe: Rfc3339Utc permits
+  -- OPTIONAL fractional seconds, and lexicographic ordering disagrees with
+  -- chronological ordering across mixed precision ('...00.500Z' < '...00Z' as
+  -- text, but later in time). SupabaseStore.putAssertion therefore writes this
+  -- column explicitly from assertion.verified_at, so listAssertionsForSubject's
+  -- ORDER BY gets true timestamptz ordering.
+  verified_at      timestamptz not null
 );
 create index if not exists assertions_subject_idx on assertions (subject);
 

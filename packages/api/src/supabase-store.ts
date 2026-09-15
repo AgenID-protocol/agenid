@@ -110,7 +110,7 @@ export class SupabaseStore implements RegistryStore {
   async putAssertion(a: VerificationAssertion): Promise<void> {
     const { error } = await this.client
       .from("assertions")
-      .upsert({ assertion_id: a.assertion_id, subject: a.subject, level: a.level, key_id: a.key_id, document: a });
+      .upsert({ assertion_id: a.assertion_id, subject: a.subject, level: a.level, key_id: a.key_id, document: a, verified_at: a.verified_at });
     if (error) throw new Error(`SupabaseStore.putAssertion: ${error.message}`);
   }
 
