@@ -23,6 +23,7 @@
 import {
   presentTrustLevel,
   supportedTrustLevels,
+  recognizedStatuses,
   UNKNOWN_TRUST,
   PROOF_INVALID_TRUST,
   UNAVAILABLE_TRUST,
@@ -42,6 +43,7 @@ function buildScript(): string {
   const levels = Object.fromEntries(supportedTrustLevels().map((l) => [l, wire(presentTrustLevel(l))]));
   const table = JSON.stringify({
     levels,
+    statuses: recognizedStatuses(),
     unknown: wire(UNKNOWN_TRUST),
     proofInvalid: wire(PROOF_INVALID_TRUST),
     unavailable: wire(UNAVAILABLE_TRUST),
@@ -96,12 +98,23 @@ function buildScript(): string {
   fetch(origin + "/api/resolve/" + encodeURIComponent(agent), { headers: { accept: "application/json" } })
     .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function (env) {
+      // Status fails closed exactly as the level does. The allowlist is serialized from
+      // the same module, so a lifecycle state this build does not recognize — including a
+      // lowercase one — renders neutral instead of falling through to the level branch.
       var status = env && env.status;
-      if (status === "SUSPENDED" || status === "REVOKED") {
+      if (typeof status !== "string") {
+        paint(T.unavailable, "This registry returned no lifecycle status for this identity.");
+        return;
+      }
+      if (T.statuses.alert.indexOf(status) !== -1) {
         paint({ color: T.revokedColor, label: "AGENID " + status }, "This identity is " + status.toLowerCase() + ". Click to see the record.");
         return;
       }
-      if (!env || !env.proof_check || env.proof_check.ok !== true) {
+      if (T.statuses.healthy.indexOf(status) === -1) {
+        paint(T.unavailable, "This registry reports a lifecycle state this badge does not recognize. Treat it as unverified.");
+        return;
+      }
+      if (!env.proof_check || env.proof_check.ok !== true) {
         paint(T.proofInvalid, "The operator proof for this agent does not verify.");
         return;
       }

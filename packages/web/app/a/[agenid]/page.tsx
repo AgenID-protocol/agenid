@@ -46,13 +46,20 @@ function StatusPill({ ok, okText, badText, neutral = false }: { ok: boolean; okT
 function Card({ env, id }: { env: Envelope; id: string }) {
   const m = env.manifest;
   const level = env.verification.level;
-  // `levelOk` used to be `level !== "L1_REGISTERED"` — so every unrecognized level took
-  // the verified branch and the card said AGENID VERIFIED. It now comes from the
-  // canonical module, where `verified` is true only for enumerated verified levels.
+  // Every trust-presentation decision on this card comes from one canonical call.
+  //
+  // `levelOk` used to be `level !== "L1_REGISTERED"`, so every unrecognized level took the
+  // verified branch and the card said AGENID VERIFIED. `bad` used to be the card's OWN
+  // copy of `status === "SUSPENDED" || status === "REVOKED"` — a second status mapping,
+  // which is how a lowercase "revoked" reached the level branch here too (F-2/F-3).
+  //
+  // Both now read the canonical result. `tone === "alert"` covers a revoked or suspended
+  // identity AND a failed operator proof, which is what both badges already did; the card
+  // was the surface that rendered a broken proof as if nothing were wrong.
   const trust = presentEnvelopeTrust(env);
   const levelOk = trust.verified;
+  const bad = trust.tone === "alert";
   const has = (l: string) => env.assertions.some((a) => a.assertion.level === l && a.check.ok);
-  const bad = env.status === "SUSPENDED" || env.status === "REVOKED";
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
@@ -68,7 +75,7 @@ function Card({ env, id }: { env: Envelope; id: string }) {
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`pill ${bad ? "pill-bad" : levelOk ? "pill-ok" : trust.tone === "declared" ? "pill-warn" : ""} !text-sm`}>
-                {bad ? env.status : trust.pillLabel}
+                {trust.pillLabel}
               </span>
               <span className="font-mono text-[11px] text-muted">{levelLabel(level)} · status {env.status}</span>
             </div>
