@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-09-15 · **Protocol:** v1.1.1 + errata E1, E2 · **Production:** [www.agenid.com](https://www.agenid.com)
 
-**Suite at this revision:** 185 tests green — core 54, api 30, cli 8, mcp-server 4, web 89. `pnpm install --frozen-lockfile` and `pnpm -r build` both clean on Node 22.
+**Suite at this revision:** 187 tests green — core 54, api 32, cli 8, mcp-server 4, web 89. `pnpm install --frozen-lockfile` and `pnpm -r build` both clean on Node 22.
 
 ---
 

@@ -7,6 +7,12 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+class RealtimeUnused {
+  constructor() {
+    throw new Error("AgenID does not use Supabase Realtime; no channel should be opened.");
+  }
+}
+
 let _client: SupabaseClient | null = null;
 
 export function getSupabaseServiceClient(): SupabaseClient {
@@ -16,6 +22,13 @@ export function getSupabaseServiceClient(): SupabaseClient {
   if (!url || !key) {
     throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set");
   }
-  _client = createClient(url, key, { auth: { persistSession: false } });
+  _client = createClient(url, key, {
+    auth: { persistSession: false },
+    // See packages/api/src/supabase-store.ts: AgenID never opens a realtime
+    // channel, and createClient's eager RealtimeClient probes for a global
+    // WebSocket that does not exist before Node 22. Supplying a transport
+    // short-circuits the probe; it is never constructed.
+    realtime: { transport: RealtimeUnused as never },
+  });
   return _client;
 }

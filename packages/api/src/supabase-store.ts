@@ -67,12 +67,29 @@ function toAgentRecord(row: AgentRow): AgentRecord {
 /** Postgres error code for a unique-violation (used by createAgent's atomic-insert check, spec §2). */
 const PG_UNIQUE_VIOLATION = "23505";
 
+/**
+ * AgenID never uses Supabase Realtime — the registry is request/response only.
+ * But `createClient` constructs a RealtimeClient eagerly, and that probes for a
+ * global `WebSocket`, which does not exist before Node 22. So merely *building*
+ * a store threw `Node.js detected but native WebSocket not found` on Node 20 —
+ * a runtime this package's `engines` field claims to support, and one third of
+ * the CI matrix. Supplying a transport short-circuits the probe. It is never
+ * constructed, because no realtime channel is ever opened; if one ever is, this
+ * throws loudly rather than silently opening a socket nobody asked for.
+ */
+class RealtimeUnused {
+  constructor() {
+    throw new Error("AgenID does not use Supabase Realtime; no channel should be opened.");
+  }
+}
+
 export class SupabaseStore implements RegistryStore {
   private client: SupabaseClient;
 
   constructor(opts: { url: string; serviceRoleKey: string }) {
     this.client = createClient(opts.url, opts.serviceRoleKey, {
       auth: { persistSession: false },
+      realtime: { transport: RealtimeUnused as never },
     });
   }
 

@@ -9,7 +9,11 @@ Notable changes to the AgenID reference implementation. Format follows [Keep a C
 ## [Unreleased]
 
 ### Added
+- Regression test asserting `SupabaseStore` constructs on a runtime with no global `WebSocket`.
 - Repository front door: `README.md` rewritten as a technical landing page, plus `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `PROJECT_STATE.md`, and `docs/architecture.md`, `docs/trust-model.md`, `docs/threat-model.md`, `docs/api.md`.
+
+### Fixed
+- **CI was red on the Node 20 leg of the matrix, and had been for several commits.** `createClient` builds a RealtimeClient eagerly, which probes for a global `WebSocket` — absent before Node 22 — so merely *constructing* a `SupabaseStore` threw on a runtime the package's `engines` field claims to support. The other two matrix legs stayed green and hid it. Both call sites now supply a transport that short-circuits the probe and throws loudly if a realtime channel is ever opened, since AgenID never uses one.
 
 ---
 
