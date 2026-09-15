@@ -77,13 +77,12 @@ https://yourcompany.com/.well-known/agenid/keys.json
 
 A verifier is required to check both the AgenID-hosted path and your own domain's path and require they agree. This is what makes the registry non-authoritative by design: AgenID cannot silently swap your key, because a verifier is checking your own domain too.
 
-> **Status — registry-hosted key discovery is not deployed yet.** The spec's second discovery path is a
-> registry endpoint at `/v1/keys/<key-ulid>`; the reference deployment does not serve it today, so the
-> cross-check described above cannot be completed in full against `agenid.com` right now. What a verifier
-> can do today: read the key document embedded in the resolution envelope from
-> `GET https://www.agenid.com/api/resolve/<agenid>`, fetch your `.well-known` copy, and require the two
-> agree. Publish the `.well-known` path now — it is the half of the check that does not depend on us, and
-> it is what the endpoint will be compared against when it ships.
+> **Both paths are live.** The registry-hosted path is
+> `GET https://www.agenid.com/v1/keys/<key-ulid>` (the bare key ULID — the wire form of
+> `agenid:key:<ULID>`), and `GET https://www.agenid.com/v1/keys?key_id=agenid%3Akey%3A<ULID>` returns the
+> identical document. Publish your `.well-known` copy so the cross-check has something to compare against:
+> it is the half of the check that does not depend on us, and a verifier that finds the two disagree is
+> supposed to stop.
 
 ## Step 3 — Embed the verification badge
 
@@ -128,7 +127,7 @@ When issuance opens, you will contact the authority operating your registry (for
 Every resolved envelope includes `verify_instructions` and everything needed to check it independently:
 
 1. Recompute `sha256(RFC8785(manifest))` and compare to `manifest_digest`.
-2. Fetch the operator key from **both** discovery paths and require they agree. The registry path — `https://www.agenid.com/v1/keys/<key-ulid>` — is **not deployed yet**; until it is, take the registry's copy of the key document from the resolution envelope and compare it against `https://<operator_domain>/.well-known/agenid/keys.json`.
+2. Fetch the operator key from **both** discovery paths and require they agree: the registry path `https://www.agenid.com/v1/keys/<key-ulid>` and the operator path `https://<operator_domain>/.well-known/agenid/keys.json`. Both must also agree with the `operator_key.document` copy carried in the envelope. Disagreement is a hard fail, not a warning — it is the case two-path discovery exists to catch.
 3. Verify the Ed25519 signature over `RFC8785(proof)` minus the `signature` field, using that key.
 4. For each assertion, fetch the issuing authority's key the same way, verify its signature, and check its validity window and that `assertion.manifest_digest` matches your current manifest.
 

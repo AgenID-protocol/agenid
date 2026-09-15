@@ -49,7 +49,7 @@ Also in scope: the browser signer (`lib/client-crypto.ts`), the Supabase service
 **Vector** — exploit a disagreement between two implementations about what bytes were signed, so a payload verifies in one and not another. **Impact** — a silent protocol fork; signatures that are valid to one party and invalid to another. **Mitigation** — RFC 8785 with two independently written implementations held byte-identical by a cross-implementation test; §8 conformance vectors including adversarial canonicalization; Erratum E1's number-domain rule; an explicit negative test that a SHA-256 pre-hash does not reproduce a spec signature. **Residual risk** — a third-party implementation could still diverge; the independent conformance suite exists to catch that and is forbidden from depending on `@agenid/core`.
 
 ### T-4 · Key substitution by the registry
-**Vector** — the registry serves a key it controls instead of the operator's. **Impact** — the registry can mint apparently-valid identities. **Mitigation** — two-path key discovery: fetch from the registry *and* the operator's `.well-known` and require agreement. **Residual risk — HIGH AND CURRENT. This defense is only half-deployed**: `GET /v1/keys/{key-ulid}` returns 404, so the check cannot be completed against `agenid.com`. The partial check (envelope copy vs `.well-known`) works and every Verification Card says so. This is the strongest argument for shipping that route before inviting external verification.
+**Vector** — the registry serves a key it controls instead of the operator's. **Impact** — the registry can mint apparently-valid identities. **Mitigation** — two-path key discovery: fetch from the registry *and* the operator's `.well-known` and require agreement. **Residual risk — MEDIUM. Both paths are now deployed**, so a verifier can complete the full cross-check against `agenid.com`. The remaining risk is that the operator half is published by the operator, not by us: an agent whose `operator_domain` serves no `.well-known/agenid/keys.json` leaves a verifier with a single source, and this registry cannot make an operator publish one. A verifier that treats a missing operator copy as equivalent to an agreeing one has disabled the defense.
 
 ### T-5 · Registry lying about a level
 **Vector** — return a `verification.level` unsupported by any valid assertion. **Impact** — an unverified agent appears verified. **Mitigation** — every assertion travels in the envelope with its own signature; the verifier recomputes the level. **Residual risk** — verifiers who trust `verification.level` without recomputing are unprotected. Mitigated only by documentation, which is why the verification procedure is written out in [api.md](api.md) and [trust-model.md](trust-model.md).
@@ -64,7 +64,7 @@ Also in scope: the browser signer (`lib/client-crypto.ts`), the Supabase service
 **Vector** — register with an authority-role key, or a key controlling a different agent. **Impact** — privilege confusion between operator and authority. **Mitigation** — `role === "operator"` and `controller === agent_id` enforced server-side and in `@agenid/core`; strict schemas reject unknown members. **Residual risk** — none material.
 
 ### T-9 · Compromise of the Supabase service-role credential
-**Vector** — a leaked or stolen production environment variable. **Impact** — arbitrary writes to `agents`, `keys`, `assertions` and `events`: fabricated registrations, substituted keys, a rewritten ledger. **Mitigation** — the credential lives only in the Vercel production environment; RLS permits public read but all writes go through the service role; **and crucially, the attacker still cannot forge a signature** — a fabricated registration fails `proof_check` in every verifier's own re-verification. **Residual risk** — an attacker could substitute key documents (see T-4) and delete or suppress records. Key substitution is exactly what two-path discovery defeats, and that defense is half-deployed. **This is the highest-impact operational threat today.**
+**Vector** — a leaked or stolen production environment variable. **Impact** — arbitrary writes to `agents`, `keys`, `assertions` and `events`: fabricated registrations, substituted keys, a rewritten ledger. **Mitigation** — the credential lives only in the Vercel production environment; RLS permits public read but all writes go through the service role; **and crucially, the attacker still cannot forge a signature** — a fabricated registration fails `proof_check` in every verifier's own re-verification. **Residual risk** — an attacker could substitute key documents (see T-4) and delete or suppress records. Key substitution is exactly what two-path discovery defeats, and both discovery paths are now deployed — but the defense only bites for an agent whose operator domain actually publishes a `.well-known` key copy. **This is the highest-impact operational threat today.**
 
 ### T-10 · Clock manipulation
 **Vector** — sign with a skewed clock to place a proof inside or outside a validity window. **Impact** — a proof accepted when it should not be, or an expiry evaded. **Mitigation** — `verifyManifestProof` applies **no leeway** and `now` is always passed explicitly. Registration tolerates at most 120s of *forward* client skew, refuses beyond it with `clock_skew_too_large`, and always records `registered_at` from the registry's own clock. **Residual risk** — up to 120s of forward skew is accepted at registration by design. It cannot extend a validity window at verification time, where no leeway exists.
@@ -146,7 +146,7 @@ Non-test controls: strict schemas rejecting unknown members; RLS on every table;
 Ranked. Nothing material is omitted.
 
 1. **No rate limiting anywhere** (T-12) — real, unmitigated, and the only one exploitable today by anyone with an HTTP client.
-2. **Two-path key discovery half-deployed** (T-4, T-9) — the registry's key-substitution defense cannot be completed.
+2. **Two-path key discovery is only as strong as the operator's half** (T-4, T-9) — both routes resolve, but an agent with no `.well-known` copy gives a verifier a single source.
 3. **Root compromise would be retroactive and unbounded** (T-14) — largest architectural risk; moot until a key exists.
 4. **Domain and org control is the trust root's real ceiling** (T-13) — hardening not yet complete.
 5. **Service-role credential compromise permits record fabrication and suppression** (T-9), though not signature forgery.
@@ -160,7 +160,7 @@ Ranked. Nothing material is omitted.
 
 **Accepted:** 120s of forward clock skew at registration; the absence of multi-statement transactions; the operator's own key custody; the truth of operator attestations, which no party can verify.
 
-**Not accepted, tracked, not yet fixed:** rate limiting (1), the key-discovery route (2), ceremony hardening (4), OpenAPI coverage (8), vulnerability reporting (9).
+**Not accepted, tracked, not yet fixed:** rate limiting (1), ceremony hardening (4), OpenAPI coverage (8), vulnerability reporting (9).
 
 **Structurally unresolved until v1.2:** root-compromise blast radius (3). A delegation object is the fix; it is designed and undecided.
 

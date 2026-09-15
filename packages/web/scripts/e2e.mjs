@@ -100,6 +100,36 @@ eco.includes("not an endorsement")
   ? ok("3f. /ecosystem renders the matrix with its status definitions and no-endorsement notice")
   : fail(`3f. /ecosystem (status ${r.status})`);
 
+// The web app's own key-discovery route. In this harness AGENID_API_URL is set, so this
+// exercises the HTTP-registry resolution mode that the in-process unit tests cannot reach,
+// and proves the envelope's registry_path pointer resolves on the same origin that served it.
+const wire = keyIdToWire(opDoc.key_id);
+r = await fetch(`${W}/v1/keys/${wire}`);
+const keyBody = await r.text();
+const keyJson = r.status === 200 ? JSON.parse(keyBody) : null;
+r.status === 200 && keyJson?.key_id === opDoc.key_id && keyJson?.public_key_b64u === opDoc.public_key_b64u && r.headers.get("access-control-allow-origin") === "*"
+  ? ok(`3g. /v1/keys/${wire} serves the key document with CORS`)
+  : fail(`3g. web key discovery (status ${r.status})`);
+
+r = await fetch(`${W}/v1/keys?key_id=${encodeURIComponent(opDoc.key_id)}`);
+(await r.text()) === keyBody && r.status === 200
+  ? ok("3h. the ?key_id= query form returns a byte-identical document (spec §9.2)")
+  : fail(`3h. query form disagrees with path form (status ${r.status})`);
+
+r = await fetch(`${W}/v1/keys/${wire}%23z1`);
+j = await r.json().catch(() => ({}));
+r.status === 400 && j.error === "invalid_key_id" ? ok("3i. percent-encoded fragment → 400 invalid_key_id") : fail(`3i. fragment not rejected: ${r.status}`);
+
+r = await fetch(`${W}/v1/keys/01J8Z3M9Q4XK2P7VBN6TDR8HWE`);
+j = await r.json().catch(() => ({}));
+r.status === 404 && j.error === "key_not_found" ? ok("3j. unknown key is key_not_found, not agent_not_found") : fail(`3j. unknown key: ${r.status} ${JSON.stringify(j)}`);
+
+r = await fetch(`${W}/a/${agentId}`, { headers: { accept: "application/json" } });
+const env = await r.json();
+env.operator_key?.discovery?.registry_path === `/v1/keys/${wire}` && !/not (served|deployed)/i.test(env.verify_instructions ?? "")
+  ? ok("3k. the envelope advertises the registry path and no longer disclaims it")
+  : fail("3k. envelope key-discovery pointer or verify_instructions is stale");
+
 await new Promise((res) => web.close(res));
 await api.close();
 await app.close();

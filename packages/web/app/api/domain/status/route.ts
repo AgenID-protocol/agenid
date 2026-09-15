@@ -55,9 +55,9 @@ async function fetchSettings(host: string, domain: string): Promise<DomainConnec
 }
 
 /**
- * Probe the operator's own copy of their key document. This is the half of two-path key
- * discovery that CAN be completed today — the registry's `GET /v1/keys/<ulid>` path is
- * not deployed, and every surface that mentions it says so.
+ * Probe the operator's own copy of their key document — the operator half of two-path key
+ * discovery. The registry half is `GET /v1/keys/<key-ulid>`, served by this deployment; a
+ * verifier fetches both and requires they agree.
  */
 async function probeWellKnown(domain: string): Promise<{ present: boolean; url: string; status: number | null }> {
   const url = `https://${domain}/.well-known/agenid/keys.json`;

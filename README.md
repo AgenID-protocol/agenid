@@ -24,9 +24,9 @@ Read [PROJECT_STATE.md](PROJECT_STATE.md) for the authoritative, dated breakdown
 |---|---|
 | Identifier, canonicalization, schemas, Ed25519 proof engine (`@agenid/core`) | **Production** — conformance vectors passing |
 | Browser issuance → `L1_REGISTERED`, durable registry, resolution, badges | **Production** — verified live on `www.agenid.com` against Supabase |
+| Two-path key discovery — `GET /v1/keys/<key-ulid>` plus the operator's `.well-known` copy | **Production** — both paths resolvable |
 | Operator CLI (`@agenid/cli`), MCP server (`@agenid/mcp-server`) | **Implemented**, not published to npm |
 | Assertion issuance (`L2`–`L4`) | **Not deployed** — blocked on the root authority key ceremony |
-| `GET /v1/keys/<key-ulid>` (second key-discovery path) | **Not deployed** |
 | `L5` | **Reserved by the spec. Not issuable.** |
 | `AUTHORIZED` claim state | **No signed object until protocol v1.2** |
 | Platform adapter packages (Retell, Vapi, Bland, ElevenLabs, LangChain, …) | **Planned** — the `docs/partners/` briefs are integration patterns, not shipped packages |
@@ -128,8 +128,9 @@ Live in production today:
 | `POST /api/v1/verify` | Stateless Ed25519 signature check over JCS-canonicalized bytes. Not `ManifestProof` verification — see [docs/api.md](docs/api.md). |
 | `GET /badge/<agenid>/shield.svg` | Static SVG badge for Markdown surfaces. |
 | `/badge.js` | Embeddable live badge. |
+| `GET /v1/keys/<key-ulid>` | Registry-hosted key document, by key ULID. `?key_id=<percent-encoded logical id>` returns the identical document. |
 
-Not deployed, and labelled as such everywhere they are referenced: `GET /v1/keys/<key-ulid>`, `POST /v1/agents/:id/assertions`, `/.well-known/agenid/authorities.json`.
+Not deployed, and labelled as such everywhere they are referenced: `POST /v1/agents/:id/assertions`, `/.well-known/agenid/authorities.json`.
 
 ## Integrations
 
@@ -143,7 +144,7 @@ Stated plainly, because a trust product that hides these is not a trust product:
 
 1. **No trust root exists.** No root authority key has been generated, so no third-party assertion can be signed. `L2`–`L4` are unreachable on the reference deployment.
 2. **The protocol has no delegation object in v1.1.1.** The pinned root must sign every assertion, so the offline-root / online-intermediate CA pattern is unavailable, and a root compromise would invalidate historical assertions too. A v1.2 delegation object is under design.
-3. **Two-path key discovery is half-deployed.** The registry path works; `GET /v1/keys/<key-ulid>` does not. A verifier can compare the envelope's operator key against the operator's `.well-known` copy, but cannot yet complete the full two-path check against `agenid.com`.
+3. **Two-path key discovery is only as strong as the operator's half.** Both paths resolve, but the `.well-known` copy is published by the operator, not by us — an operator who has not published one leaves a verifier with a single source, which is the situation the second path exists to avoid.
 4. **The trust root's real security ceiling is control of the `agenid.com` DNS zone and the `AgenID-protocol` GitHub org**, not key storage — those are where a verifier learns the pin.
 5. **Public write endpoints are unauthenticated and unrated.** Every write is signature-verified and self-attributed, but nothing currently bounds registration volume.
 6. **`@agenid/web` carries a second registry implementation** mirroring `@agenid/api`'s validation, because `zod` is not resolvable inside `packages/web`. The two are kept equivalent by test, not by shared code.

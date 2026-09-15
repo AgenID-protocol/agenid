@@ -56,7 +56,8 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 | **`POST /api/v1/verify`** | Live; raw Ed25519 check over JCS bytes; `400` with `invalid_manifest` on empty body |
 | **Badges** | `/badge/<id>/shield.svg` returns 200 for an unknown identifier and renders neutral grey; `/badge.js` live, generated from the canonical trust-presentation module |
 | **OpenAPI 3.0.3** | Fetched live; four paths and six component schemas, matching the implementation |
-| **Every "not deployed" claim** | `/v1/keys/…`, `/v1/agents/…/assertions` and `/.well-known/agenid/authorities.json` each confirmed `404` |
+| **`GET /v1/keys/{key-ulid}`** | Live; resolves a published operator key by its wire form, and `?key_id=` returns a byte-identical document; unknown key is `404 key_not_found`; malformed reference and URI fragment are `400 invalid_key_id` |
+| **Every "not deployed" claim** | `/v1/agents/…/assertions` and `/.well-known/agenid/authorities.json` each confirmed `404` |
 | **Public site** | All 11 pages return 200; `/sitemap.xml` and `/robots.txt` live; `/onboarding/retell` serves `noindex, nofollow` |
 
 ## In development
@@ -68,7 +69,6 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 
 ## Planned
 
-- `GET /v1/keys/{key-ulid}` — the second key-discovery path. Read-only over data already in the store; should ship before any external party is invited to verify anything.
 - `POST /v1/agents/{id}/assertions` — blocked on the root key.
 - `L2_DOMAIN_VERIFIED` issuance. **L2 first and only**: its evidence is a DNS record any third party can re-derive, so a bad L2 is externally detectable. L3's evidence is offline documentation nobody outside can re-check.
 - Rate limiting on the public write endpoints and on the Retell relay.
@@ -86,7 +86,6 @@ Exists in code, unavailable in production.
 | Item | Why |
 |---|---|
 | `POST /v1/agents/{id}/assertions` | No root authority key exists to sign an assertion with |
-| `GET /v1/keys/{key-ulid}` | Not built as a web route; returns 404 |
 | `/.well-known/agenid/authorities.json` | Correctly absent — publishing a pin for a nonexistent key would be the worst possible false claim |
 | `@agenid/api` as a running service | Production serves the equivalent routes from `packages/web`; the Fastify server is not deployed anywhere |
 | `POST /api/dns/auto-add` | Neither `CLOUDFLARE_API_TOKEN` nor `GODADDY_API_KEY` is set in production; `/api/dns/detect` gates on their presence, so it is unreachable from the UI |
@@ -120,7 +119,8 @@ Full reference, verified live: [docs/api.md](docs/api.md).
 | `POST /api/dns/detect` | Production, returns `manual` |
 | `POST /api/dns/auto-add` | Implemented, unconfigured |
 | `POST /api/retell/declare` · `/bind` · `/agents` | Production |
-| `GET /v1/keys/{key-ulid}` · `POST /v1/agents/{id}/assertions` · `/.well-known/agenid/authorities.json` | **Not deployed** (404) |
+| `GET /v1/keys/{key-ulid}` | Production |
+| `POST /v1/agents/{id}/assertions` · `/.well-known/agenid/authorities.json` | **Not deployed** (404) |
 
 ## Current data model
 
@@ -158,13 +158,13 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 **Controls in place.** Strict schema validation rejecting unknown members · Ed25519 signature and digest-binding verification on every write · key role and controller enforcement · bounded forward clock skew at registration with none at verification · operator keys generated and held client-side only, never transmitted or stored · RLS enabled on every table with public-read policies and service-role writes · append-only event ledger storing pointers, never evidence · a public-surface test suite that makes each honesty rule a build-breaking assertion.
 
-**Known gaps.** No authentication or rate limiting on public write endpoints · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · two-path key discovery half-deployed · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
+**Known gaps.** No authentication or rate limiting on public write endpoints · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
 
 ## Known limitations
 
 1. **No trust root exists.** Nothing above `L1_REGISTERED` can be signed.
 2. **No delegation object in v1.1.1.** The pinned root must sign every assertion, so the offline-root CA pattern is unavailable and a root compromise would invalidate historical assertions — a verifier cannot distinguish a legitimate historical signature from a backdated forgery.
-3. **Two-path key discovery is half-deployed.** The registry key route 404s, so the full check cannot be completed against `agenid.com`.
+3. **Two-path key discovery depends on the operator's half.** Both routes resolve, but the `.well-known` copy is published by the operator; where there is none, a verifier has one source instead of two and the key-substitution defense is not actually in force.
 4. **The trust root's real ceiling is control of the `agenid.com` zone and the `AgenID-protocol` GitHub org**, not key storage. An attacker controlling either publishes a different pin using none of AgenID's key material.
 5. **Public write endpoints are unauthenticated and unrated.** Every write is signature-verified and self-attributed, but volume is unbounded, and `/api/retell/bind` accepts an unbounded array.
 6. **`packages/web` carries a second registry implementation** mirroring `@agenid/api`'s validation, because `zod` is not resolvable inside `packages/web`. Equivalence is held by test, not by shared code.
@@ -198,7 +198,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 ## Next priority
 
-**Build `GET /v1/keys/{key-ulid}`.** It is the registry half of two-path key discovery — the mechanism that makes the registry non-authoritative in practice rather than in principle. It is a read-only route over data already in the store, so it is small, and until it ships, every Verification Card has to tell verifiers that half the protocol's trust story is unavailable. Nothing external should be invited to verify anything before it exists.
+**Rate limiting on the public endpoints.** With `GET /v1/keys/{key-ulid}` shipped, two-path key discovery is complete and an external party can be invited to verify an identity end to end without trusting this registry. The remaining item that is exploitable today by anyone with an HTTP client is the absence of any rate limit: two unauthenticated write paths, an unbounded batch array on `/api/retell/bind`, an unauthenticated third-party relay on `/api/retell/agents`, and a browser-polled `/api/domain/status` that probes any hostname a caller names. See T-12 in [docs/threat-model.md](docs/threat-model.md).
 
 ## Next blocker
 

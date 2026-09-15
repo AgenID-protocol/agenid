@@ -25,9 +25,9 @@ The consequence is that nothing bounds request volume. That is a real, documente
 
 ## CORS
 
-**Verified by live request on 2026-09-15.** These seven send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
+**Verified by live request.** These nine send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
 
-`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js`
+`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key-ulid}`
 
 The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin only.
 
@@ -51,7 +51,8 @@ The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin 
 | POST | `/api/retell/declare` | **Production** |
 | POST | `/api/retell/bind` | **Production** |
 | POST | `/api/retell/agents` | **Production** |
-| GET | `/v1/keys/{key-ulid}` | **Not deployed** — 404 |
+| GET | `/v1/keys/{key-ulid}` | **Production** |
+| GET | `/v1/keys?key_id={percent-encoded logical id}` | **Production** — returns the identical document |
 | POST | `/v1/agents/{id}/assertions` | **Not deployed** — 404. No root key exists to sign with. |
 | GET | `/.well-known/agenid/authorities.json` | **Not published** — 404, correctly |
 
@@ -139,7 +140,7 @@ Two properties matter more than they look:
 - **Assertions are re-checked at resolution time against the *current* manifest.** They are not trusted because they were valid when issued — editing a manifest invalidates every assertion bound to the old one, automatically.
 - **`verification.level` is a convenience.** Every assertion is present with its own signature. Recompute the level yourself.
 
-`operator_key.discovery` names both required key-discovery paths. The registry path is **not deployed**, so `verify_instructions` says so and names the check that can be completed today.
+`operator_key.discovery` names both required key-discovery paths, and both resolve. `registry_path` is the wire form of the key identifier — a bare ULID, not the logical `agenid:key:<ULID>` — and is relative to this registry's origin.
 
 **Status codes.** `200` · `400` malformed identifier · `404` `agent_not_found` — clean, never a 500, and *not evidence of anything beyond "not registered"* · `503` registry unavailable — **the identity's status is unknown, not disproven.**
 
@@ -239,9 +240,49 @@ Errors: `invalid_domain`, `invalid_token`, `invalid_provider`, `dns_error`, `dns
 
 ---
 
-## Not deployed
+## GET /v1/keys/{key-ulid} — key discovery
 
-**`GET /v1/keys/{key-ulid}`** — the registry half of two-path key discovery. Its absence is why the full two-path check cannot be completed against `agenid.com` today. It is a read-only route over data already in the store.
+The registry half of two-path key discovery (spec §9.2). Read-only, unauthenticated, no body, no side effects. It resolves a key document already held by the registry; it verifies nothing, reports no verification level, and says nothing about any agent.
+
+**Identifier forms.** A key has a *logical* identifier, `agenid:key:<ULID>`, and a *wire* form, the bare `<ULID>`. The path segment is the wire form; that is exactly what a resolution envelope's `operator_key.discovery.registry_path` contains. Both of these resolve, and return a byte-identical document:
+
+```
+GET https://www.agenid.com/v1/keys/01J8Z3M9Q4XK2P7VBN6TDR8HWE
+GET https://www.agenid.com/v1/keys?key_id=agenid%3Akey%3A01J8Z3M9Q4XK2P7VBN6TDR8HWE
+```
+
+**Response `200`** — the key document exactly as §9.1 defines it, nine members, no more:
+
+```json
+{
+  "key_id": "agenid:key:01J8Z3M9Q4XK2P7VBN6TDR8HWE",
+  "key_type": "Ed25519",
+  "public_key_b64u": "C2XCaQ41IZoFum-4PbNJ1aUCevSZwClSzjyZ-x85T3g",
+  "role": "operator",
+  "controller": "agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y",
+  "created_at": "2026-09-13T00:00:00Z",
+  "status": "active",
+  "retired_at": null,
+  "revoked_at": null
+}
+```
+
+The document is re-validated against the strict `KeyDocument` schema before it is served, so a stored row carrying any member the schema does not define is refused rather than passed through. There is no representation of private key material in that schema, and the registry never holds any.
+
+`status` may be `active`, `retired` or `revoked`. **Retired and revoked keys remain resolvable forever**, deliberately: a signature made before a key was retired stays verifiable, and a verifier needs the document to decide that. A `200` here is not a statement that the key is currently usable — read `status`, `retired_at` and `revoked_at`.
+
+Sent with `access-control-allow-origin: *` and `cache-control: no-store`. Not cached, because a cached key document is a cached copy of a revocation that has not happened yet.
+
+| Status | `error` | When |
+|---|---|---|
+| `400` | `invalid_key_id` | The reference is neither a bare key-ULID nor `agenid:key:<ULID>`; or it carries a URI fragment, raw or percent-encoded as `%23` (§9.2 requires a `400`, never truncation); or `?key_id=` is absent on the collection form |
+| `404` | `key_not_found` | No key document is published under that identifier. **Distinct from `agent_not_found`** — a key is not an agent, and neither absence implies the other |
+| `503` | `registry_unavailable` | The store could not be reached. This key's status is unknown, not disproven |
+| `503` | `key_document_invalid` | The stored document failed schema validation, or its `key_id` disagreed with the identifier it was indexed under. Nothing is served |
+
+Error bodies never quote the caller's input back.
+
+## Not deployed
 
 **`POST /v1/agents/{id}/assertions`** — exists in `@agenid/api`, gated by `AGENID_AUTHORITY_TOKEN`, no deployed route, and no root authority key to sign an assertion with.
 
@@ -289,7 +330,7 @@ The envelope carries its own `agenid_envelope_version: "1.0"`.
 
 Stated rather than papered over:
 
-1. **The OpenAPI document covers 4 of the 13 deployed routes.** The Retell and DNS routes are absent, so the machine-readable contract understates both the real capability and the real public attack surface.
+1. **The OpenAPI document covers 4 of the 15 deployed routes** (`GET /v1/keys/{key-ulid}` and its query form are the newest omissions). The Retell and DNS routes are absent, so the machine-readable contract understates both the real capability and the real public attack surface.
 2. **`/api/verify-dns` and `/api/dns/verify` are two routes performing one check.** One will be removed; do not build against both.
 
 Both are tracked as open queue items and will be fixed together, since the first determines what the second should say.

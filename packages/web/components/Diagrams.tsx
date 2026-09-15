@@ -81,12 +81,12 @@ export function TwoPathDiagram() {
     <div className="grid gap-3 md:grid-cols-2">
       <div className="card p-4">
         <div className="font-mono text-[11px] text-muted">
-          WIRE PATH <span className="text-amber">&middot; not deployed yet</span>
+          WIRE PATH
         </div>
         <div className="mt-2 font-mono text-[12px] text-paper/90">GET agenid.com/v1/keys/&#123;key-ULID&#125;</div>
         <div className="mt-2 text-xs text-muted">
-          Registry-hosted key document, by key ULID. Defined by the spec; this deployment does not serve it yet
-          — the registry&rsquo;s copy of the key currently travels inside the resolution envelope.
+          Registry-hosted key document, by key ULID. Read-only, unauthenticated, and returns the identical
+          document for <span className="font-mono">?key_id=</span> with the percent-encoded logical identifier.
         </div>
       </div>
       <div className="card p-4">

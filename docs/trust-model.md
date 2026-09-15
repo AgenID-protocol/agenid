@@ -107,7 +107,7 @@ How a verifier establishes trust, in order:
 7. Compute the level yourself from the assertions that passed. Do not take `verification.level` on faith.
 8. Fetch the operator's key from **both** discovery paths and require they agree.
 
-Steps 1–7 can be completed today, entirely offline after step 1. **Step 8 cannot be completed against `agenid.com`**: the registry key route is not deployed. The partial check that works is comparing the envelope's `operator_key.document` against the operator's own `.well-known` copy, and every Verification Card says so.
+Steps 1–7 can be completed today, entirely offline after step 1. **Step 8 can now be completed against `agenid.com`**: `GET /v1/keys/<key-ulid>` serves the registry's copy, and `operator_key.discovery` in the envelope names both paths. The check is only meaningful where the operator has published their own `.well-known` copy — with only one source, there is nothing to cross-check, and a verifier should not treat a missing operator copy as agreement.
 
 ## Cryptographic model
 
@@ -178,7 +178,7 @@ Separately: **"not verified" and "merely compatible" always render neutral — n
 
 1. No trust root exists; nothing above L1 is issuable.
 2. No delegation object; the pinned root must sign everything and compromise is retroactive.
-3. Two-path key discovery is half-deployed.
+3. Two-path key discovery is deployed on the registry side, but a verifier only gets its benefit where the operator publishes their own key document.
 4. The trust root's ceiling is domain and org control, not key storage.
 5. Operator attestations are unverifiable by anyone, including AgenID. The protocol can only guarantee they were stated explicitly under a real key.
 6. There is no revocation of an *agent* in production — the status enum exists but no transition writes it.

@@ -126,7 +126,14 @@ const CLAIMS = [
   ["GET", "/badge/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ/shield.svg", 200, "unknown badge renders rather than erroring"],
   ["GET", "/a/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ", 200, "unknown identifier renders a neutral HTML card"],
   ["GET", "/api/resolve/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ", 404, "unknown identifier is agent_not_found in JSON"],
-  ["GET", "/v1/keys/01JZZZZZZZZZZZZZZZZZZZZZZZ", 404, "second key-discovery path is NOT deployed"],
+  // The registry half of two-path key discovery. A bare 404 would pass here both when the
+  // route is deployed and when it does not exist at all, so these assert the error CODE:
+  // key_not_found can only come from a route that ran.
+  ["GET", "/v1/keys/01JZZZZZZZZZZZZZZZZZZZZZZZ", 404, "key discovery is deployed; unknown key is key_not_found", "key_not_found"],
+  ["GET", "/v1/keys?key_id=agenid%3Akey%3A01JZZZZZZZZZZZZZZZZZZZZZZZ", 404, "the query form resolves through the same route", "key_not_found"],
+  ["GET", "/v1/keys/not-a-ulid", 400, "a malformed key reference is invalid_key_id", "invalid_key_id"],
+  ["GET", "/v1/keys/01JZZZZZZZZZZZZZZZZZZZZZZZ%23z1", 400, "a URI fragment is rejected, never truncated", "invalid_key_id"],
+  ["GET", "/v1/keys", 400, "the collection form requires key_id", "invalid_key_id"],
   ["GET", "/.well-known/agenid/authorities.json", 404, "no root key, so no authorities document"],
   ["POST", "/v1/agents/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ/assertions", 404, "assertion write path is NOT deployed"],
   ["POST", "/api/v1/agents", 400, "registration validates and rejects an empty body"],
@@ -136,17 +143,25 @@ const CLAIMS = [
 ];
 
 if (LIVE) {
-  for (const [method, path, expect, why] of CLAIMS) {
+  for (const [method, path, expect, why, expectError] of CLAIMS) {
     const init = method === "POST" ? { method, headers: { "content-type": "application/json" }, body: "{}" } : {};
-    let status;
+    let status, body;
     try {
       const r = await fetch(BASE + path, { ...init, signal: AbortSignal.timeout(20000) });
       status = r.status;
+      body = expectError ? await r.text() : null;
     } catch (e) {
       fail("unreachable", `${method} ${path} (${e.message})`);
       continue;
     }
     if (status !== expect) fail("production contradicts documentation", `${method} ${path} expected ${expect} (${why}) got ${status}`);
+    // A status code alone cannot distinguish "the documented behaviour" from "no such
+    // route". Where the documentation names an error code, assert the code.
+    if (expectError) {
+      let got;
+      try { got = JSON.parse(body).error; } catch { got = `<non-JSON: ${String(body).slice(0, 40)}>`; }
+      if (got !== expectError) fail("production contradicts documentation", `${method} ${path} expected error ${expectError} (${why}) got ${got}`);
+    }
   }
   pass(`${CLAIMS.length} documented endpoint claims verified against production`);
 
