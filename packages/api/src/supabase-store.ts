@@ -151,14 +151,27 @@ export class SupabaseStore implements RegistryStore {
     if (error) throw new Error(`SupabaseStore.appendEvent: ${error.message}`);
   }
 
+  /**
+   * The second occurrence of the timestamptz-shape divergence fixed in `toAgentRecord`.
+   *
+   * `keys` and `assertions` are immune to it because their read paths return the jsonb
+   * `document`, which round-trips byte-for-byte what was written (the `assertions.verified_at`
+   * timestamptz column exists only to ORDER BY and is never returned). `events` is the
+   * exception: `occurred_at` is a real timestamptz column and this method returns the row
+   * itself, so Postgres's `+00:00` rendering reached callers while MemoryStore returned `Z`.
+   *
+   * Columns are also named explicitly rather than `select("*")`: the row IS the returned
+   * `LedgerEvent`, so any column added to this table later would silently become a member
+   * of a protocol object.
+   */
   async listEvents(agentId: string): Promise<LedgerEvent[]> {
     const { data, error } = await this.client
       .from("events")
-      .select("*")
+      .select("event_id, agent_id, type, occurred_at, detail_ref")
       .eq("agent_id", agentId)
       .order("occurred_at", { ascending: true });
     if (error) throw new Error(`SupabaseStore.listEvents: ${error.message}`);
-    return (data as EventRow[] | null) ?? [];
+    return ((data as EventRow[] | null) ?? []).map((e) => ({ ...e, occurred_at: toUtcZ(e.occurred_at) }));
   }
 }
 
