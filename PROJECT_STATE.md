@@ -158,7 +158,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 **Controls in place.** Strict schema validation rejecting unknown members · Ed25519 signature and digest-binding verification on every write · key role and controller enforcement · bounded forward clock skew at registration with none at verification · operator keys generated and held client-side only, never transmitted or stored · RLS enabled on every table with public-read policies and service-role writes · append-only event ledger storing pointers, never evidence · a public-surface test suite that makes each honesty rule a build-breaking assertion.
 
-**Known gaps.** No authentication or rate limiting on public write endpoints · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · two-path key discovery half-deployed · no private vulnerability reporting channel enabled on the repository yet.
+**Known gaps.** No authentication or rate limiting on public write endpoints · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · two-path key discovery half-deployed · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
 
 ## Known limitations
 

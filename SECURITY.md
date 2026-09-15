@@ -4,7 +4,13 @@ AgenID is a trust product. Its entire value rests on the claim that an assertion
 
 ## Reporting a vulnerability
 
-**Use GitHub's private vulnerability reporting** on this repository: *Security → Report a vulnerability*. This opens a private advisory visible only to maintainers.
+**Use GitHub's private vulnerability reporting on [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec/security/advisories/new) or [`AgenID-protocol/conformance`](https://github.com/AgenID-protocol/conformance/security/advisories/new)** — *Security → Report a vulnerability*. This opens a private advisory visible only to maintainers, and it is the right channel for a finding anywhere in the protocol, the reference implementation, or `www.agenid.com`.
+
+Both were verified enabled on 2026-09-15 by API call, not by looking at a settings page.
+
+**Why not this repository:** GitHub offers private vulnerability reporting only on public repositories, and `AgenID-protocol/agenid` is currently private — the `PUT .../private-vulnerability-reporting` endpoint returns 404 for it. When this repository is made public at launch, reporting will be enabled here too and this section will change. Until then the two public repositories are the reporting channel, and a finding filed there about code in this repository is in scope and will be handled the same way.
+
+**There is no `security@` mailbox.** The `agenid.com` zone publishes no MX records, so any address on that domain would silently drop mail. A reporting address that does not receive is worse than none, so this document names the channel that actually works rather than the one that looks conventional.
 
 Please do not open a public issue for a security report, and please do not disclose publicly before we have responded.
 
