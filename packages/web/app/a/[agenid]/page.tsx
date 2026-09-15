@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JsonInspector } from "@/components/JsonInspector";
 import { SearchBar } from "@/components/SearchBar";
 import { fetchEnvelope, SITE_URL, type Envelope } from "@/lib/api";
+import { presentEnvelopeTrust, presentTrustLevel } from "@/lib/trust-presentation";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-function levelLabel(level: string) {
-  return ({ L1_REGISTERED: "L1 · Registered", L2_DOMAIN_VERIFIED: "L2 · Domain Verified", L3_ORGANIZATION_VERIFIED: "L3 · Organization Verified", L4_DEPLOYMENT_VERIFIED: "L4 · Deployment Verified" } as Record<string, string>)[level] ?? level;
+/**
+ * Label only — the canonical module owns the mapping. This used to be a local table
+ * ending in `?? level`, which echoed an attacker-supplied string straight onto the card.
+ */
+function levelLabel(level: unknown) {
+  return presentTrustLevel(level).cardLabel;
 }
 
 function Row({ k, v, mono = false }: { k: string; v: React.ReactNode; mono?: boolean }) {
@@ -41,7 +46,11 @@ function StatusPill({ ok, okText, badText, neutral = false }: { ok: boolean; okT
 function Card({ env, id }: { env: Envelope; id: string }) {
   const m = env.manifest;
   const level = env.verification.level;
-  const levelOk = level !== "L1_REGISTERED";
+  // `levelOk` used to be `level !== "L1_REGISTERED"` — so every unrecognized level took
+  // the verified branch and the card said AGENID VERIFIED. It now comes from the
+  // canonical module, where `verified` is true only for enumerated verified levels.
+  const trust = presentEnvelopeTrust(env);
+  const levelOk = trust.verified;
   const has = (l: string) => env.assertions.some((a) => a.assertion.level === l && a.check.ok);
   const bad = env.status === "SUSPENDED" || env.status === "REVOKED";
 
@@ -58,8 +67,8 @@ function Card({ env, id }: { env: Envelope; id: string }) {
               <div className="mt-1 break-all font-mono text-[13px] text-muted">{id}</div>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <span className={`pill ${bad ? "pill-bad" : levelOk ? "pill-ok" : "pill-warn"} !text-sm`}>
-                {bad ? env.status : levelOk ? "AGENID VERIFIED" : "REGISTERED · not yet verified"}
+              <span className={`pill ${bad ? "pill-bad" : levelOk ? "pill-ok" : trust.tone === "declared" ? "pill-warn" : ""} !text-sm`}>
+                {bad ? env.status : trust.pillLabel}
               </span>
               <span className="font-mono text-[11px] text-muted">{levelLabel(level)} · status {env.status}</span>
             </div>

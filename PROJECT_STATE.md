@@ -54,7 +54,7 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 | **Resolution** (`/api/resolve/`, `/a/`) | Envelope re-verified **offline** with `@agenid/core` alone; a one-character manifest tamper rejected with `manifest_digest_mismatch` |
 | **Representation split on `/a/`** | HTML returns `200` with a neutral *Not registered* card for an unknown identifier; `Accept: application/json` returns `404 agent_not_found`. Both confirmed by live request. |
 | **`POST /api/v1/verify`** | Live; raw Ed25519 check over JCS bytes; `400` with `invalid_manifest` on empty body |
-| **Badges** | `/badge/<id>/shield.svg` returns 200 for an unknown identifier and renders neutral grey; `/badge.js` live |
+| **Badges** | `/badge/<id>/shield.svg` returns 200 for an unknown identifier and renders neutral grey; `/badge.js` live, generated from the canonical trust-presentation module |
 | **OpenAPI 3.0.3** | Fetched live; four paths and six component schemas, matching the implementation |
 | **Every "not deployed" claim** | `/v1/keys/…`, `/v1/agents/…/assertions` and `/.well-known/agenid/authorities.json` each confirmed `404` |
 | **Public site** | All 11 pages return 200; `/sitemap.xml` and `/robots.txt` live; `/onboarding/retell` serves `noindex, nofollow` |
@@ -186,6 +186,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 | Date | Change |
 |---|---|
+| 2026-09-15 | **Trust-state presentation centralized and made fail-closed** — both badges and the Verification Card had an `else -> emerald VERIFIED` default, so an unrecognized level rendered as verified |
 | 2026-09-15 | Documentation architecture audit — five core documents brought to standard; six fabricated claims in the previous API reference found and corrected by live verification |
 | 2026-09-15 | `a95928b` — `SupabaseStore` required a global `WebSocket` it never uses; CI had been red on Node 20 for several commits. Fixed at both call sites with a proven regression test. |
 | 2026-09-15 | `6390934` — repository front door: README, LICENSE, SECURITY, CONTRIBUTING, CHANGELOG, PROJECT_STATE, four architecture docs |

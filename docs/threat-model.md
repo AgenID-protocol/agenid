@@ -129,6 +129,7 @@ Controls that actually exist. Each one below is a test that fails the build, and
 | No hardcoded verification token in application code | `issuance.test.ts` |
 | No dead or out-of-namespace host in public copy | `public-surface.test.ts` |
 | Self-declared states never render as verified; the level string comes from the response | `public-surface.test.ts` |
+| **Trust presentation fails closed** — an unknown, absent, empty or malformed level renders neutral, never verified, on every surface | `web/test/trust-presentation.test.ts` (20 hostile inputs against the real shield and the generated `/badge.js`) |
 | One implementation per write path — no route may verify, store or clock-policy on its own | `public-surface.test.ts`, `retell-bind.test.ts` |
 | No timestamp truncation anywhere in the repo | `public-surface.test.ts` |
 | Storage backend cannot change a protocol field's serialization | `api/tests/store-timestamp-shape.test.ts` |

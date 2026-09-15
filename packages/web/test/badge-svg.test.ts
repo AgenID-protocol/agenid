@@ -2,13 +2,15 @@
  * The README badge (/badge/<agenid>/shield.svg).
  *
  * Two rules matter more than the pixels:
- *   1. It must agree with public/badge.js about what each state looks like. Two badges
- *      for one protocol that disagree about a color are worse than one badge.
+ *   1. It must agree with /badge.js about what each state looks like. Two badges
+ *      for one protocol that disagree about a color are worse than one badge. Both now
+ *      read lib/trust-presentation.ts, so agreement is structural rather than copied.
  *   2. "Not registered" must render NEUTRAL. An identifier with no record is not evidence
  *      of wrongdoing, and a red badge would make absence look like a finding.
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { presentTrustLevel, supportedTrustLevels } from "../lib/trust-presentation";
 
 const envelopes = new Map<string, unknown>();
 vi.mock("@/lib/api", async () => {
@@ -118,17 +120,34 @@ describe("GET /badge/<agenid>/shield.svg", () => {
     expect(sMaxAge).toBeLessThanOrEqual(300);
   });
 
-  it("uses the same level labels and colors as badge.js", () => {
-    const js = readFileSync(new URL("../public/badge.js", import.meta.url), "utf8");
-    const svgRoute = readFileSync(new URL("../app/badge/[agenid]/shield.svg/route.ts", import.meta.url), "utf8");
-    for (const level of ["L1_REGISTERED", "L2_DOMAIN_VERIFIED", "L3_ORGANIZATION_VERIFIED", "L4_DEPLOYMENT_VERIFIED"]) {
-      expect(js, `badge.js must know ${level}`).toContain(level);
-      expect(svgRoute, `shield.svg must know ${level}`).toContain(level);
+  it("agrees with the generated /badge.js on every supported level, by construction", async () => {
+    const { GET: badgeJs } = await import("../app/badge.js/route");
+    const script = await (badgeJs() as Response).text();
+    const table = JSON.parse(/var T = (\{.*?\});/s.exec(script)![1]) as {
+      levels: Record<string, { color: string; label: string }>;
+      unknown: { color: string };
+    };
+
+    for (const level of supportedTrustLevels()) {
+      const canonical = presentTrustLevel(level);
+      expect(table.levels[level], `/badge.js must carry ${level}`).toBeTruthy();
+      expect(table.levels[level].color, `${level} color must match the canonical module`).toBe(canonical.color);
+      expect(table.levels[level].label).toBe(canonical.embedLabel);
     }
-    // Same four state colors in both.
-    for (const color of [AMBER, MINT, RED, SLATE]) {
-      expect(js).toContain(color);
-      expect(svgRoute).toContain(color);
+    // And the shield renders that same canonical color for the same level.
+    envelopes.set(ID, envelope({ verification: { level: "L1_REGISTERED", valid_assertions: 0, total_assertions: 0 } }));
+    const { svg } = await badge(ID);
+    expect(svg).toContain(table.levels.L1_REGISTERED.color);
+  });
+
+  it("neither badge carries its own level table", () => {
+    const svgRoute = readFileSync(new URL("../app/badge/[agenid]/shield.svg/route.ts", import.meta.url), "utf8");
+    const jsRoute = readFileSync(new URL("../app/badge.js/route.ts", import.meta.url), "utf8");
+    for (const src of [svgRoute, jsRoute]) {
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+      // A hardcoded hex colour or a literal level label in executable code is a second table.
+      expect(code).not.toMatch(/#(f59e0b|10b981|94a3b8|ef4444)/i);
+      expect(code).not.toMatch(/"(REGISTERED|VERIFIED L[234])"/);
     }
   });
 });

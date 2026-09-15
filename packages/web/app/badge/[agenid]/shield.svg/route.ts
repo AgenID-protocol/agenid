@@ -6,12 +6,11 @@
  * is an <img>. This route is that image, rendered server-side from the same live envelope
  * badge.js fetches.
  *
- * STATE MAPPING IS COPIED FROM badge.js ON PURPOSE. Two badges for the same protocol that
- * disagree about what a level looks like would be worse than having one badge:
- *   revoked/suspended or failed proof -> red
- *   L1_REGISTERED                     -> amber   (registered, NOT independently verified)
- *   L2/L3/L4                          -> emerald
- *   unknown / unresolvable            -> slate, neutral wording
+ * STATE MAPPING COMES FROM lib/trust-presentation.ts, which /badge.js is also generated
+ * from. This route used to carry its own copy of the table, and that copy ended in
+ * `else -> emerald VERIFIED` — so an unrecognized, empty, or absent level rendered as the
+ * strongest claim the product can make. Presentation now fails closed: anything not
+ * enumerated in the canonical module is neutral slate and reads "UNVERIFIED".
  *
  * The neutral case is a product rule, not an oversight: an identifier with no record is
  * not evidence of wrongdoing, so an unknown agent renders grey and says "not registered",
@@ -22,21 +21,15 @@
  */
 import { fetchEnvelope } from "@/lib/api";
 import { isValidAgentId } from "@agenid/core";
+import {
+  presentEnvelopeTrust,
+  trustSummary,
+  MALFORMED_ID_TRUST,
+  NOT_REGISTERED_TRUST,
+} from "@/lib/trust-presentation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const SLATE = "#94a3b8";
-const AMBER = "#f59e0b";
-const MINT = "#10b981";
-const RED = "#ef4444";
-
-const LABELS: Record<string, string> = {
-  L1_REGISTERED: "REGISTERED",
-  L2_DOMAIN_VERIFIED: "VERIFIED L2",
-  L3_ORGANIZATION_VERIFIED: "VERIFIED L3",
-  L4_DEPLOYMENT_VERIFIED: "VERIFIED L4",
-};
 
 /**
  * Advance width for the badge's 11px semibold sans text. Real font metrics are not
@@ -102,12 +95,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ agenid: string
   const id = decodeURIComponent(agenid);
 
   if (!isValidAgentId(id)) {
-    return respond(renderBadgeSvg("NOT AN AGENID", SLATE, "Not a well-formed agenid:<ULID>."), 3600);
+    const p = MALFORMED_ID_TRUST;
+    return respond(renderBadgeSvg(p.badgeLabel, p.color, trustSummary(p, id)), 3600);
   }
 
   const { envelope } = await fetchEnvelope(id);
   if (!envelope) {
-    return respond(renderBadgeSvg("NOT REGISTERED", SLATE, `${id} has no record in this registry.`), 60);
+    const p = NOT_REGISTERED_TRUST;
+    return respond(renderBadgeSvg(p.badgeLabel, p.color, trustSummary(p, id)), 60);
   }
 
   const env = envelope as {
@@ -117,30 +112,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ agenid: string
     manifest?: { identity?: { name?: string }; ownership?: { operator?: string } };
   };
 
-  if (env.status === "SUSPENDED" || env.status === "REVOKED") {
-    return respond(renderBadgeSvg(env.status, RED, `This identity is ${env.status.toLowerCase()}.`), 60);
-  }
-  if (env.proof_check?.ok !== true) {
-    return respond(renderBadgeSvg("PROOF INVALID", RED, "The operator proof for this agent does not verify."), 60);
-  }
-
-  const level = env.verification?.level ?? "";
   const name = env.manifest?.identity?.name ?? id;
   const operator = env.manifest?.ownership?.operator;
 
-  if (level === "L1_REGISTERED") {
-    return respond(
-      renderBadgeSvg(
-        LABELS[level],
-        AMBER,
-        `${name} — registered by ${operator ?? "its operator"}. Self-declared, not independently verified.`,
-      ),
-      60,
-    );
-  }
-
-  return respond(
-    renderBadgeSvg(LABELS[level] ?? "VERIFIED", MINT, `${name} — operated by ${operator ?? "an identified operator"}.`),
-    60,
-  );
+  // One call decides everything: lifecycle status, then proof, then the level — and an
+  // unenumerated level resolves to the neutral UNKNOWN presentation, not to VERIFIED.
+  const p = presentEnvelopeTrust(env);
+  return respond(renderBadgeSvg(p.badgeLabel, p.color, trustSummary(p, name, operator)), 60);
 }

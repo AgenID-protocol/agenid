@@ -203,9 +203,13 @@ For Markdown surfaces that strip scripts.
 
 **Always returns `200`**, including for unknown or malformed identifiers — a non-200 renders as a broken image rather than a badge. An unknown identifier renders **neutral grey** and reads `NOT REGISTERED`. Never red.
 
-`DECLARED` and `L1_REGISTERED` render **amber**. Emerald is reserved for genuinely verified state. The colour mapping is pinned against `/badge.js` by a test that reads both files, so the two badges cannot disagree.
+`DECLARED` and `L1_REGISTERED` render **amber**. Emerald is reserved for genuinely verified state.
+
+Both badges, the Verification Card and the issuance wizard read one module — `packages/web/lib/trust-presentation.ts` — so they cannot disagree by construction rather than by a test comparing two copies. **Presentation fails closed:** a level this build does not recognize (absent, empty, malformed, or newer than this deployment) renders neutral slate and reads `UNVERIFIED`. It never renders emerald.
 
 ## GET /badge.js — live embed
+
+Generated at request time from the canonical trust-presentation module, so the browser badge is a projection of that one table rather than a second opinion. Same URL as before.
 
 ```html
 <script src="https://www.agenid.com/badge.js" data-agenid="agenid:01J…"></script>

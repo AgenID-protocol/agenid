@@ -163,10 +163,32 @@ describe("public surface — trust state is read, never asserted by a presentati
     expect(stripComments(src)).not.toMatch(/>\s*(DECLARED|L[1-5]_[A-Z_]+)\s*</);
   });
 
-  it("the two badges agree that L1 is not emerald", () => {
-    const badgeJs = read(path.join(WEB, "public", "badge.js"));
-    // #f59e0b is amber; #10B981 is Verified Emerald and must not be L1's colour.
-    expect(badgeJs).toMatch(/L1_REGISTERED[\s\S]{0,200}#f59e0b/);
+  /**
+   * L1's colour is now decided once, in lib/trust-presentation.ts, and every surface
+   * reads it from there. This asserts the decision itself rather than one copy of it:
+   * #f59e0b is amber, #10B981 is Verified Emerald, and L1 is a self-declaration.
+   */
+  it("the canonical module renders L1 amber and never marks it verified", async () => {
+    const { presentTrustLevel } = await import("../lib/trust-presentation");
+    const l1 = presentTrustLevel("L1_REGISTERED");
+    expect(l1.color.toLowerCase()).toBe("#f59e0b");
+    expect(l1.color.toLowerCase()).not.toBe("#10b981");
+    expect(l1.verified).toBe(false);
+  });
+
+  /**
+   * The presentation table lives in exactly one file. Any OTHER file under the app,
+   * components or lib that hardcodes a brand trust colour has started a second table —
+   * which is how the two badges came to share a fail-open `else -> emerald` branch.
+   */
+  it("no surface outside the canonical module hardcodes a trust colour", () => {
+    const CANONICAL = path.join(WEB, "lib", "trust-presentation.ts");
+    const offenders = PUBLIC_FILES.filter((f) => {
+      if (f === CANONICAL) return false;
+      if (!/\.(tsx?|js)$/.test(f)) return false;
+      return /#(f59e0b|10b981|94a3b8|ef4444)/i.test(stripComments(read(f)));
+    });
+    expect(offenders.map(rel)).toEqual([]);
   });
 });
 

@@ -22,6 +22,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { generateKeyPair, signAgent, hexEncode, type ClientKeyPair, type SignedAgent } from "@/lib/client-crypto";
+import { presentTrustLevel } from "@/lib/trust-presentation";
+
+/** What issuance produces, resolved through the one module that decides how it looks. */
+const L1 = presentTrustLevel("L1_REGISTERED");
 
 const CHANNELS = ["voice", "sms", "chat", "email", "api"] as const;
 type Channel = (typeof CHANNELS)[number];
@@ -300,11 +304,11 @@ function Result({
   return (
     <div className="mt-10">
       <div className="card p-6 sm:p-8">
-        {/* Amber, not emerald. The brand guide reserves emerald for independently
-            verified state, and L1 is a self-declaration. badge.js renders L1 amber for
-            the same reason; a green pill here would contradict the badge the operator
-            is about to embed. */}
-        <div className="pill pill-warn">L1_REGISTERED</div>
+        {/* Amber, not emerald — but the decision is not made here. The canonical
+            presentation module owns it, so this pill, the shield and /badge.js cannot
+            drift: L1 is a self-declaration and the brand guide reserves emerald for
+            independently verified state. */}
+        <div className={`pill ${L1.verified ? "pill-ok" : L1.tone === "declared" ? "pill-warn" : ""}`}>{L1.level ?? L1.badgeLabel}</div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight">{String((signed.manifest.identity as Record<string, unknown>).name)} has an identity.</h2>
         <p className="mt-3 font-mono text-sm break-all text-mint">{agentId}</p>
         <div className="mt-5 flex flex-wrap gap-3">
