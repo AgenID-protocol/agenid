@@ -23,8 +23,19 @@
  * 400 (malformed id), 404 (not registered), 200 (resolved), or 503 (store/network
  * itself failed) — all clean JSON-shaped, never a crash.
  */
-import { buildEnvelope, MemoryStore, supabaseStoreFromEnv, type RegistryStore, type ResolutionEnvelope } from "@agenid/api";
-import { isValidAgentId, parseKeyReference, keyIdToWire, KeyDocument } from "@agenid/core";
+import {
+  buildEnvelope,
+  MemoryStore,
+  supabaseStoreFromEnv,
+  resolveKeyDocument,
+  resolveKeyFromQuery,
+  type KeyReader,
+  type KeyReferencePosition,
+  type KeyResolution,
+  type RegistryStore,
+  type ResolutionEnvelope,
+} from "@agenid/api";
+import { isValidAgentId, keyResolverPath, type KeyDocument } from "@agenid/core";
 
 export const API_URL = process.env.AGENID_API_URL?.replace(/\/$/, "");
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.agenid.com").replace(/\/$/, "");
@@ -91,94 +102,60 @@ export async function fetchEnvelope(agentId: string): Promise<{ status: number; 
 // Key discovery — the registry half of two-path key discovery (spec §9.2).
 // ---------------------------------------------------------------------------
 /**
- * Logical vs wire form is a protocol distinction, not a bug to normalize away
- * (spec §0.A, §9.2). A key's logical identifier is `agenid:key:<ULID>` — that is
- * what `KeyDocument.key_id` carries, what `keys.key_id` stores, and what
- * `store.getKey()` is keyed on. Its wire form is the bare `<ULID>`, which is the
- * path segment in `GET /v1/keys/{key-ULID}` and therefore what the resolution
- * envelope's `operator_key.discovery.registry_path` points at. `parseKeyReference`
- * is the only sanctioned translation between them: it accepts either form, rejects
- * a URI fragment in both raw and percent-encoded spelling, and returns the logical
- * form. Nothing here strips or adds a prefix by hand.
+ * There is exactly ONE implementation of key discovery in this repository, and it is
+ * `resolveKeyDocument` in `@agenid/api` (serve-key.ts): reference canonicalization, the
+ * store lookup, the strict `KeyDocument` re-parse, the index/document consistency check,
+ * and every public error string live there and nowhere else. The Fastify registry in
+ * that same package calls it too.
  *
- * Same three resolution modes and the same never-throw discipline as fetchEnvelope
- * above: this is a public read path, and an uncaught throw in a Next route handler
- * surfaces as an opaque 500 for every caller, registered or not.
+ * This module supplies the *reader* and decides nothing. That split is what makes the
+ * two registries answer identically by construction rather than by review — they used to
+ * diverge, and only this one re-validated what it served.
+ *
+ * Logical vs wire form remains a protocol distinction, not a bug to normalize away
+ * (§0.A, §9.2): `agenid:key:<ULID>` is what `KeyDocument.key_id` carries and what
+ * `store.getKey()` is keyed on; the bare `<ULID>` is the path segment the resolution
+ * envelope's `operator_key.discovery.registry_path` points at. `keyResolverPath` and
+ * `parseKeyReference` from `@agenid/core` are the only translations used; nothing here
+ * strips or adds a prefix by hand.
  */
-export type KeyLookup =
-  | { status: 200; document: KeyDocument; error?: undefined; message?: undefined; key_id?: undefined }
-  | { status: 400 | 404 | 503; document: null; error: string; message: string; key_id?: string };
+export type KeyLookup = KeyResolution;
 
-async function fetchKeyOverHttp(keyId: string): Promise<{ status: number; raw: unknown | null; error?: string }> {
-  try {
-    const r = await fetch(`${API_URL}/v1/keys/${keyIdToWire(keyId)}`, { cache: "no-store", headers: { accept: "application/json" } });
-    if (!r.ok) {
-      let error = "registry_error";
-      try { error = (await r.json()).error ?? error; } catch { /* ignore */ }
-      return { status: r.status, raw: null, error };
-    }
-    return { status: 200, raw: await r.json() };
-  } catch (e) {
-    console.error("key fetch failed", { keyId, apiUrl: API_URL, error: e instanceof Error ? e.message : e });
-    return { status: 503, raw: null, error: "registry_unavailable" };
-  }
+/**
+ * HTTP-registry mode: wrap a separately-deployed `@agenid/api` instance in a `KeyReader`
+ * so the SAME resolution code runs against it. A remote 404 is an absent key; any other
+ * non-OK status or a network failure is a registry failure, which must surface as 503
+ * ("status unknown") rather than being mistaken for "no such key". The body is returned
+ * unvalidated on purpose — `resolveKeyDocument` re-parses it strictly, so a remote
+ * registry cannot talk this one into serving a document it would have refused.
+ */
+function httpKeyReader(): KeyReader {
+  return {
+    async getKey(keyId: string): Promise<KeyDocument | null> {
+      const r = await fetch(`${API_URL}${keyResolverPath(keyId)}`, {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+      });
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error(`registry responded ${r.status}`);
+      return (await r.json()) as KeyDocument;
+    },
+  };
 }
 
-async function fetchKeyInProcess(keyId: string): Promise<{ status: number; raw: unknown | null; error?: string }> {
-  try {
-    const doc = await getStore().getKey(keyId);
-    if (!doc) return { status: 404, raw: null, error: "key_not_found" };
-    return { status: 200, raw: doc };
-  } catch (e) {
-    console.error("key lookup failed", { keyId, error: e instanceof Error ? e.message : e });
-    return { status: 503, raw: null, error: "registry_unavailable" };
-  }
+/** Same three resolution modes as `fetchEnvelope`: HTTP registry when `AGENID_API_URL`
+ *  is set, otherwise the in-process store (Supabase in production, MemoryStore locally). */
+function keyReader(): KeyReader {
+  return API_URL ? httpKeyReader() : getStore();
 }
 
-export async function fetchKeyDocument(ref: string): Promise<KeyLookup> {
-  let keyId: string;
-  try {
-    keyId = parseKeyReference(ref);
-  } catch {
-    // Never reflect the caller's raw input back in a public response body. core's
-    // InvalidKeyIdError interpolates the reference into its message, which is useful
-    // to a library caller and wrong on an unauthenticated HTTP surface, so the two
-    // failure reasons are re-derived here from fixed text.
-    const fragment = ref.includes("#") || /%23/i.test(ref);
-    return {
-      status: 400,
-      document: null,
-      error: "invalid_key_id",
-      message: fragment
-        ? "key reference must not contain a URI fragment ('#'): fragments are not sent to servers and cannot be resolved (spec §0.A)"
-        : "key reference must be a bare key-ULID (the wire form) or the logical form agenid:key:<ULID>",
-    };
-  }
+/** `GET /v1/keys/{key-ULID}` — `ref` is the wire form, already decoded by Next.js. */
+export async function fetchKeyDocument(ref: string | null, position: KeyReferencePosition): Promise<KeyLookup> {
+  return resolveKeyDocument(keyReader(), ref, position);
+}
 
-  const found = API_URL ? await fetchKeyOverHttp(keyId) : await fetchKeyInProcess(keyId);
-  if (found.raw === null) {
-    const status = (found.status === 400 || found.status === 404 || found.status === 503 ? found.status : 503) as 400 | 404 | 503;
-    const error = found.error ?? "registry_unavailable";
-    const message =
-      error === "key_not_found"
-        ? "no key document is published under this identifier"
-        : "the key registry could not be reached; this key's status is unknown, not disproven";
-    // A missing KEY is not a missing AGENT. Callers distinguish them by code.
-    return { status, document: null, error, message, ...(error === "key_not_found" ? { key_id: keyId } : {}) };
-  }
-
-  // Re-validate before serving. KeyDocument is .strict(), so this is also the
-  // mechanism that makes it impossible for a column, an internal field, or any
-  // future addition to the stored row to reach a public response: an unknown
-  // member fails the parse rather than being quietly passed through or stripped.
-  const parsed = KeyDocument.safeParse(found.raw);
-  if (!parsed.success) {
-    console.error("stored key document failed schema validation", { keyId });
-    return { status: 503, document: null, error: "key_document_invalid", message: "the stored key document did not validate and was not served" };
-  }
-  if (parsed.data.key_id !== keyId) {
-    console.error("stored key document key_id disagrees with its index", { keyId, documentKeyId: parsed.data.key_id });
-    return { status: 503, document: null, error: "key_document_invalid", message: "the stored key document did not validate and was not served" };
-  }
-  return { status: 200, document: parsed.data };
+/** `GET /v1/keys?key_id=…` — every value supplied for that parameter, so a repeated
+ *  parameter can be refused as ambiguous instead of silently resolving one of them. */
+export async function fetchKeyDocumentByQuery(values: readonly string[]): Promise<KeyLookup> {
+  return resolveKeyFromQuery(keyReader(), values);
 }

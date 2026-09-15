@@ -124,6 +124,26 @@ r = await fetch(`${W}/v1/keys/01J8Z3M9Q4XK2P7VBN6TDR8HWE`);
 j = await r.json().catch(() => ({}));
 r.status === 404 && j.error === "key_not_found" ? ok("3j. unknown key is key_not_found, not agent_not_found") : fail(`3j. unknown key: ${r.status} ${JSON.stringify(j)}`);
 
+// Over real HTTP, so Next.js's own path decoding is in the loop — which is the half a
+// unit test can only simulate. `%253A` decodes to `%3A`; before the fix that was decoded
+// a SECOND time and the key resolved 200 under a spelling §0.A never defined.
+r = await fetch(`${W}/v1/keys/agenid%253Akey%253A${wire}`);
+j = await r.json().catch(() => ({}));
+r.status === 400 && j.error === "invalid_key_id"
+  ? ok("3l. a double-encoded key reference is refused, not decoded twice")
+  : fail(`3l. double-encoded reference resolved or misreported: ${r.status} ${JSON.stringify(j)}`);
+
+r = await fetch(`${W}/v1/keys?key_id=${encodeURIComponent(opDoc.key_id)}&key_id=${encodeURIComponent(opDoc.key_id)}`);
+j = await r.json().catch(() => ({}));
+r.status === 400 && j.error === "invalid_key_id"
+  ? ok("3m. a repeated key_id is refused as ambiguous, never first-won")
+  : fail(`3m. duplicate key_id was resolved: ${r.status} ${JSON.stringify(j)}`);
+
+r = await fetch(`${W}/v1/keys/${wire}`, { method: "POST" });
+r.status === 405 && r.headers.get("allow") === "GET, OPTIONS" && r.headers.get("access-control-allow-origin") === "*"
+  ? ok("3n. POST is 405 with Allow and CORS, and reaches no business logic")
+  : fail(`3n. 405 semantics: ${r.status} allow=${r.headers.get("allow")} cors=${r.headers.get("access-control-allow-origin")}`);
+
 r = await fetch(`${W}/a/${agentId}`, { headers: { accept: "application/json" } });
 const env = await r.json();
 env.operator_key?.discovery?.registry_path === `/v1/keys/${wire}` && !/not (served|deployed)/i.test(env.verify_instructions ?? "")

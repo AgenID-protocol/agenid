@@ -238,14 +238,44 @@ describe("GET /v1/keys — the route decides nothing about trust", () => {
     }
   });
 
-  it("does the logical/wire translation through parseKeyReference, never by hand", () => {
-    const lib = readFileSync(join(import.meta.dirname, "..", "lib/api.ts"), "utf-8");
-    const keysHalf = lib.slice(lib.indexOf("Key discovery"));
-    expect(keysHalf).toMatch(/parseKeyReference/);
-    // No ad-hoc prefix surgery on a key reference.
-    expect(keysHalf).not.toMatch(/slice\("agenid:key:"\.length\)/);
-    expect(keysHalf).not.toMatch(/replace\(\s*["'`]agenid:key:/);
-    expect(keysHalf).not.toMatch(/startsWith\(\s*["'`]agenid:key:/);
+  it("does the logical/wire translation through core, never by hand — in EVERY key-lookup file", () => {
+    // The previous version of this guard read one half of one file. Two live copies of
+    // exactly the pattern it forbids were sitting in packages/api at the time, which is
+    // the whole lesson: a guard scoped to where the defect was found is a sample, not a
+    // guard. This scans every file that participates in a key lookup, in both registries.
+    const root = join(import.meta.dirname, "..", "..", "..");
+    const sources = [
+      "packages/web/lib/api.ts",
+      "packages/web/lib/serve-key.ts",
+      "packages/web/app/v1/keys/route.ts",
+      "packages/web/app/v1/keys/[key_ulid]/route.ts",
+      "packages/api/src/serve-key.ts",
+      "packages/api/src/app.ts",
+      "packages/api/src/envelope.ts",
+    ].map((f) => [f, readFileSync(join(root, f), "utf-8")] as const);
+
+    for (const [name, src] of sources) {
+      // Comments may *describe* the prefix; code may not perform surgery with it.
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+      expect(code, name).not.toMatch(/slice\(\s*["'`]agenid:key:["'`]\.length\s*\)/);
+      expect(code, name).not.toMatch(/replace\(\s*[/"'`]agenid:key:/);
+      expect(code, name).not.toMatch(/startsWith\(\s*["'`]agenid:key:/);
+      expect(code, name).not.toMatch(/["'`]agenid:key:["'`]\s*\+/);
+    }
+
+    // And the one sanctioned translator is where the translation actually happens.
+    const seam = sources.find(([n]) => n.endsWith("api/src/serve-key.ts"))![1];
+    expect(seam).toMatch(/parseKeyReference\(ref\)/);
+    expect(seam).toMatch(/isValidUlid/);
+    expect(seam).toMatch(/isValidKeyId/);
+  });
+
+  it("decides nothing itself: every web key file delegates to the shared seam", () => {
+    for (const src of files) {
+      expect(src).not.toMatch(/KeyDocument\.safeParse/);
+      expect(src).not.toMatch(/getKey\(/);
+      expect(src).not.toMatch(/decodeURIComponent/);
+    }
   });
 });
 
@@ -261,11 +291,171 @@ describe("GET /v1/keys — error bodies are not a reflection surface", () => {
     expect(JSON.parse(body).error).toBe("invalid_key_id");
   });
 
-  it("names the two failure reasons distinctly without quoting the input", async () => {
-    const frag = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}%23z1`)).body);
+  it("names each failure reason distinctly without quoting the input", async () => {
+    // A route handler receives an ALREADY-DECODED segment, so a fragment reaches it as a
+    // literal '#'. `%23` surviving that decode means the caller encoded twice, and is
+    // reported as double encoding rather than guessed at as a fragment. Both are 400
+    // invalid_key_id; the distinction is in the message, and neither quotes the caller.
+    const frag = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}#z1`)).body);
+    const twice = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}%23z1`)).body);
     const junk = JSON.parse((await byPath("not-a-ulid")).body);
     expect(frag.message).toMatch(/fragment/);
+    expect(twice.message).toMatch(/more than once/);
     expect(junk.message).toMatch(/key-ULID/);
-    expect(frag.message).not.toBe(junk.message);
+    expect(new Set([frag.message, twice.message, junk.message]).size).toBe(3);
+    for (const m of [frag.message, twice.message, junk.message]) expect(m).not.toContain("z1");
+  });
+});
+
+describe("GET /v1/keys — exactly the two forms §0.A defines, and no accidental aliases", () => {
+  // A route handler is handed an ALREADY-DECODED value: Next.js decodes a dynamic path
+  // segment and URLSearchParams decodes a query value. These cases are therefore written
+  // as what the handler actually receives, which is what the transport produces from the
+  // URL named in each comment.
+  it("the wire form resolves on the path (§0.A canonical resolver path)", async () => {
+    const { res } = await byPath(keyIdToWire(doc.key_id));
+    expect(res.status).toBe(200);
+  });
+
+  it("the logical form resolves in the query (§0.A MUST accept, identical document)", async () => {
+    const { res } = await byQuery(keyResolverQuery(doc.key_id));
+    expect(res.status).toBe(200);
+  });
+
+  it("refuses the logical form in a path position (§0.A puts the wire form there)", async () => {
+    // Covers BOTH /v1/keys/agenid:key:<ULID> and /v1/keys/agenid%3Akey%3A<ULID> — the
+    // transport decodes the second into the first, so the handler sees one value.
+    const { res, body } = await byPath(doc.key_id);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).error).toBe("invalid_key_id");
+    expect(JSON.parse(body).message).toMatch(/wire form/);
+  });
+
+  it("refuses a DOUBLE-encoded logical form on the path (URL: /v1/keys/agenid%253Akey%253A<ULID>)", async () => {
+    // Next.js decodes %25 -> %, so the handler receives 'agenid%3Akey%3A<ULID>'. Before
+    // this fix parseKeyReference decoded that a second time and the key resolved 200.
+    const { res, body } = await byPath(`agenid%3Akey%3A${keyIdToWire(doc.key_id)}`);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).error).toBe("invalid_key_id");
+    expect(JSON.parse(body).message).toMatch(/more than once/);
+  });
+
+  it("refuses a DOUBLE-encoded logical form in the query (URL: ?key_id=agenid%253Akey%253A<ULID>)", async () => {
+    const { res, body } = await byQuery(`/v1/keys?key_id=agenid%253Akey%253A${keyIdToWire(doc.key_id)}`);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).message).toMatch(/more than once/);
+  });
+
+  it("refuses a TRIPLE-encoded logical form (URL: /v1/keys/agenid%25253Akey%25253A<ULID>)", async () => {
+    const { res } = await byPath(`agenid%253Akey%253A${keyIdToWire(doc.key_id)}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses the wire form in a query position: §0.A puts the logical form there", async () => {
+    const { res, body } = await byQuery(`/v1/keys?key_id=${keyIdToWire(doc.key_id)}`);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).message).toMatch(/logical form/);
+  });
+
+  it("a percent sign can never survive into a lookup, whatever it encodes", async () => {
+    for (const seg of ["%2F", "%2e%2e", "%00", "%25", "%2523", "%252F", `%30%31${keyIdToWire(doc.key_id).slice(2)}`]) {
+      const { res, body } = await byPath(seg);
+      expect(res.status).toBe(400);
+      expect(JSON.parse(body).error).toBe("invalid_key_id");
+    }
+  });
+
+  it("legitimate single percent-encoding is NOT broken: the transport removes it first", async () => {
+    // URL: /v1/keys/%30%31M2… — a client encoding unreserved ULID characters. The
+    // transport decodes it to the bare ULID before the handler sees it, so it resolves.
+    const { res } = await byPath(keyIdToWire(doc.key_id));
+    expect(res.status).toBe(200);
+    // And the normative query form is percent-encoded by definition (§0.A) and resolves.
+    expect((await byQuery(keyResolverQuery(doc.key_id))).res.status).toBe(200);
+  });
+});
+
+describe("GET /v1/keys?key_id= — a repeated parameter is ambiguous, never first-won", () => {
+  const other = "agenid:key:01M2HP1B8REVKVV4GE44YQ6RF8";
+
+  it("one key_id resolves", async () => {
+    const { res } = await byQuery(`/v1/keys?key_id=${doc.key_id}`);
+    expect(res.status).toBe(200);
+  });
+
+  it("two DIFFERENT key_id parameters are 400, not the first one", async () => {
+    const { res, body } = await byQuery(`/v1/keys?key_id=${doc.key_id}&key_id=${other}`);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).error).toBe("invalid_key_id");
+    expect(JSON.parse(body).message).toMatch(/exactly once/);
+    expect(body).not.toContain("public_key_b64u");
+  });
+
+  it("the same two, reversed, is also 400 — order cannot decide it", async () => {
+    const { res } = await byQuery(`/v1/keys?key_id=${other}&key_id=${doc.key_id}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("two IDENTICAL key_id parameters are 400 too", async () => {
+    const { res, body } = await byQuery(`/v1/keys?key_id=${doc.key_id}&key_id=${doc.key_id}`);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).message).toMatch(/exactly once/);
+  });
+
+  it("an empty duplicate is 400 (?key_id=&key_id=<valid>)", async () => {
+    const { res } = await byQuery(`/v1/keys?key_id=&key_id=${doc.key_id}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("key_id with an unrelated parameter, either order, still resolves", async () => {
+    expect((await byQuery(`/v1/keys?key_id=${doc.key_id}&foo=x`)).res.status).toBe(200);
+    expect((await byQuery(`/v1/keys?foo=x&key_id=${doc.key_id}`)).res.status).toBe(200);
+  });
+
+  it("KEY_ID and key_id[] are not key_id", async () => {
+    for (const q of [`/v1/keys?KEY_ID=${doc.key_id}`, `/v1/keys?key_id[]=${doc.key_id}`]) {
+      const { res, body } = await byQuery(q);
+      expect(res.status).toBe(400);
+      expect(JSON.parse(body).error).toBe("invalid_key_id");
+    }
+  });
+});
+
+describe("GET /v1/keys — method surface and CORS coherence", () => {
+  it.each(["POST", "PUT", "PATCH", "DELETE"])("%s is 405 with Allow, CORS and no-store on both routes", async (method) => {
+    const item = await import("../app/v1/keys/[key_ulid]/route");
+    const coll = await import("../app/v1/keys/route");
+    for (const res of [
+      (item as unknown as Record<string, () => Response>)[method]!(),
+      (coll as unknown as Record<string, () => Response>)[method]!(),
+    ]) {
+      expect(res.status).toBe(405);
+      expect(res.headers.get("allow")).toBe("GET, OPTIONS");
+      expect(res.headers.get("access-control-allow-origin")).toBe("*");
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(res.headers.get("content-type")).toBe("application/json");
+    }
+  });
+
+  it("405 names the reason and exposes no mutation", async () => {
+    const { POST } = await import("../app/v1/keys/route");
+    const body = await POST().text();
+    expect(JSON.parse(body).error).toBe("method_not_allowed");
+    expect(body).not.toContain("public_key_b64u");
+  });
+
+  it("GET, OPTIONS, 400, 404 and 405 agree on the CORS origin header", async () => {
+    const { OPTIONS, POST } = await import("../app/v1/keys/route");
+    const responses = [
+      (await byPath(keyIdToWire(doc.key_id))).res, // 200
+      (await byPath("not-a-ulid")).res, // 400
+      (await byPath(keyIdToWire(generateKeyId()))).res, // 404
+      POST(), // 405
+      OPTIONS(), // 204
+    ];
+    for (const r of responses) expect(r.headers.get("access-control-allow-origin")).toBe("*");
+    // No credentialed wildcard anywhere on this surface.
+    for (const r of responses) expect(r.headers.get("access-control-allow-credentials")).toBeNull();
+    expect(OPTIONS().headers.get("access-control-allow-methods")).toBe("GET, OPTIONS");
   });
 });

@@ -244,7 +244,7 @@ Errors: `invalid_domain`, `invalid_token`, `invalid_provider`, `dns_error`, `dns
 
 The registry half of two-path key discovery (spec §9.2). Read-only, unauthenticated, no body, no side effects. It resolves a key document already held by the registry; it verifies nothing, reports no verification level, and says nothing about any agent.
 
-**Identifier forms.** A key has a *logical* identifier, `agenid:key:<ULID>`, and a *wire* form, the bare `<ULID>`. The path segment is the wire form; that is exactly what a resolution envelope's `operator_key.discovery.registry_path` contains. Both of these resolve, and return a byte-identical document:
+**Identifier forms.** A key has a *logical* identifier, `agenid:key:<ULID>`, and a *wire* form, the bare `<ULID>`. §0.A gives each of them a position: the wire form is what appears in the path — exactly what a resolution envelope's `operator_key.discovery.registry_path` contains — and the logical form is what appears in `?key_id=`. Each position accepts only the form §0.A assigns it, so one key has one spelling per position. These two resolve, and return a byte-identical document:
 
 ```
 GET https://www.agenid.com/v1/keys/01J8Z3M9Q4XK2P7VBN6TDR8HWE
@@ -275,8 +275,9 @@ Sent with `access-control-allow-origin: *` and `cache-control: no-store`. Not ca
 
 | Status | `error` | When |
 |---|---|---|
-| `400` | `invalid_key_id` | The reference is neither a bare key-ULID nor `agenid:key:<ULID>`; or it carries a URI fragment, raw or percent-encoded as `%23` (§9.2 requires a `400`, never truncation); or `?key_id=` is absent on the collection form |
+| `400` | `invalid_key_id` | The reference is not the form its position takes (a bare key-ULID on the path, `agenid:key:<ULID>` in `?key_id=`); or it carries a URI fragment, raw or percent-encoded as `%23` (§9.2 requires a `400`, never truncation); or it is percent-encoded more than once — the transport layer decodes a reference exactly once, and a `%` surviving that means the sender encoded twice; or `?key_id=` is absent, or supplied more than once, on the collection form |
 | `404` | `key_not_found` | No key document is published under that identifier. **Distinct from `agent_not_found`** — a key is not an agent, and neither absence implies the other |
+| `405` | `method_not_allowed` | Anything but `GET` or `OPTIONS`. Sent with `Allow: GET, OPTIONS`, the CORS header and `no-store`, so a browser verifier can read the reason. Key discovery is read-only; no method reaches business logic |
 | `503` | `registry_unavailable` | The store could not be reached. This key's status is unknown, not disproven |
 | `503` | `key_document_invalid` | The stored document failed schema validation, or its `key_id` disagreed with the identifier it was indexed under. Nothing is served |
 

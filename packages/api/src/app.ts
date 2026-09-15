@@ -13,16 +13,21 @@ import {
   verifyManifestProof,
   verifyVerificationAssertion,
   manifestDigestHex,
-  parseKeyReference,
+  keyResolverPath,
   isValidAgentId,
   isValidUlid,
   generateUlid,
-  InvalidKeyIdError,
   PROTOCOL_VERSION,
 } from "@agenid/core";
 import { MemoryStore, type RegistryStore, type AgentRecord } from "./store.js";
 import { buildEnvelope } from "./envelope.js";
 import { registrationTime } from "./registration-time.js";
+import {
+  resolveKeyDocument,
+  resolveKeyFromQuery,
+  KEY_ALLOWED_METHODS,
+  type KeyResolution,
+} from "./serve-key.js";
 
 export interface AppOptions {
   store?: RegistryStore;
@@ -124,7 +129,7 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
       status: record.status,
       verification: { level: "L1_REGISTERED" },
       registered_at: ts,
-      links: { self: `/v1/agents/${record.agent_id}`, proof: `/v1/agents/${record.agent_id}/proof`, key: `/v1/keys/${key_document.key_id.slice("agenid:key:".length)}` },
+      links: { self: `/v1/agents/${record.agent_id}`, proof: `/v1/agents/${record.agent_id}/proof`, key: keyResolverPath(key_document.key_id) },
     });
   });
 
@@ -193,25 +198,38 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
   });
 
   // ---------------------------------------------------------------- keys (spec §9.2)
-  const serveKey = async (ref: string, reply: FastifyReply) => {
-    let keyId: string;
-    try {
-      keyId = parseKeyReference(ref);
-    } catch (e) {
-      if (e instanceof InvalidKeyIdError) return err(reply, 400, "invalid_key_id", e.message);
-      throw e;
-    }
-    const doc = await store.getKey(keyId);
-    if (!doc) return err(reply, 404, "key_not_found", "no such key");
-    return doc;
+  // Both wire forms delegate to the SAME canonical implementation the Next.js registry
+  // in packages/web uses (serve-key.ts). This route is a transport adapter: it reads the
+  // reference out of the request, hands it to resolveKeyDocument, and writes the result.
+  // It does not parse identifiers, validate documents, or choose error text of its own —
+  // those decisions belong to one place, or the two registries drift apart.
+  const sendKey = (reply: FastifyReply, r: KeyResolution) => {
+    reply.header("cache-control", "no-store");
+    if (r.document) return reply.code(200).send(r.document);
+    return err(reply, r.status, r.error, r.message, r.key_id ? { key_id: r.key_id } : undefined);
   };
 
-  app.get<{ Params: { key_ulid: string } }>("/v1/keys/:key_ulid", async (req, reply) => serveKey(req.params.key_ulid, reply));
+  app.get<{ Params: { key_ulid: string } }>("/v1/keys/:key_ulid", async (req, reply) =>
+    sendKey(reply, await resolveKeyDocument(store, req.params.key_ulid, "path")),
+  );
 
-  app.get<{ Querystring: { key_id?: string } }>("/v1/keys", async (req, reply) => {
+  // Fastify's default querystring parser yields an array when a parameter repeats, which
+  // is exactly the ambiguity resolveKeyFromQuery refuses rather than first-winning.
+  app.get<{ Querystring: { key_id?: string | string[] } }>("/v1/keys", async (req, reply) => {
     const q = req.query.key_id;
-    if (!q) return err(reply, 400, "invalid_key_id", "key_id query parameter required (percent-encoded logical form)");
-    return serveKey(q, reply);
+    const values = q === undefined ? [] : Array.isArray(q) ? q : [q];
+    return sendKey(reply, await resolveKeyFromQuery(store, values));
+  });
+
+  // An unsupported method on the item route is 405 with Allow, not Fastify's default 404
+  // — the resource exists, the method does not. Matches the Next.js registry exactly.
+  app.route({
+    method: ["POST", "PUT", "PATCH", "DELETE"],
+    url: "/v1/keys/:key_ulid",
+    handler: async (_req, reply) => {
+      reply.header("allow", KEY_ALLOWED_METHODS).header("cache-control", "no-store");
+      return err(reply, 405, "method_not_allowed", "key discovery is read-only: use GET or OPTIONS");
+    },
   });
 
   // Authority-only: publish an authority key document (the AgenID-hosted discovery path for authority keys).
@@ -223,7 +241,7 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
     const existing = await store.getKey(parsed.data.key_id);
     if (existing && JSON.stringify(existing) !== JSON.stringify(parsed.data)) return err(reply, 409, "key_conflict", "a different document exists under this key_id");
     await store.putKey(parsed.data);
-    return reply.code(201).send({ key_id: parsed.data.key_id, links: { self: `/v1/keys/${parsed.data.key_id.slice("agenid:key:".length)}` } });
+    return reply.code(201).send({ key_id: parsed.data.key_id, links: { self: keyResolverPath(parsed.data.key_id) } });
   });
 
   // A stray fragment can only reach us percent-encoded; Fastify routes with a literal '#' never match. Make the intent explicit anyway.
