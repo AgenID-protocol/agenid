@@ -80,9 +80,14 @@ export function TwoPathDiagram() {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <div className="card p-4">
-        <div className="font-mono text-[11px] text-muted">WIRE PATH</div>
-        <div className="mt-2 font-mono text-[12px] text-paper/90">GET api.agenid.com/v1/keys/&#123;key-ULID&#125;</div>
-        <div className="mt-2 text-xs text-muted">Registry-hosted key document, by key ULID.</div>
+        <div className="font-mono text-[11px] text-muted">
+          WIRE PATH <span className="text-amber">&middot; not deployed yet</span>
+        </div>
+        <div className="mt-2 font-mono text-[12px] text-paper/90">GET agenid.com/v1/keys/&#123;key-ULID&#125;</div>
+        <div className="mt-2 text-xs text-muted">
+          Registry-hosted key document, by key ULID. Defined by the spec; this deployment does not serve it yet
+          — the registry&rsquo;s copy of the key currently travels inside the resolution envelope.
+        </div>
       </div>
       <div className="card p-4">
         <div className="font-mono text-[11px] text-muted">DOMAIN PATH</div>

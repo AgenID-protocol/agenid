@@ -119,7 +119,22 @@ export default function RetellOnboardingWizard() {
   const [keyPair, setKeyPair] = useState<ClientKeyPair | null>(null);
   const [bindings, setBindings] = useState<AgentBinding[] | null>(null);
   const [bindResult, setBindResult] = useState<BindResult | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
+
+  /**
+   * Operator attestations. These go under an Ed25519 signature and are claims
+   * about the operator's real-world behavior, so they are NEVER defaulted:
+   * the two booleans start `false` and the three strings start empty and are
+   * required before signing. A default here would be a fabricated claim
+   * carried under the operator's own signature.
+   */
+  const [operatorName, setOperatorName] = useState("");
+  const [operatorContact, setOperatorContact] = useState("");
+  const [purposeSummary, setPurposeSummary] = useState("");
+  const [disclosesToUser, setDisclosesToUser] = useState(false);
+  const [humanEscalation, setHumanEscalation] = useState(false);
+
+  const attestationsComplete =
+    operatorName.trim().length > 0 && operatorContact.trim().length > 0 && purposeSummary.trim().length > 0;
 
   // -------------------------------------------------------------------------
   // Step 1: Fetch Retell Agents
@@ -230,6 +245,10 @@ export default function RetellOnboardingWizard() {
   // Step 3: Client-side key generation, signing, then server validation
   // -------------------------------------------------------------------------
   const handleBind = useCallback(async () => {
+    if (!attestationsComplete) {
+      setError("Operator name, contact and purpose are required — they are signed claims and cannot be defaulted.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -242,12 +261,12 @@ export default function RetellOnboardingWizard() {
         kp,
         agents.map((a) => ({ agent_id: a.agent_id, agent_name: a.agent_name ?? "Unnamed Agent" })),
         {
-          operator: "AI Venture Holdings LLC",
+          operator: operatorName.trim(),
           operatorDomain: domain,
-          disclosesToUser: true,
-          humanEscalation: true,
-          purposeSummary: "AI-powered voice agents for customer engagement",
-          contact: "ops@aiventureholdings.com",
+          disclosesToUser,
+          humanEscalation,
+          purposeSummary: purposeSummary.trim(),
+          contact: operatorContact.trim(),
         },
       );
       setBindings(signed);
@@ -271,14 +290,21 @@ export default function RetellOnboardingWizard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "Server validation failed");
       setBindResult(data);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 4000);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [domain, agents]);
+  }, [
+    domain,
+    agents,
+    attestationsComplete,
+    operatorName,
+    operatorContact,
+    purposeSummary,
+    disclosesToUser,
+    humanEscalation,
+  ]);
 
   // -------------------------------------------------------------------------
   // Render
@@ -290,12 +316,14 @@ export default function RetellOnboardingWizard() {
         <div className="space-y-2 border-b border-line pb-6">
           <div className="flex items-center justify-between">
             <span className="font-mono text-xs tracking-widest text-mint uppercase">AgenID Protocol Operator</span>
-            <span className="pill">app.agenid.ai</span>
+            <span className="pill">agenid.com</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-paper">Retell AI Identity Verification</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-paper">Register your Retell agent fleet</h1>
           <p className="text-muted text-sm">
-            Bind your Retell voice fleet to cryptographic domain signatures using Ed25519.
-            Private keys are generated in your browser and never leave your device.
+            Sign an AgenID manifest for each agent in your Retell workspace with an Ed25519 key generated in
+            your browser. The result is a <strong className="text-paper">self-declaration</strong> — it records
+            who signed, not that any third party checked them. Independent verification requires an
+            authority-signed assertion, which this flow does not issue.
           </p>
         </div>
 
@@ -305,7 +333,7 @@ export default function RetellOnboardingWizard() {
         <div className="card p-6 space-y-6">
           <div className="grid grid-cols-3 gap-2 border-b border-line pb-4">
             <StepIndicator current={step} stepNum={1} label="Retell Auth" />
-            <StepIndicator current={step} stepNum={2} label="DNS Verification" />
+            <StepIndicator current={step} stepNum={2} label="Domain Control" />
             <StepIndicator current={step} stepNum={3} label="Sign & Register" />
           </div>
 
@@ -398,7 +426,11 @@ export default function RetellOnboardingWizard() {
                     <div className="flex gap-2 flex-wrap">
                       {capabilities.cloudflare && <span className="pill pill-ok">Cloudflare</span>}
                       {capabilities.godaddy && <span className="pill pill-ok">GoDaddy</span>}
-                      {capabilities.domain_connect && <span className="pill pill-ok">Domain Connect</span>}
+                      {capabilities.domain_connect && (
+                        <span className="pill" title="Detected on this domain. AgenID has no Domain Connect implementation — add the record manually.">
+                          Domain Connect detected &middot; manual setup
+                        </span>
+                      )}
                       {!capabilities.cloudflare && !capabilities.godaddy && !capabilities.domain_connect && (
                         <span className="pill">Manual setup required</span>
                       )}
@@ -452,29 +484,21 @@ export default function RetellOnboardingWizard() {
             <div className="space-y-6">
               {bindResult ? (
                 <div className="space-y-6">
-                  {/* Status badge — protocol-honest DECLARED */}
-                  <div className="relative bg-mint-deep/40 border border-mint/40 p-6 rounded-xl text-center space-y-3 overflow-hidden">
-                    {showConfetti && (
-                      <div className="absolute inset-0 pointer-events-none" aria-hidden>
-                        {Array.from({ length: 20 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="absolute w-1.5 h-1.5 rounded-full animate-bounce"
-                            style={{
-                              left: `${10 + Math.random() * 80}%`,
-                              top: `${Math.random() * 100}%`,
-                              backgroundColor: ["#10b981", "#34d399", "#6ee7b7", "#f59e0b", "#fbbf24"][i % 5],
-                              animationDelay: `${Math.random() * 0.5}s`,
-                              animationDuration: `${0.5 + Math.random() * 1}s`,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <div className="text-mint text-2xl font-bold tracking-tight">DECLARED</div>
-                    <div className="font-mono text-xs text-mint/70">{bindResult.domain}</div>
+                  {/*
+                    DECLARED renders AMBER, never emerald. Verified Emerald is reserved for
+                    third-party-verified state; DECLARED is a self-declaration and sits below
+                    L1. The SVG badge, badge.js and /issue all agree on this — if this panel
+                    used emerald, the same identity would read as verified here and unverified
+                    everywhere else in the product.
+                  */}
+                  <div className="relative bg-amber/10 border border-amber/40 p-6 rounded-xl text-center space-y-3 overflow-hidden">
+                    <div className="text-amber text-2xl font-bold tracking-tight">DECLARED</div>
+                    <div className="font-mono text-xs text-amber/70">{bindResult.domain}</div>
                     <div className="text-xs text-paper/60">
                       {bindResult.agents.length} agent{bindResult.agents.length !== 1 ? "s" : ""} signed with Ed25519
+                    </div>
+                    <div className="text-xs text-paper/50">
+                      Self-declared. No third party has checked these claims.
                     </div>
                   </div>
 
@@ -506,12 +530,12 @@ export default function RetellOnboardingWizard() {
                     )}
                     <div className="flex justify-between text-muted">
                       <span>Protocol Level</span>
-                      <span className="text-mint">{bindResult.level}</span>
+                      <span className="text-amber">{bindResult.level}</span>
                     </div>
                     <div className="flex justify-between text-muted">
                       <span>Persisted to Registry</span>
                       <span className={bindResult.persisted ? "text-mint" : "text-amber"}>
-                        {bindResult.persisted ? "Yes" : "No (registry not configured)"}
+                        {bindResult.persisted ? "Yes" : "No — registry write did not succeed"}
                       </span>
                     </div>
                     <div className="flex justify-between text-muted">
@@ -530,9 +554,13 @@ export default function RetellOnboardingWizard() {
               ) : (
                 <div className="space-y-5">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="pill pill-ok">DNS Verified</span>
+                    <span className="pill pill-ok">Domain control confirmed</span>
                     <span className="text-muted font-mono text-xs">{domain}</span>
                   </div>
+                  <p className="text-xs text-muted -mt-3">
+                    The TXT record proves you control {domain}. It is evidence an authority would weigh — it is
+                    not itself a verification level.
+                  </p>
 
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-paper/80">
@@ -548,6 +576,87 @@ export default function RetellOnboardingWizard() {
                     </div>
                   </div>
 
+                  {/*
+                    Operator attestations. Every field here is signed, so nothing is
+                    pre-filled and the two booleans start unchecked. See the standing
+                    rule: never default a disclosure attestation.
+                  */}
+                  <div className="space-y-3 p-4 rounded-lg border border-line bg-ink">
+                    <div className="text-sm font-medium text-paper/80">Your attestations</div>
+                    <p className="text-xs text-muted">
+                      These become part of each signed manifest. Only state what is true of your agents — a
+                      signature over a false claim is worse than no signature.
+                    </p>
+
+                    <div>
+                      <label htmlFor="operatorName" className="block text-xs text-paper/70 mb-1">
+                        Operator legal name
+                      </label>
+                      <input
+                        id="operatorName"
+                        type="text"
+                        value={operatorName}
+                        onChange={(e) => setOperatorName(e.target.value)}
+                        placeholder="Acme Corporation"
+                        className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="operatorContact" className="block text-xs text-paper/70 mb-1">
+                        Contact for identity questions
+                      </label>
+                      <input
+                        id="operatorContact"
+                        type="text"
+                        value={operatorContact}
+                        onChange={(e) => setOperatorContact(e.target.value)}
+                        placeholder="ops@acme.com"
+                        className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm font-mono text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="purposeSummary" className="block text-xs text-paper/70 mb-1">
+                        What these agents do
+                      </label>
+                      <textarea
+                        id="purposeSummary"
+                        value={purposeSummary}
+                        onChange={(e) => setPurposeSummary(e.target.value)}
+                        rows={2}
+                        placeholder="Inbound support calls for Acme's retail customers."
+                        className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                      />
+                    </div>
+
+                    <label className="flex gap-2 items-start text-xs text-paper/70 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={disclosesToUser}
+                        onChange={(e) => setDisclosesToUser(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        These agents tell the person they are speaking with that they are an AI.
+                        <span className="block text-muted">Leave unchecked if they do not, or if you are unsure.</span>
+                      </span>
+                    </label>
+
+                    <label className="flex gap-2 items-start text-xs text-paper/70 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={humanEscalation}
+                        onChange={(e) => setHumanEscalation(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        A person can reach a human from these agents.
+                        <span className="block text-muted">Leave unchecked if they cannot, or if you are unsure.</span>
+                      </span>
+                    </label>
+                  </div>
+
                   <div className="p-3 rounded-lg border border-line bg-ink text-xs text-muted space-y-1">
                     <div className="text-paper/80 font-medium">What happens next:</div>
                     <div>1. An Ed25519 keypair is generated <strong className="text-paper">in your browser</strong></div>
@@ -556,7 +665,11 @@ export default function RetellOnboardingWizard() {
                     <div>4. The server validates the signatures and registers the agents</div>
                   </div>
 
-                  <button onClick={handleBind} disabled={loading} className="btn btn-primary w-full">
+                  <button
+                    onClick={handleBind}
+                    disabled={loading || !attestationsComplete}
+                    className="btn btn-primary w-full"
+                  >
                     {loading ? (
                       <><Spinner /> Signing locally &amp; registering...</>
                     ) : (
@@ -569,13 +682,15 @@ export default function RetellOnboardingWizard() {
           )}
         </div>
 
-        {/* Privacy Escrow Guarantee */}
+        {/* What this flow sends, and what it does not */}
         <div className="card p-4 text-xs text-muted space-y-1">
-          <div className="font-semibold text-paper/90">Privacy &amp; Key Custody</div>
+          <div className="font-semibold text-paper/90">Key custody and what gets sent</div>
           <div>
-            Private keys are generated in your browser using Ed25519 (@noble/curves) and never leave your device.
-            System prompts, LLM model choices, and Retell COGS unit costs remain 100% private.
-            Only cryptographic identity assertions and public keys are published.
+            Your Ed25519 keypair is generated in this browser tab using{" "}
+            <span className="font-mono">@noble/curves</span> and the private key is never transmitted. The only
+            things sent to AgenID are the signed manifests, their proofs, and your public key — plus your Retell
+            API key, used for one read-only call to list your agents and not stored. This flow never reads your
+            system prompts, model configuration, or Retell billing data, because it never asks Retell for them.
           </div>
         </div>
       </div>

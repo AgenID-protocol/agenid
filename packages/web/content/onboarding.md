@@ -51,10 +51,15 @@ This is your `agenid.json`: `{ manifest, proof, key_document: keyDocument }`. It
 `POST` your manifest, proof, and key document to the registry API:
 
 ```bash
-curl -X POST https://api.agenid.com/v1/agents \
+curl -X POST https://www.agenid.com/api/v1/agents \
   -H "content-type: application/json" \
   -d '{"manifest": ..., "proof": ..., "key_document": ...}'
 ```
+
+> **Prefer a browser?** [`https://www.agenid.com/issue`](https://www.agenid.com/issue) does steps 1 and 2 for you:
+> it generates the keypair in your tab, signs the manifest locally, and posts only public material to the same
+> endpoint. The private key never leaves the browser and is offered once as a download. The API path above is
+> the same one that page calls — use whichever suits your deployment.
 
 A `201` response returns your `agenid:<ULID>` and confirms `verification.level: "L1_REGISTERED"` — declared by you, not yet independently checked by anyone else. Your public identity record is now live at:
 
@@ -71,6 +76,14 @@ https://yourcompany.com/.well-known/agenid/keys.json
 ```
 
 A verifier is required to check both the AgenID-hosted path and your own domain's path and require they agree. This is what makes the registry non-authoritative by design: AgenID cannot silently swap your key, because a verifier is checking your own domain too.
+
+> **Status — registry-hosted key discovery is not deployed yet.** The spec's second discovery path is a
+> registry endpoint at `/v1/keys/<key-ulid>`; the reference deployment does not serve it today, so the
+> cross-check described above cannot be completed in full against `agenid.com` right now. What a verifier
+> can do today: read the key document embedded in the resolution envelope from
+> `GET https://www.agenid.com/api/resolve/<agenid>`, fetch your `.well-known` copy, and require the two
+> agree. Publish the `.well-known` path now — it is the half of the check that does not depend on us, and
+> it is what the endpoint will be compared against when it ships.
 
 ## Step 3 — Embed the verification badge
 
@@ -95,21 +108,27 @@ The live badge (`badge.js`) fetches the current verification level at page load 
 
 ## Step 4 — Request L2/L3 verification
 
-`L1_REGISTERED` is a self-declared claim. Independent verification requires an authority to issue a signed `VerificationAssertion` against your manifest (`POST /v1/agents/:agent_id/assertions`, authority-only — see `@agenid/api`'s `app.ts`):
+`L1_REGISTERED` is a self-declared claim. Independent verification requires an authority to issue a signed `VerificationAssertion` against your manifest (`POST /v1/agents/:agent_id/assertions`, authority-only — see `@agenid/api`'s `app.ts`).
+
+> **Status — no level above L1 is issuable today.** The assertion endpoint exists in `@agenid/api` but is not
+> deployed, and the root authority key has not been generated: the ceremony and its prerequisite hardening are
+> still open. Until both land, `L1_REGISTERED` is the highest level any agent on the reference deployment can
+> hold, and nothing on this page should be read as a queue you can currently join. The levels below describe
+> what the protocol defines, not what AgenID can issue right now.
 
 - **L2 — Domain Verified:** the authority confirms you control `ownership.operator_domain` (e.g. via the `.well-known` publication in step 2, or an equivalent domain-control check).
 - **L3 — Organization Verified:** the authority confirms `ownership.operator` is a real legal entity.
 - **L4 — Deployment Verified:** the authority reviews an actual production deployment sample (spec §11; the review methodology for this level is still being finalized — see the project queue).
 - **L5** is a reserved name in v1.1.1 and is not issuable by any authority yet — do not claim it.
 
-Contact the authority operating your registry (for the reference deployment: AI Venture Holdings LLC) to start a verification review. Each valid assertion raises `verification.level` on your public record automatically — nothing on your side changes; the registry re-derives the level from valid, unexpired assertions bound to your *current* manifest digest every time your record is resolved.
+When issuance opens, you will contact the authority operating your registry (for the reference deployment: AI Venture Holdings LLC) to start a verification review. Each valid assertion raises `verification.level` on your public record automatically — nothing on your side changes; the registry re-derives the level from valid, unexpired assertions bound to your *current* manifest digest every time your record is resolved.
 
 ## Verify without trusting AgenID
 
 Every resolved envelope includes `verify_instructions` and everything needed to check it independently:
 
 1. Recompute `sha256(RFC8785(manifest))` and compare to `manifest_digest`.
-2. Fetch the operator key from **both** discovery paths — `https://www.agenid.com/v1/keys/<key-ulid>` and `https://<operator_domain>/.well-known/agenid/keys.json` — and require they agree.
+2. Fetch the operator key from **both** discovery paths and require they agree. The registry path — `https://www.agenid.com/v1/keys/<key-ulid>` — is **not deployed yet**; until it is, take the registry's copy of the key document from the resolution envelope and compare it against `https://<operator_domain>/.well-known/agenid/keys.json`.
 3. Verify the Ed25519 signature over `RFC8785(proof)` minus the `signature` field, using that key.
 4. For each assertion, fetch the issuing authority's key the same way, verify its signature, and check its validity window and that `assertion.manifest_digest` matches your current manifest.
 

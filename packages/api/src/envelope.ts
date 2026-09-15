@@ -93,7 +93,9 @@ export async function buildEnvelope(store: RegistryStore, rec: AgentRecord, now:
     verification: { level, valid_assertions: valid, total_assertions: stored.length },
     assertions: views,
     verify_instructions:
-      "Recompute sha256(RFC8785(manifest)) and compare to manifest_digest; fetch the operator key from BOTH discovery paths and require they agree; " +
+      "Recompute sha256(RFC8785(manifest)) and compare to manifest_digest; fetch the operator key from BOTH discovery paths and require they agree " +
+      "(NOTE: the registry discovery path operator_key.discovery.registry_path is not served by this deployment yet — until it is, compare " +
+      "operator_key.document against the well_known_url copy); " +
       "verify Ed25519 over RFC8785(proof minus signature); for each assertion, fetch the authority key, check role=authority, verify Ed25519 over " +
       "RFC8785(assertion minus signature), check the validity window and that assertion.manifest_digest matches. Spec: https://github.com/AgenID-protocol/spec",
   };
