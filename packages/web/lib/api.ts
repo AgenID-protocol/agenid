@@ -29,6 +29,8 @@ import {
   supabaseStoreFromEnv,
   resolveKeyDocument,
   resolveKeyFromQuery,
+  resolveKeyFromRawPath,
+  resolveKeyFromRawQuery,
   type KeyReader,
   type KeyReferencePosition,
   type KeyResolution,
@@ -149,13 +151,32 @@ function keyReader(): KeyReader {
   return API_URL ? httpKeyReader() : getStore();
 }
 
-/** `GET /v1/keys/{key-ULID}` — `ref` is the wire form, already decoded by Next.js. */
+/**
+ * `GET /v1/keys/{key-ULID}`, decided from the RAW request target.
+ *
+ * `frameworkSegment` is Next's own dynamic path parameter, passed only as a tripwire —
+ * it is never what the decision is built on. Building it on that parameter is precisely
+ * what let `/v1/keys/<ULID encoded twice>` resolve 200 in production while the identical
+ * code returned 400 under `next start`.
+ */
+export async function fetchKeyDocumentByRawPath(rawUrl: string, frameworkSegment?: string): Promise<KeyLookup> {
+  return resolveKeyFromRawPath(keyReader(), rawUrl, frameworkSegment);
+}
+
+/** `GET /v1/keys?key_id=…`, decided from the raw request target — which is also what
+ *  carries every value supplied for that parameter, so a repeated one can be refused as
+ *  ambiguous instead of silently resolving whichever the parser happened to keep. */
+export async function fetchKeyDocumentByRawQuery(rawUrl: string): Promise<KeyLookup> {
+  return resolveKeyFromRawQuery(keyReader(), rawUrl);
+}
+
+/** Direct access to the decision layer, for callers that already hold an extracted
+ *  reference (the DNS/.well-known comparison path). NOT for HTTP adapters. */
 export async function fetchKeyDocument(ref: string | null, position: KeyReferencePosition): Promise<KeyLookup> {
   return resolveKeyDocument(keyReader(), ref, position);
 }
 
-/** `GET /v1/keys?key_id=…` — every value supplied for that parameter, so a repeated
- *  parameter can be refused as ambiguous instead of silently resolving one of them. */
+/** As above, for an already-extracted list of query values. NOT for HTTP adapters. */
 export async function fetchKeyDocumentByQuery(values: readonly string[]): Promise<KeyLookup> {
   return resolveKeyFromQuery(keyReader(), values);
 }

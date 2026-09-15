@@ -11,8 +11,8 @@ Fastify 5. Implements spec §13 (endpoints), §9.2 (key resolution), §14 (envel
 | `GET` | `/v1/agents/:agent_id/events` | Append-only ledger (hashes/references only) |
 | `POST` | `/v1/agents/:agent_id/assertions` | **Authority bearer token.** Assertion is verified against the authority key already published here |
 | `GET` | `/v1/assertions/:assertion_ulid` | One assertion by bare ULID |
-| `GET` | `/v1/keys/:key_ulid` · `/v1/keys?key_id=` | Key document. Both forms identical; any `#` → `400 invalid_key_id` |
-| `POST` | `/v1/keys` | **Authority bearer token.** Publish an authority key document |
+| `GET` | `/v1/keys/:key_ulid` · `/v1/keys?key_id=` | Key document. Both forms identical; any `#` → `400 invalid_key_id`. Read-only: every other method is `405` with `Allow: GET, OPTIONS` |
+| `POST` | `/v1/authority/keys` | **Authority bearer token.** Publish an authority key document. Moved off `POST /v1/keys`: §9.2 defines `/v1/keys` as key discovery and defines only `GET` on it, so an authority write sitting on the public collection resource made the two registries disagree about what that resource is |
 
 ```bash
 pnpm build && pnpm test          # 15 integration tests, real keys and signatures

@@ -24,9 +24,25 @@ import { generateKeyPair, signAgent } from "../lib/client-crypto";
 
 const BASE = "https://www.agenid.com";
 
+/**
+ * `segment` is the RAW path segment — what a client puts on the wire — not a decoded
+ * value. The route now decides from `req.url`, so that is what these helpers must vary;
+ * `params` is derived the way Next derives it, by decoding the raw segment exactly once,
+ * and is passed only so the route's tripwire is exercised with a realistic value.
+ *
+ * The earlier version of this helper passed the same string as both, which meant the
+ * cases below described a request no client could send and no platform would produce.
+ */
 async function byPath(segment: string) {
   const { GET } = await import("../app/v1/keys/[key_ulid]/route");
-  const res = await GET(new Request(`${BASE}/v1/keys/${segment}`), { params: Promise.resolve({ key_ulid: segment }) });
+  const req = new Request(`${BASE}/v1/keys/${segment}`);
+  let param: string;
+  try {
+    param = decodeURIComponent(segment);
+  } catch {
+    param = segment;
+  }
+  const res = await GET(req, { params: Promise.resolve({ key_ulid: param }) });
   return { res, body: await res.text() };
 }
 
@@ -292,18 +308,18 @@ describe("GET /v1/keys — error bodies are not a reflection surface", () => {
   });
 
   it("names each failure reason distinctly without quoting the input", async () => {
-    // A route handler receives an ALREADY-DECODED segment, so a fragment reaches it as a
-    // literal '#'. `%23` surviving that decode means the caller encoded twice, and is
-    // reported as double encoding rather than guessed at as a fragment. Both are 400
-    // invalid_key_id; the distinction is in the message, and neither quotes the caller.
-    const frag = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}#z1`)).body);
-    const twice = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}%23z1`)).body);
+    // The decision is taken on the RAW target, so `%23` is read as what it spells — a
+    // fragment — rather than inferred from how many decodes it survived. `%2523` is not
+    // a fragment at this layer: it is a segment that is not the literal wire form. All
+    // are 400 invalid_key_id; the distinction is the message, and none quotes the caller.
+    const frag = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}%23z1`)).body);
+    const doubled = JSON.parse((await byPath(`${keyIdToWire(doc.key_id)}%2523z1`)).body);
     const junk = JSON.parse((await byPath("not-a-ulid")).body);
     expect(frag.message).toMatch(/fragment/);
-    expect(twice.message).toMatch(/more than once/);
+    expect(doubled.message).toMatch(/literal wire form/);
     expect(junk.message).toMatch(/key-ULID/);
-    expect(new Set([frag.message, twice.message, junk.message]).size).toBe(3);
-    for (const m of [frag.message, twice.message, junk.message]) expect(m).not.toContain("z1");
+    expect(new Set([frag.message, doubled.message, junk.message]).size).toBe(3);
+    for (const m of [frag.message, doubled.message, junk.message]) expect(m).not.toContain("z1");
   });
 });
 
@@ -332,12 +348,14 @@ describe("GET /v1/keys — exactly the two forms §0.A defines, and no accidenta
   });
 
   it("refuses a DOUBLE-encoded logical form on the path (URL: /v1/keys/agenid%253Akey%253A<ULID>)", async () => {
-    // Next.js decodes %25 -> %, so the handler receives 'agenid%3Akey%3A<ULID>'. Before
-    // this fix parseKeyReference decoded that a second time and the key resolved 200.
-    const { res, body } = await byPath(`agenid%3Akey%3A${keyIdToWire(doc.key_id)}`);
+    // THE PRODUCTION DEFECT. This spelling returned 200 on www.agenid.com while the same
+    // code returned 400 under `next start`, because Vercel decoded the path once before
+    // Next decoded the parameter again. The rule is now stated on the raw target, where
+    // the percent sign is still visible however many layers have already run.
+    const { res, body } = await byPath(`agenid%253Akey%253A${keyIdToWire(doc.key_id)}`);
     expect(res.status).toBe(400);
     expect(JSON.parse(body).error).toBe("invalid_key_id");
-    expect(JSON.parse(body).message).toMatch(/more than once/);
+    expect(JSON.parse(body).message).toMatch(/literal wire form/);
   });
 
   it("refuses a DOUBLE-encoded logical form in the query (URL: ?key_id=agenid%253Akey%253A<ULID>)", async () => {
@@ -347,8 +365,11 @@ describe("GET /v1/keys — exactly the two forms §0.A defines, and no accidenta
   });
 
   it("refuses a TRIPLE-encoded logical form (URL: /v1/keys/agenid%25253Akey%25253A<ULID>)", async () => {
-    const { res } = await byPath(`agenid%253Akey%253A${keyIdToWire(doc.key_id)}`);
+    // Was passing the DOUBLE-encoded string, so it asserted nothing the case above had
+    // not already asserted. The target now matches the name.
+    const { res, body } = await byPath(`agenid%25253Akey%25253A${keyIdToWire(doc.key_id)}`);
     expect(res.status).toBe(400);
+    expect(JSON.parse(body).message).toMatch(/literal wire form/);
   });
 
   it("refuses the wire form in a query position: §0.A puts the logical form there", async () => {
@@ -357,20 +378,56 @@ describe("GET /v1/keys — exactly the two forms §0.A defines, and no accidenta
     expect(JSON.parse(body).message).toMatch(/logical form/);
   });
 
-  it("a percent sign can never survive into a lookup, whatever it encodes", async () => {
-    for (const seg of ["%2F", "%2e%2e", "%00", "%25", "%2523", "%252F", `%30%31${keyIdToWire(doc.key_id).slice(2)}`]) {
+  it("a percent sign in the raw path segment is refused, whatever it encodes", async () => {
+    // `%2e%2e` is deliberately absent: the URL parser resolves it as a double-dot path
+    // segment, so it cannot be delivered through this harness unchanged. It is covered
+    // by the tripwire test below, which is where that rewriting is the point.
+    for (const seg of ["%2F", "%00", "%25", "%2523", "%252F", `%30%31${keyIdToWire(doc.key_id).slice(2)}`]) {
       const { res, body } = await byPath(seg);
       expect(res.status).toBe(400);
       expect(JSON.parse(body).error).toBe("invalid_key_id");
+      expect(JSON.parse(body).message).toMatch(/literal wire form/);
     }
   });
 
-  it("legitimate single percent-encoding is NOT broken: the transport removes it first", async () => {
-    // URL: /v1/keys/%30%31M2… — a client encoding unreserved ULID characters. The
-    // transport decodes it to the bare ULID before the handler sees it, so it resolves.
-    const { res } = await byPath(keyIdToWire(doc.key_id));
-    expect(res.status).toBe(200);
-    // And the normative query form is percent-encoded by definition (§0.A) and resolves.
+  it("refuses, rather than guesses, when the raw target and the framework parameter disagree", async () => {
+    // The tripwire in resolveKeyFromRawPath, exercised by a real rewriting: `%2e%2e` is a
+    // double-dot path segment, so URL parsing removes it from the path entirely while a
+    // framework decoding the original segment would still produce `..`. Two readings of
+    // one request. A registry that picks one is guessing; this one refuses.
+    const { res, body } = await byPath("%2e%2e");
+    expect(res.status).toBe(400);
+    const j = JSON.parse(body);
+    expect(j.error).toBe("invalid_key_id");
+    expect(j.message).toMatch(/one unambiguous request target/);
+    expect(body).not.toContain("..");
+  });
+
+  it("STATES THE PLATFORM BOUNDARY: a singly-encoded path is refused here, and cannot be seen on Vercel", async () => {
+    // The old test at this position claimed "legitimate single percent-encoding is NOT
+    // broken: the transport removes it first" — and then asserted it by requesting the
+    // ALREADY-DECODED ULID, which exercises no encoding at all. It was a false assertion
+    // dressed as a passing one, and it is the reason nobody noticed that the same input
+    // behaved differently in production than it did locally.
+    //
+    // What is actually true, measured: where this registry sees the wire target (here,
+    // `next start`, and @agenid/api), a singly-encoded segment carries a percent sign and
+    // is refused. On Vercel the platform applies RFC 3986 §2.3 normalization before any
+    // application code runs, so that request arrives already spelled canonically and
+    // resolves — this code cannot observe the difference and does not pretend to. What
+    // holds identically on both is the part that matters: nothing beyond one layer of
+    // encoding resolves anywhere, so no alias of a key exists on any platform.
+    const encoded = [...keyIdToWire(doc.key_id)]
+      .map((c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`)
+      .join("");
+    const { res, body } = await byPath(encoded);
+    expect(res.status).toBe(400);
+    expect(JSON.parse(body).message).toMatch(/literal wire form/);
+
+    // The normative QUERY form is percent-encoded by definition (§0.A) and resolves —
+    // and that half is platform-independent, because this registry performs that decode
+    // itself, exactly once, from the raw query. Verified against production: the query
+    // string is not normalized upstream.
     expect((await byQuery(keyResolverQuery(doc.key_id))).res.status).toBe(200);
   });
 });

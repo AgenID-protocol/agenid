@@ -173,6 +173,8 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 9. **Agent lifecycle statuses are stored but never written.** Every agent is `ACTIVE`; there is no revocation or status-change path in production.
 10. **Some content is manually mirrored** — `packages/web/public/schemas/`, `content/partners/` and `content/onboarding.md` are byte-identical twins of their sources, kept in sync by hand.
 11. **`/onboarding/retell` has never been rendered in a browser.** It has been exercised over HTTP and by grepping the shipped JS bundle only.
+12. **A malformed percent-escape is a `500` on a self-hosted `next start`.** `/v1/keys/%ZZ` and `/v1/keys/%` make Next's own parameter decoding throw before the route handler runs, so the raw-target rule never gets to answer them. It cannot be fixed inside a route handler. Production is unaffected: Vercel's edge refuses those targets with its own plain `400 Bad Request` first — verified by sending the raw target directly, since curl will not transmit it.
+13. **A single layer of unreserved-character percent-encoding in a path is invisible on Vercel.** The platform normalizes it away before any application code runs, so this registry cannot tell `/v1/keys/01J8…` from `/v1/keys/%30%31…`. That is RFC 3986 §2.3 equivalence, not an alias — and nothing beyond one layer resolves on any platform — but it does mean a local test cannot prove production's answer for that one spelling.
 
 ## Known risks
 
@@ -186,6 +188,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 | Date | Change |
 |---|---|
+| 2026-09-15 | **Key discovery decided from the raw request target** — a twice-encoded key ULID resolved `200` in production while the identical code returned `400` locally, because the guard was built on a framework-decoded path parameter and Vercel decodes the path once before Next decodes the segment again. Also: Fastify framework errors stopped reflecting the caller's request target; `/v1/keys` became read-only on both frameworks and authority key publication moved to `POST /v1/authority/keys`; the cross-registry parity test was rebuilt on raw-target fixtures after it was found comparing two different requests |
 | 2026-09-15 | **Trust-state presentation centralized and made fail-closed** — both badges and the Verification Card had an `else -> emerald VERIFIED` default, so an unrecognized level rendered as verified |
 | 2026-09-15 | Documentation architecture audit — five core documents brought to standard; six fabricated claims in the previous API reference found and corrected by live verification |
 | 2026-09-15 | `a95928b` — `SupabaseStore` required a global `WebSocket` it never uses; CI had been red on Node 20 for several commits. Fixed at both call sites with a proven regression test. |

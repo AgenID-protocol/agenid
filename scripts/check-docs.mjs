@@ -120,6 +120,11 @@ pass(`${issuable.length} issuable levels; L5 correctly absent from the enum`);
 // ---------------------------------------------------------------------------
 // Each entry is a claim this documentation makes. If production disagrees,
 // the documentation is the defect.
+/** Percent-encode every character — how a client double-encodes an identifier. */
+const enc1 = (v) => [...v].map((c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`).join("");
+const enc2 = (v) => enc1(enc1(v));
+const enc3 = (v) => enc1(enc2(v));
+
 const CLAIMS = [
   ["GET", "/api/v1/openapi.json", 200, "OpenAPI document is served"],
   ["GET", "/badge.js", 200, "live badge embed"],
@@ -134,6 +139,22 @@ const CLAIMS = [
   ["GET", "/v1/keys/not-a-ulid", 400, "a malformed key reference is invalid_key_id", "invalid_key_id"],
   ["GET", "/v1/keys/01JZZZZZZZZZZZZZZZZZZZZZZZ%23z1", 400, "a URI fragment is rejected, never truncated", "invalid_key_id"],
   ["GET", "/v1/keys", 400, "the collection form requires key_id", "invalid_key_id"],
+
+  // ---- R-1: the raw-request-target rule, asserted where it actually failed ----------
+  // On 2026-09-15 `/v1/keys/<ULID encoded twice>` returned 200 HERE while the identical
+  // code returned 400 under a local `next start`, because Vercel decodes the path once
+  // before Next decodes the dynamic segment again. A status alone cannot distinguish the
+  // rule that fixed it from some other rule that happens to refuse the same target, so
+  // these assert the REASON. If this specific protection is ever removed, this is what
+  // goes red — and it goes red against production, not against a local build.
+  ["GET", `/v1/keys/${enc2("01JZZZZZZZZZZZZZZZZZZZZZZZ")}`, 400, "a twice-encoded key ULID does not resolve", "invalid_key_id", /literal wire form/],
+  ["GET", `/v1/keys/${enc3("01JZZZZZZZZZZZZZZZZZZZZZZZ")}`, 400, "a three-times-encoded key ULID does not resolve", "invalid_key_id", /literal wire form/],
+  ["GET", "/v1/keys/agenid%253Akey%253A01JZZZZZZZZZZZZZZZZZZZZZZZ", 400, "a double-encoded logical form does not resolve on the path", "invalid_key_id", /literal wire form/],
+  ["GET", "/v1/keys/agenid%25253Akey%25253A01JZZZZZZZZZZZZZZZZZZZZZZZ", 400, "nor a triple-encoded one", "invalid_key_id", /literal wire form/],
+  ["GET", "/v1/keys/01JZZZZZZZZZZZZZZZZZZZZZZZ%2523z1", 400, "a double-encoded fragment marker does not resolve", "invalid_key_id", /literal wire form/],
+  ["GET", "/v1/keys?key_id=agenid%253Akey%253A01JZZZZZZZZZZZZZZZZZZZZZZZ", 400, "the query form decodes exactly once", "invalid_key_id", /more than once/],
+  ["GET", "/v1/keys?key_id=agenid%3Akey%3A01JZZZZZZZZZZZZZZZZZZZZZZZ&key_id=agenid%3Akey%3A01JZZZZZZZZZZZZZZZZZZZZZZZ", 400, "a repeated key_id is ambiguous and refused", "invalid_key_id", /exactly once/],
+  ["GET", "/v1/keys/agenid:key:01JZZZZZZZZZZZZZZZZZZZZZZZ", 400, "the logical form is refused in path position", "invalid_key_id", /wire form/],
   ["GET", "/.well-known/agenid/authorities.json", 404, "no root key, so no authorities document"],
   ["POST", "/v1/agents/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ/assertions", 404, "assertion write path is NOT deployed"],
   ["POST", "/api/v1/agents", 400, "registration validates and rejects an empty body"],
@@ -143,13 +164,13 @@ const CLAIMS = [
 ];
 
 if (LIVE) {
-  for (const [method, path, expect, why, expectError] of CLAIMS) {
+  for (const [method, path, expect, why, expectError, expectMessage] of CLAIMS) {
     const init = method === "POST" ? { method, headers: { "content-type": "application/json" }, body: "{}" } : {};
     let status, body;
     try {
       const r = await fetch(BASE + path, { ...init, signal: AbortSignal.timeout(20000) });
       status = r.status;
-      body = expectError ? await r.text() : null;
+      body = expectError || expectMessage ? await r.text() : null;
     } catch (e) {
       fail("unreachable", `${method} ${path} (${e.message})`);
       continue;
@@ -161,6 +182,14 @@ if (LIVE) {
       let got;
       try { got = JSON.parse(body).error; } catch { got = `<non-JSON: ${String(body).slice(0, 40)}>`; }
       if (got !== expectError) fail("production contradicts documentation", `${method} ${path} expected error ${expectError} (${why}) got ${got}`);
+    }
+    // An error CODE is still not the reason. Where a claim is about WHY a target is
+    // refused — and R-1's whole point is that two different rules can produce the same
+    // code for the same target — the reason itself is what gets asserted.
+    if (expectMessage) {
+      let msg;
+      try { msg = JSON.parse(body).message ?? ""; } catch { msg = String(body).slice(0, 80); }
+      if (!expectMessage.test(msg)) fail("production contradicts documentation", `${method} ${path} expected reason ${expectMessage} (${why}) got ${JSON.stringify(msg).slice(0, 120)}`);
     }
   }
   pass(`${CLAIMS.length} documented endpoint claims verified against production`);

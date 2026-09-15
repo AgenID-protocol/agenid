@@ -7,6 +7,8 @@ export {
   canonicalKeyReference,
   resolveKeyDocument,
   resolveKeyFromQuery,
+  resolveKeyFromRawPath,
+  resolveKeyFromRawQuery,
   KEY_ERROR_MESSAGES,
   KEY_RESPONSE_HEADERS,
   KEY_ALLOWED_METHODS,
@@ -15,3 +17,4 @@ export {
   type KeyResolution,
   type KeyReader,
 } from "./serve-key.js";
+export { originForm, rawKeyPathSegment, rawKeyQueryValues, rawKeyTargetFailure, type RawTargetResult } from "./raw-key-target.js";

@@ -126,11 +126,11 @@ describe("3. Proof, envelope, assertions", () => {
     expect(env.operator_key.discovery.well_known_url).toBe("https://acmemedical.com/.well-known/agenid/keys.json");
   });
   it("authority routes are 401 without the bearer token", async () => {
-    const r = await app.inject({ method: "POST", url: "/v1/keys", payload: auDoc });
+    const r = await app.inject({ method: "POST", url: "/v1/authority/keys", payload: auDoc });
     expect(r.statusCode).toBe(401);
   });
   it("authority publishes its key, then issues an L2 assertion; envelope level becomes L2", async () => {
-    const k = await app.inject({ method: "POST", url: "/v1/keys", headers: { authorization: `Bearer ${TOKEN}` }, payload: auDoc });
+    const k = await app.inject({ method: "POST", url: "/v1/authority/keys", headers: { authorization: `Bearer ${TOKEN}` }, payload: auDoc });
     expect(k.statusCode).toBe(201);
 
     const assertion = signVerificationAssertion(

@@ -125,13 +125,69 @@ j = await r.json().catch(() => ({}));
 r.status === 404 && j.error === "key_not_found" ? ok("3j. unknown key is key_not_found, not agent_not_found") : fail(`3j. unknown key: ${r.status} ${JSON.stringify(j)}`);
 
 // Over real HTTP, so Next.js's own path decoding is in the loop — which is the half a
-// unit test can only simulate. `%253A` decodes to `%3A`; before the fix that was decoded
-// a SECOND time and the key resolved 200 under a spelling §0.A never defined.
+// unit test can only simulate.
+//
+// THE PREVIOUS VERSION OF 3l ASSERTED ONLY `status === 400 && error === "invalid_key_id"`,
+// AND THAT WAS NOT ENOUGH. Remove the double-encoding protection entirely and this target
+// still fails — on the wire-form rule instead — so the check passed while the thing it
+// was named after was absent. It now asserts the REASON, which only the raw-target rule
+// can produce, and fails if that specific protection disappears.
+const doubleEncoded = [...wire].map((c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`).join("");
 r = await fetch(`${W}/v1/keys/agenid%253Akey%253A${wire}`);
 j = await r.json().catch(() => ({}));
-r.status === 400 && j.error === "invalid_key_id"
-  ? ok("3l. a double-encoded key reference is refused, not decoded twice")
+r.status === 400 && j.error === "invalid_key_id" && /literal wire form/.test(j.message ?? "")
+  ? ok("3l. a double-encoded key reference is refused for the right reason, not decoded twice")
   : fail(`3l. double-encoded reference resolved or misreported: ${r.status} ${JSON.stringify(j)}`);
+
+// The defect exactly as production exhibited it: the ULID itself encoded twice. Nothing
+// about it resembles a malformed identifier after decoding, so only the raw-target rule
+// refuses it. `check:docs --live` asserts the same target against www.agenid.com, which
+// is the assertion that actually matters — a check that passes under `next start` while
+// production still resolves the attack is not evidence.
+r = await fetch(`${W}/v1/keys/${[...doubleEncoded].map((c) => (c === "%" ? "%25" : c)).join("")}`);
+j = await r.json().catch(() => ({}));
+r.status === 400 && /literal wire form/.test(j.message ?? "")
+  ? ok("3o. a twice-encoded key ULID is refused (the exact production defect)")
+  : fail(`3o. twice-encoded ULID: ${r.status} ${JSON.stringify(j)}`);
+
+// The platform boundary, asserted rather than assumed: where this app sees the wire
+// target, a singly-encoded segment still carries its percent signs and is refused.
+r = await fetch(`${W}/v1/keys/${doubleEncoded}`);
+j = await r.json().catch(() => ({}));
+r.status === 400 && /literal wire form/.test(j.message ?? "")
+  ? ok("3p. a singly-encoded path segment is refused where the wire target is visible")
+  : fail(`3p. singly-encoded segment: ${r.status} ${JSON.stringify(j)}`);
+
+// No error body on this surface carries the caller's own input back (R-2's rule, checked
+// on the Next side of the same protocol surface).
+//
+// A MALFORMED ESCAPE IS DELIBERATELY ABSENT FROM THIS LIST, and that absence is a
+// recorded finding rather than an oversight. `/v1/keys/%ZZ` and `/v1/keys/%` make Next's
+// own parameter decoding throw before this route's handler runs, so a self-hosted
+// `next start` answers them with an opaque 500. Vercel's edge refuses the same targets
+// with its own plain `400 Bad Request` before Next sees them, so production is not
+// affected — confirmed by sending the raw target directly. Fixing it belongs to R-6 and
+// is out of this round's scope; asserting it here would make a green check contingent on
+// work nobody has done.
+for (const hostile of ["%3Cscript%3ECANARY918273%3C%2Fscript%3E", "%2523CANARY918273", "%25", "%252F"]) {
+  r = await fetch(`${W}/v1/keys/${hostile}`);
+  const t = await r.text();
+  if (r.status !== 400 || t.includes("CANARY") || t.includes("script")) {
+    fail(`3q. ${hostile} reflected or misreported: ${r.status} ${t.slice(0, 120)}`);
+  }
+}
+if (!process.exitCode) ok("3q. hostile targets are 400 and echo nothing back");
+
+// R-3: the collection resource is read-only and says so, on this framework too.
+r = await fetch(`${W}/v1/keys`, { method: "POST" });
+r.status === 405 && r.headers.get("allow") === "GET, OPTIONS"
+  ? ok("3r. POST /v1/keys is 405 with Allow on the collection resource")
+  : fail(`3r. collection method semantics: ${r.status} allow=${r.headers.get("allow")}`);
+
+r = await fetch(`${W}/v1/keys`, { method: "OPTIONS" });
+r.status === 204 && r.headers.get("access-control-allow-methods") === "GET, OPTIONS"
+  ? ok("3s. the preflight advertises exactly the methods the resource supports")
+  : fail(`3s. preflight: ${r.status} methods=${r.headers.get("access-control-allow-methods")}`);
 
 r = await fetch(`${W}/v1/keys?key_id=${encodeURIComponent(opDoc.key_id)}&key_id=${encodeURIComponent(opDoc.key_id)}`);
 j = await r.json().catch(() => ({}));

@@ -13,8 +13,8 @@
  * no level, and consults no trust presentation — a key existing says nothing about
  * whether any agent has been checked by anyone.
  */
-import { fetchKeyDocument, fetchKeyDocumentByQuery } from "@/lib/api";
-import { KEY_RESPONSE_HEADERS, KEY_ALLOWED_METHODS } from "@agenid/api";
+import { fetchKeyDocumentByRawPath, fetchKeyDocumentByRawQuery } from "@/lib/api";
+import { KEY_RESPONSE_HEADERS, KEY_ALLOWED_METHODS, type KeyResolution } from "@agenid/api";
 
 /** Matches the resolver's conventions: cross-origin readable, never cached. A cached
  *  copy of a key document is a cached copy of a revocation that has not happened yet.
@@ -52,18 +52,25 @@ export function keyMethodNotAllowed(): Response {
   );
 }
 
-function respond(r: Awaited<ReturnType<typeof fetchKeyDocument>>): Response {
+function respond(r: KeyResolution): Response {
   if (r.document) return json(200, r.document);
   return json(r.status, { error: r.error, message: r.message, ...(r.key_id ? { key_id: r.key_id } : {}) });
 }
 
-/** `GET /v1/keys/{key-ULID}` — the path segment, already decoded by Next.js. */
-export async function serveKeyPath(segment: string): Promise<Response> {
-  return respond(await fetchKeyDocument(segment, "path"));
+/**
+ * `GET /v1/keys/{key-ULID}` — decided from `req.url`, the raw request target, NOT from
+ * Next's dynamic path parameter. The parameter is forwarded only as a tripwire.
+ *
+ * `req.url` is read as a string rather than through `new URL()`: `URL` performs its own
+ * normalization, and the normalization layer is exactly what this code has to see past.
+ */
+export async function serveKeyPath(rawUrl: string, frameworkSegment?: string): Promise<Response> {
+  return respond(await fetchKeyDocumentByRawPath(rawUrl, frameworkSegment));
 }
 
-/** `GET /v1/keys?key_id=…` — every value supplied for that parameter. Passing them all
- *  is what lets a repeated parameter be refused rather than silently first-won. */
-export async function serveKeyQuery(values: readonly string[]): Promise<Response> {
-  return respond(await fetchKeyDocumentByQuery(values));
+/** `GET /v1/keys?key_id=…` — also decided from the raw request target, which is what
+ *  carries every value supplied for that parameter; passing them all is what lets a
+ *  repeated parameter be refused rather than silently first-won. */
+export async function serveKeyQuery(rawUrl: string): Promise<Response> {
+  return respond(await fetchKeyDocumentByRawQuery(rawUrl));
 }

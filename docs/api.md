@@ -251,6 +251,12 @@ GET https://www.agenid.com/v1/keys/01J8Z3M9Q4XK2P7VBN6TDR8HWE
 GET https://www.agenid.com/v1/keys?key_id=agenid%3Akey%3A01J8Z3M9Q4XK2P7VBN6TDR8HWE
 ```
 
+**Encoding.** The decision is taken on the **raw request target**, before any framework has normalized it — not on the path parameter a framework hands the handler. The rule is therefore stated without decoding anything: *the path segment, as it appears in the raw request target, must be the literal wire form*, and a bare key-ULID contains no percent sign, so any percent-escape in that position is refused with `400 invalid_key_id`. The `?key_id=` value is percent-decoded here exactly once, by this registry, so the query form's decode count does not depend on a parser either.
+
+This replaced a rule built on the framework's parameter, which assumed that parameter had been decoded exactly once. That assumption was a property of the platform, not of the protocol, and it was false: measured against `www.agenid.com` on 2026-09-15, `/v1/keys/<ULID encoded twice>` returned **200** while the identical code returned **400** under a local `next start`. Vercel applies RFC 3986 path normalization ahead of the router — decoding percent-escapes and re-encoding the characters that are structurally significant in a path — and Next then decoded the dynamic segment again. An alias resolved, on the one surface whose whole purpose is that a key has exactly one spelling.
+
+What holds identically on every platform now: **nothing beyond one layer of percent-encoding resolves anywhere**, so no alias of a key exists. The honest residual, stated rather than glossed: on Vercel a *single* layer of unreserved-character encoding is removed by the platform before any application code runs, so this registry cannot observe whether a client wrote `01J8…` or `%30%31…`. That is RFC 3986 §2.3 equivalence performed upstream, not an alias this code accepts — and where the wire target is visible (a self-hosted `next start`, or `@agenid/api`), that spelling is refused too. `pnpm run check:docs:live` asserts the multiply-encoded targets against production, and asserts the **reason** and not merely the status, because two different rules can produce the same code for the same target.
+
 **Response `200`** — the key document exactly as §9.1 defines it, nine members, no more:
 
 ```json
@@ -275,13 +281,15 @@ Sent with `access-control-allow-origin: *` and `cache-control: no-store`. Not ca
 
 | Status | `error` | When |
 |---|---|---|
-| `400` | `invalid_key_id` | The reference is not the form its position takes (a bare key-ULID on the path, `agenid:key:<ULID>` in `?key_id=`); or it carries a URI fragment, raw or percent-encoded as `%23` (§9.2 requires a `400`, never truncation); or it is percent-encoded more than once — the transport layer decodes a reference exactly once, and a `%` surviving that means the sender encoded twice; or `?key_id=` is absent, or supplied more than once, on the collection form |
+| `400` | `invalid_key_id` | The reference is not the form its position takes (a bare key-ULID on the path, `agenid:key:<ULID>` in `?key_id=`); or the raw path segment carries any percent-escape at all, so it is not the literal wire form; or it carries a URI fragment, raw or percent-encoded as `%23` (§9.2 requires a `400`, never truncation); or the `?key_id=` value is still percent-encoded after this registry's single decode; or `?key_id=` is absent, or supplied more than once, on the collection form; or the raw target and the framework's own path parameter disagree, which means something rewrote the request between the wire and the handler and there are two readings of it rather than one. The `message` names which of these it was, in fixed text |
 | `404` | `key_not_found` | No key document is published under that identifier. **Distinct from `agent_not_found`** — a key is not an agent, and neither absence implies the other |
 | `405` | `method_not_allowed` | Anything but `GET` or `OPTIONS`. Sent with `Allow: GET, OPTIONS`, the CORS header and `no-store`, so a browser verifier can read the reason. Key discovery is read-only; no method reaches business logic |
 | `503` | `registry_unavailable` | The store could not be reached. This key's status is unknown, not disproven |
 | `503` | `key_document_invalid` | The stored document failed schema validation, or its `key_id` disagreed with the identifier it was indexed under. Nothing is served |
 
-Error bodies never quote the caller's input back.
+Error bodies never quote the caller's input back — including the ones the HTTP framework itself produces. `@agenid/api` installs a framework-error handler for exactly this: Fastify raises `FST_ERR_BAD_URL` while still parsing the target, before routing, and its default body is `Invalid URL: <the caller's complete request target>`. A request for `/v1/keys/<script>CANARY…%ZZ` came back carrying that string, from a surface whose own error text was written not to do that. Framework errors now return the same fixed AgenID sentences the handler would have produced, with no message, no stack, and no target echoed.
+
+**Known limitation.** A malformed percent-escape (`/v1/keys/%ZZ`, `/v1/keys/%`) makes Next's own parameter decoding throw *before* the route handler runs, so a self-hosted `next start` answers it with an opaque `500`. It cannot be fixed inside a route handler. It does not reach production: Vercel's edge refuses those targets with its own plain `400 Bad Request` before Next sees them — verified by sending the raw target directly, since curl will not transmit it.
 
 ## Not deployed
 

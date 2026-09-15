@@ -23,11 +23,14 @@ import { MemoryStore, type RegistryStore, type AgentRecord } from "./store.js";
 import { buildEnvelope } from "./envelope.js";
 import { registrationTime } from "./registration-time.js";
 import {
-  resolveKeyDocument,
-  resolveKeyFromQuery,
+  resolveKeyFromRawPath,
+  resolveKeyFromRawQuery,
   KEY_ALLOWED_METHODS,
+  KEY_RESPONSE_HEADERS,
+  KEY_ERROR_MESSAGES,
   type KeyResolution,
 } from "./serve-key.js";
+import { originForm, rawKeyTargetFailure } from "./raw-key-target.js";
 
 export interface AppOptions {
   store?: RegistryStore;
@@ -63,8 +66,52 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
   // BACKWARD (by up to 999ms), which made same-second registrations fail `not_yet_valid`.
   // See registration-time.ts.
   const now = opts.now ?? (() => new Date().toISOString());
-  const app = Fastify({ logger: opts.logger ?? false });
-  app.register(cors, { origin: true, methods: ["GET", "POST", "OPTIONS"] });
+  // `frameworkErrors` catches the failures find-my-way raises BEFORE routing — chiefly
+  // `FST_ERR_BAD_URL`, whose default body is `Invalid URL: <the caller's own request
+  // target>`. On an unauthenticated public surface that is a reflection primitive: a
+  // request for `/v1/keys/<script>CANARY%ZZ` came back carrying `<script>CANARY%ZZ`.
+  // Nothing the caller sent is echoed; the status is preserved; the shape is AgenID's.
+  const app = Fastify({
+    logger: opts.logger ?? false,
+    frameworkErrors: (error: unknown, req, reply) => {
+      const statusCode = (error as { statusCode?: unknown })?.statusCode;
+      const status = typeof statusCode === "number" && statusCode >= 400 ? statusCode : 400;
+      // A malformed target aimed at key discovery is answered in key discovery's own
+      // vocabulary — and with the SAME sentence the handler would have produced, which
+      // is what `rawKeyTargetFailure` is for. Agreeing on the status and the code while
+      // disagreeing on the reason is still two registries.
+      const target = originForm(req.raw.url ?? "");
+      if (target.startsWith("/v1/keys")) {
+        reply.header("cache-control", "no-store");
+        return err(reply, 400, "invalid_key_id", rawKeyTargetFailure(target) ?? KEY_ERROR_MESSAGES.malformed_escape);
+      }
+      return err(reply, status, "bad_request", "the request target could not be parsed");
+    },
+  });
+  // ONE explicit policy for a public, unauthenticated, credential-free read surface.
+  // `origin: true` reflected whatever Origin the caller sent and added a `Vary`; the
+  // Next registry sends a literal `*`, so the same protocol surface answered two
+  // different CORS policies depending on the framework in front of it. Preflight is
+  // handled by explicit per-route OPTIONS handlers below rather than by the plugin's
+  // wildcard, so that a route's preflight advertises that route's real methods — and so
+  // that key discovery stops advertising POST, which it does not support.
+  app.register(cors, { origin: "*", credentials: false, preflight: false });
+
+  // Anything thrown out of a handler, and any framework error raised after routing.
+  // Fixed text only: an exception message is written for an operator reading a log, not
+  // for an unauthenticated stranger reading a response body.
+  app.setErrorHandler((error: unknown, req, reply) => {
+    const statusCode = (error as { statusCode?: unknown })?.statusCode;
+    const status = typeof statusCode === "number" && statusCode >= 400 ? statusCode : 500;
+    req.log?.error?.({ err: error }, "unhandled error");
+    if (status >= 500) return err(reply, 500, "internal_error", "the registry failed to handle this request");
+    const target = originForm(req.raw.url ?? "");
+    if (target.startsWith("/v1/keys")) {
+      reply.header("cache-control", "no-store");
+      return err(reply, 400, "invalid_key_id", rawKeyTargetFailure(target) ?? KEY_ERROR_MESSAGES.malformed_escape);
+    }
+    return err(reply, status, "bad_request", "the request could not be handled as sent");
+  });
 
   const requireAuthority = (req: FastifyRequest, reply: FastifyReply): boolean => {
     if (!opts.authorityToken) {
@@ -204,25 +251,45 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
   // It does not parse identifiers, validate documents, or choose error text of its own —
   // those decisions belong to one place, or the two registries drift apart.
   const sendKey = (reply: FastifyReply, r: KeyResolution) => {
-    reply.header("cache-control", "no-store");
+    // The same three transport conventions the Next registry sends, from the same
+    // constant, so the two cannot drift: JSON, cross-origin readable, never cached.
+    for (const [k, v] of Object.entries(KEY_RESPONSE_HEADERS)) reply.header(k, v);
     if (r.document) return reply.code(200).send(r.document);
     return err(reply, r.status, r.error, r.message, r.key_id ? { key_id: r.key_id } : undefined);
   };
 
+  // `req.raw.url` is the raw request target as Node read it off the socket — no
+  // normalization, no decode. `req.params.key_ulid` has been decoded by find-my-way and
+  // is passed only as the tripwire described in serve-key.ts.
   app.get<{ Params: { key_ulid: string } }>("/v1/keys/:key_ulid", async (req, reply) =>
-    sendKey(reply, await resolveKeyDocument(store, req.params.key_ulid, "path")),
+    sendKey(reply, await resolveKeyFromRawPath(store, req.raw.url ?? "", req.params.key_ulid)),
   );
 
-  // Fastify's default querystring parser yields an array when a parameter repeats, which
-  // is exactly the ambiguity resolveKeyFromQuery refuses rather than first-winning.
-  app.get<{ Querystring: { key_id?: string | string[] } }>("/v1/keys", async (req, reply) => {
-    const q = req.query.key_id;
-    const values = q === undefined ? [] : Array.isArray(q) ? q : [q];
-    return sendKey(reply, await resolveKeyFromQuery(store, values));
-  });
+  // Also from the raw target, so the one-occurrence rule and the decode count are this
+  // registry's own decisions rather than the querystring parser's.
+  app.get("/v1/keys", async (req, reply) =>
+    sendKey(reply, await resolveKeyFromRawQuery(store, req.raw.url ?? "")),
+  );
 
-  // An unsupported method on the item route is 405 with Allow, not Fastify's default 404
-  // — the resource exists, the method does not. Matches the Next.js registry exactly.
+  // Preflight, stated per route rather than left to the CORS plugin's wildcard. A
+  // preflight that advertises methods the resource does not support is a false claim
+  // about the surface, and it was how `/v1/keys` came to advertise POST.
+  const keyPreflight = async (_req: FastifyRequest, reply: FastifyReply) =>
+    reply
+      .code(204)
+      .header("access-control-allow-origin", KEY_RESPONSE_HEADERS["access-control-allow-origin"] as string)
+      .header("access-control-allow-methods", KEY_ALLOWED_METHODS)
+      .header("access-control-max-age", "86400")
+      .send();
+  app.options("/v1/keys", keyPreflight);
+  app.options("/v1/keys/:key_ulid", keyPreflight);
+
+  // An unsupported method on a resource that exists is 405 with Allow, not Fastify's
+  // default 404 — the resource exists, the method does not. Both the item AND the
+  // collection: the collection previously answered POST with the authority write path
+  // below, so one signed request meant different things depending on which door it
+  // entered, and `Allow: GET, OPTIONS` was false on this framework while true on the
+  // other. Key discovery is read-only on both now; see /v1/authority/keys.
   app.route({
     method: ["POST", "PUT", "PATCH", "DELETE"],
     url: "/v1/keys/:key_ulid",
@@ -231,9 +298,25 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
       return err(reply, 405, "method_not_allowed", "key discovery is read-only: use GET or OPTIONS");
     },
   });
+  app.route({
+    method: ["POST", "PUT", "PATCH", "DELETE"],
+    url: "/v1/keys",
+    handler: async (_req, reply) => {
+      reply.header("allow", KEY_ALLOWED_METHODS).header("cache-control", "no-store");
+      return err(reply, 405, "method_not_allowed", "key discovery is read-only: use GET or OPTIONS");
+    },
+  });
 
-  // Authority-only: publish an authority key document (the AgenID-hosted discovery path for authority keys).
-  app.post("/v1/keys", async (req, reply) => {
+  // Authority-only: publish an authority key document.
+  //
+  // MOVED off `POST /v1/keys`. Spec §9.2 defines `/v1/keys` as key DISCOVERY and defines
+  // only GET on it; publication is a capability of this reference registry, not a
+  // protocol method, and it was sitting on the public collection resource behind a
+  // bearer check. A public discovery URL that gates on a token is an authority surface
+  // wearing a public address: it made the two registries disagree about what `/v1/keys`
+  // is, and it meant the reference deployment either had to advertise a method it does
+  // not implement or advertise `Allow` that was false. Scope is now in the path.
+  app.post("/v1/authority/keys", async (req, reply) => {
     if (!requireAuthority(req, reply)) return;
     const parsed = KeyDocument.safeParse(req.body);
     if (!parsed.success) return err(reply, 400, "schema_validation_failed", zodMessage(parsed.error));
@@ -246,7 +329,13 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
 
   // A stray fragment can only reach us percent-encoded; Fastify routes with a literal '#' never match. Make the intent explicit anyway.
   app.setNotFoundHandler((req, reply) => {
-    if (req.url.includes("%23")) return err(reply, 400, "invalid_key_id", "URI fragments (#) are not resolvable");
+    const target = originForm(req.raw.url ?? req.url);
+    // A target aimed at key discovery that matched no route is still key discovery's
+    // error language — and never carries the target back to the caller.
+    if (target.startsWith("/v1/keys")) {
+      return err(reply, 400, "invalid_key_id", rawKeyTargetFailure(target) ?? KEY_ERROR_MESSAGES.bad_wire_form);
+    }
+    if (/%23/i.test(target)) return err(reply, 400, "invalid_key_id", KEY_ERROR_MESSAGES.fragment);
     return err(reply, 404, "not_found", "no such route");
   });
 

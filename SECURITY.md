@@ -62,6 +62,9 @@ These are not review conventions. Each one is a test that fails the build, and e
 | No hardcoded verification token may appear in application code | `packages/web/test/issuance.test.ts` |
 | No dead or out-of-namespace host in public copy (`agenid.org`, `agenid.ai`, `api.agenid.com`) | `packages/web/test/public-surface.test.ts` |
 | A self-declared state never renders as verified — `DECLARED` and `L1` render amber, never emerald | `packages/web/test/public-surface.test.ts` |
+| The key-discovery decision is taken on the raw request target, never on a framework's decoded path parameter — so a platform's decode count cannot change it | `packages/api/tests/raw-key-target.test.ts`, `packages/web/test/keys-parity.test.ts` |
+| No framework error may reflect the caller's request target, headers or a stack back to an unauthenticated caller | `packages/api/tests/framework-errors.test.ts` |
+| Key discovery is read-only on every framework: `/v1/keys` and `/v1/keys/<ulid>` answer `405` with `Allow: GET, OPTIONS` to every mutating method, and the preflight advertises nothing more | `packages/web/test/keys-parity.test.ts` |
 | A platform's compatibility status may not exceed its evidence | `packages/web/test/ecosystem.test.ts` |
 | Storage backend must not change a protocol field's serialization | `packages/api/tests/store-timestamp-shape.test.ts` |
 | Root `package.json` keeps `"private": true` — it is the only guard preventing a root `npm publish` from publishing the whole monorepo | Verify manually before any npm work |

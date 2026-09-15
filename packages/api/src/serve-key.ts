@@ -14,7 +14,21 @@
  * route shapes a request and a response; it does not decide what an operation means.
  *
  * ---------------------------------------------------------------------------
- * ONE DECODE, NOT TWO
+ * SUPERSEDED: "ONE DECODE, NOT TWO"
+ * ---------------------------------------------------------------------------
+ * The section below described the rule as it was first written, and it was WRONG about
+ * the thing it depended on. It assumed the value reaching this module had been decoded
+ * exactly once by the transport layer. On Vercel it had been decoded twice, so a
+ * twice-encoded key ULID resolved 200 in production while the same code returned 400
+ * under a local `next start`. The security decision is now taken on the RAW REQUEST
+ * TARGET, before any framework normalization can change what it means — see
+ * `raw-key-target.ts`, which records what was measured rather than assumed, and
+ * `resolveKeyFromRawPath` / `resolveKeyFromRawQuery` at the bottom of this file, which
+ * are the only entry points an HTTP adapter may use.
+ *
+ * The reasoning below is kept because the conclusion it reaches about ALIASES is still
+ * the right one; only its premise about decode counts was unsound.
+ *
  * ---------------------------------------------------------------------------
  * A key reference arrives here ALREADY DECODED by the transport layer — Next.js decodes
  * a dynamic path segment, `URLSearchParams` decodes a query value, and find-my-way
@@ -50,6 +64,7 @@
  */
 import { KeyDocument, isValidUlid, isValidKeyId, parseKeyReference } from "@agenid/core";
 import type { RegistryStore } from "./store.js";
+import { rawKeyPathSegment, rawKeyQueryValues } from "./raw-key-target.js";
 
 /** Where the reference was read from. §0.A gives each position exactly one form. */
 export type KeyReferencePosition = "path" | "query";
@@ -68,6 +83,12 @@ export const KEY_ERROR_MESSAGES = {
     "key reference must not contain a URI fragment ('#'): fragments are not sent to servers and cannot be resolved (spec §0.A)",
   double_encoded:
     "key reference is percent-encoded more than once: the transport layer decodes it exactly once, and spec §0.A defines only the bare key-ULID and the logical form agenid:key:<key-ULID>",
+  path_not_literal:
+    "the path segment must be the literal wire form of a key identifier: a bare key-ULID, carrying no percent-encoding (spec §0.A, §9.2). A percent-escape in this position is not a second spelling of a key — it is a different request target whose decoded form only resembles one",
+  malformed_escape:
+    "key reference contains a malformed percent-escape and is not a key identifier in any spelling defined by spec §0.A",
+  target_disagreement:
+    "this registry could not establish one unambiguous request target for the key reference and refused rather than guess which reading was meant",
   bad_wire_form:
     "the path segment must be the wire form of a key identifier: a bare key-ULID (spec §0.A, §9.2)",
   bad_logical_form:
@@ -232,4 +253,56 @@ export async function resolveKeyFromQuery(
     };
   }
   return resolveKeyDocument(reader, values[0], "query");
+}
+
+// ---------------------------------------------------------------------------
+// RAW-REQUEST-TARGET ENTRY POINTS — what every HTTP adapter must call.
+// ---------------------------------------------------------------------------
+// The two functions above take an already-extracted reference and are kept for direct
+// library callers and for tests that want to drive the decision layer alone. No HTTP
+// adapter should use them: a framework-supplied path parameter has been decoded an
+// unknown number of times, and building the security decision on it is what let a
+// twice-encoded identifier resolve in production. See raw-key-target.ts.
+
+const invalidTarget = (message: string): KeyResolution => ({
+  status: 400,
+  document: null,
+  error: "invalid_key_id",
+  message,
+});
+
+/**
+ * `GET /v1/keys/<key-ULID>`, decided from the raw request target.
+ *
+ * `frameworkSegment` is the path parameter the framework derived from that same target.
+ * It is not trusted — it is a TRIPWIRE. Once the raw segment is known to carry no
+ * percent-escape, any framework's decode of it is the identity function, so the two MUST
+ * be the same string. If they ever differ, something between the wire and this handler
+ * has rewritten the request in a way this validator does not model, and the correct
+ * answer is to refuse rather than to pick one of two readings. Pass `undefined` where no
+ * framework parameter exists.
+ */
+export async function resolveKeyFromRawPath(
+  reader: KeyReader,
+  rawUrl: string,
+  frameworkSegment?: string,
+): Promise<KeyResolution> {
+  const raw = rawKeyPathSegment(rawUrl);
+  if (!raw.ok) return invalidTarget(raw.message);
+  if (frameworkSegment !== undefined && frameworkSegment !== raw.value) {
+    console.error("raw path segment and framework parameter disagree", {
+      rawLength: raw.value.length,
+      frameworkLength: frameworkSegment.length,
+    });
+    return invalidTarget(KEY_ERROR_MESSAGES.target_disagreement);
+  }
+  return resolveKeyDocument(reader, raw.value, "path");
+}
+
+/** `GET /v1/keys?key_id=<percent-encoded logical id>`, decided from the raw request
+ *  target — including the one-occurrence rule, which needs every value the query carried. */
+export async function resolveKeyFromRawQuery(reader: KeyReader, rawUrl: string): Promise<KeyResolution> {
+  const raw = rawKeyQueryValues(rawUrl);
+  if (!raw.ok) return invalidTarget(raw.message);
+  return resolveKeyFromQuery(reader, raw.value);
 }
