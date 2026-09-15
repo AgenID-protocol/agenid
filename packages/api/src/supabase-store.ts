@@ -36,6 +36,22 @@ interface EventRow {
   detail_ref: Record<string, string>;
 }
 
+/**
+ * Postgres renders a `timestamptz` as `2026-09-15T04:43:37.488+00:00`, but the protocol's
+ * `Rfc3339Utc` requires the `Z` form and MemoryStore round-trips whatever was written
+ * (`...488Z`). Left alone, the same agent's `registered_at` has two different shapes
+ * depending on which store is behind the registry — which quietly breaks the storage
+ * independence the RegistryStore seam exists to provide, and would fail any consumer that
+ * schema-validates the field.
+ *
+ * Both forms parse to the same instant, so this is a pure serialization normalization: it
+ * cannot change a timestamp, only how it is spelled.
+ */
+function toUtcZ(ts: string): string {
+  const ms = Date.parse(ts);
+  return Number.isNaN(ms) ? ts : new Date(ms).toISOString();
+}
+
 function toAgentRecord(row: AgentRow): AgentRecord {
   return {
     agent_id: row.agent_id,
@@ -43,8 +59,8 @@ function toAgentRecord(row: AgentRow): AgentRecord {
     manifest_digest: row.manifest_digest,
     proof: row.proof,
     status: row.status,
-    registered_at: row.registered_at,
-    updated_at: row.updated_at,
+    registered_at: toUtcZ(row.registered_at),
+    updated_at: toUtcZ(row.updated_at),
   };
 }
 
