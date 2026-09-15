@@ -24,7 +24,14 @@ import { registerAgent, L1_DISCLOSURES } from "@/lib/register";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const HEADERS = { "content-type": "application/json" };
+/**
+ * This route already answers an OPTIONS preflight with `access-control-allow-origin: *`,
+ * but its actual responses carried no such header — so a cross-origin browser POST passed
+ * preflight and was then rejected at the response stage. The sibling write path
+ * (`/api/v1/agents`) sends it on responses, so the two public write endpoints disagreed
+ * about whether they were browser-callable. Verified live before and after.
+ */
+const HEADERS = { "content-type": "application/json", "access-control-allow-origin": "*" };
 const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: HEADERS });
 
 interface AgentSubmission {

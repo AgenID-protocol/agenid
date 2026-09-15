@@ -33,7 +33,7 @@ Deliberately **not** assets: user accounts (none exist), payment data (none), PI
 
 ## Attack surfaces
 
-Public and unauthenticated: `POST /api/v1/agents`, `/api/retell/bind`, `/api/retell/declare`, `/api/retell/agents`, `/api/v1/verify`, `/api/verify-dns`, `/api/dns/verify`, `/api/dns/detect`, `/api/dns/auto-add`, `/api/resolve/{agenid}`, `/a/{agenid}`, both badges, `/api/v1/openapi.json`. Seven of these send `access-control-allow-origin: *`.
+Public and unauthenticated: `POST /api/v1/agents`, `/api/retell/bind`, `/api/retell/declare`, `/api/retell/agents`, `/api/v1/verify`, `/api/verify-dns`, `/api/dns/verify`, `/api/dns/detect`, `/api/dns/auto-add`, `/api/resolve/{agenid}`, `/a/{agenid}`, both badges, `/api/v1/openapi.json`. Eight of these send `access-control-allow-origin: *` on their responses and are cross-origin callable from any browser — verified live, and listed in [api.md](api.md#cors). The DNS routes and `/api/retell/agents` are same-origin only.
 
 Also in scope: the browser signer (`lib/client-crypto.ts`), the Supabase service-role credential in the Vercel environment, the CI pipeline and repository, the `agenid.com` DNS zone, and the eight partner integration briefs as documentation that could mislead.
 

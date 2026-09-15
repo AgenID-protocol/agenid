@@ -20,7 +20,7 @@
 | **Production status** | **PRODUCTION** for registration, resolution, verification cards and badges |
 | **Deployment status** | Vercel, deployed from `main`, root directory `packages/web` |
 | **Last verified** | 2026-09-15, commit `a95928b`, by calling every live endpoint and diffing the served OpenAPI document against the routes |
-| **Test suite** | 187 green — core 54, api 32, cli 8, mcp-server 4, web 89 |
+| **Test suite** | 189 green — core 54, api 32, cli 8, mcp-server 4, web 91 |
 | **CI** | **Green on Node 20, 22 and 24.** Previously red on the Node 20 leg for several commits; root-caused and fixed in `a95928b`. |
 | **npm** | Nothing published. `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server` all 404 on the registry. |
 

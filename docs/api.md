@@ -25,7 +25,13 @@ The consequence is that nothing bounds request volume. That is a real, documente
 
 ## CORS
 
-`/api/v1/agents`, `/api/v1/verify`, `/api/v1/openapi.json`, `/api/resolve/{agenid}`, `/badge/{agenid}/shield.svg`, `/api/retell/declare` and `/api/retell/bind` send `access-control-allow-origin: *` and answer `OPTIONS` preflight. They are intended to be callable cross-origin from a browser, a CI job, or an agent runtime.
+**Verified by live request on 2026-09-15.** These seven send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
+
+`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js`
+
+The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin only.
+
+`/api/retell/bind` is on this list as of the commit that added it: it had been answering `OPTIONS` preflight with the header while its actual responses carried none, so a cross-origin browser POST cleared preflight and was then rejected at the response stage. Its sibling write path sent the header on responses, so the two public write endpoints disagreed about whether they were browser-callable. A test now requires the preflight and the response to agree.
 
 ## Endpoint inventory
 

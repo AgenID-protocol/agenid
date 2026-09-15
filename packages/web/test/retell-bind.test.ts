@@ -157,3 +157,24 @@ describe("POST /api/retell/bind", () => {
     expect(json.error).toBe("incomplete_agent");
   });
 });
+
+/**
+ * Regression: the batch write path must send CORS on its RESPONSES, not only on the
+ * OPTIONS preflight. It answered preflight with `access-control-allow-origin: *` while
+ * its actual responses carried none, so a cross-origin browser POST cleared preflight
+ * and was then rejected at the response stage — and the two public write endpoints
+ * disagreed with each other about whether they were browser-callable.
+ */
+describe("retell/bind CORS", () => {
+  it("sends access-control-allow-origin on a response, not only on the preflight", async () => {
+    const { res } = await post({});
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+  });
+
+  it("the preflight and the response agree", async () => {
+    const { OPTIONS } = await import("../app/api/retell/bind/route");
+    const pre = await OPTIONS();
+    const { res } = await post({});
+    expect(res.headers.get("access-control-allow-origin")).toBe(pre.headers.get("access-control-allow-origin"));
+  });
+});
