@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getPartnerSlugs } from "@/lib/partners";
+import { scenarioSlugs } from "@/lib/scenarios";
 import { SITE_URL } from "@/lib/api";
 
 /**
@@ -18,9 +19,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/ecosystem`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/trust`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/why-agent-identity`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/how-it-works`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/docs/partners`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/docs/onboarding`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
   ];
+
+  // Every scenario is a static, self-contained page with its own metadata. Unlike the
+  // resolver routes below, these enumerate from data rather than from the registry, so
+  // listing them fabricates nothing.
+  for (const slug of scenarioSlugs()) {
+    entries.push({
+      url: `${SITE_URL}/how-it-works/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
 
   for (const slug of getPartnerSlugs()) {
     entries.push({

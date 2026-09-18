@@ -117,3 +117,20 @@ body { background: var(--color-ink); color: var(--color-paper); }
   .flow-token { animation: none; left: 50%; }
   .flow-stage { animation: none; }
 }
+
+/*
+ * Scenario player (components/scenarios/). The one dot that pulses: a challenge that
+ * has been issued and not yet answered. Everything else in those scenarios animates by
+ * transition, so this is the only keyframe the whole set needs.
+ *
+ * Off under reduced motion, where the scenarios render their final frame as a static
+ * diagram and nothing is in flight to indicate.
+ */
+@keyframes scenario-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.4); }
+}
+.scenario-pulse { animation: scenario-pulse 1.7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .scenario-pulse { animation: none; opacity: 1; }
+}

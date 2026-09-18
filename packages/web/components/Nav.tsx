@@ -39,6 +39,7 @@ const GROUPS: NavGroup[] = [
     label: "Resources",
     links: [
       { href: "/why-agent-identity", label: "Why Agent Identity?" },
+      { href: "/how-it-works", label: "How It Works", note: "Nine scenarios, with and without AgenID" },
       { href: "/trust", label: "Trust Center" },
     ],
   },
