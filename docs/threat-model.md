@@ -73,7 +73,7 @@ Also in scope: the browser signer (`lib/client-crypto.ts`), the Supabase service
 **Vector** — the product transmits, stores or logs a private key. **Impact** — total compromise of that identity. **Mitigation** — by construction: keys are generated client-side, never transmitted, never stored, never written to `localStorage` or `sessionStorage`. Server-side key generation was **deleted outright** rather than hardened, after it was found silently storing `plain:<hex>` when its encryption secret was unset. Test-enforced: no private key may appear in a request body or browser storage. **Residual risk** — the operator's own machine remains their responsibility.
 
 ### T-12 · Registration flooding and relay abuse
-**Vector** — unbounded requests to the public write endpoints; `/api/retell/bind` accepts an unbounded array. **Impact** — storage and cost exhaustion; database load; `/api/retell/agents` acts as an open relay to a third-party API from AgenID's domain, attributing traffic to it. **Mitigation** — every write is signature-verified and self-attributed, so an attacker gains no identity they do not control, and the relay exposes no stored secret and grants no capability the caller lacks. **Residual risk — REAL AND UNMITIGATED. There is no rate limiting anywhere and no batch-size cap.** Tracked; must land before any of this is advertised.
+**Vector** — unbounded requests to the public write endpoints; `/api/retell/bind` accepts an unbounded array. **Impact** — storage and cost exhaustion; database load; `/api/retell/agents` acts as an open relay to a third-party API from AgenID's domain, attributing traffic to it. **Mitigation** — every write is signature-verified and self-attributed, so an attacker gains no identity they do not control, and the relay exposes no stored secret and grants no capability the caller lacks. **Since `2026-09-18`: every one of the ten POST routes is rate limited** (`packages/web/lib/rate-limit.ts`), keyed on a platform-set client header rather than the caller-controllable `x-forwarded-for`, with a per-instance floor that holds even when the durable counter is unreachable — so the failure mode is *degraded to per-instance*, never *unbounded*. `/api/retell/bind` also caps its array at `MAX_BATCH_SIZE`. **Residual risk — MEDIUM.** The bound is per client-IP-prefix, so a distributed source with many address ranges is limited only in proportion to its ranges; and the in-process floor bounds one serverless instance rather than the deployment. Neither is a bypass of the durable limit while Postgres is reachable.
 
 ### T-13 · Domain or GitHub org compromise
 **Vector** — control the `agenid.com` zone, its TLS, or the `AgenID-protocol` org, and publish a different root pin. **Impact** — verifiers verify against the attacker's root. **Mitigation** — none cryptographic. Hardening (registrar lock, DNSSEC, hardware-key 2FA, enforced org 2FA, branch protection, required signed commits, audit-log export) is a **prerequisite of the key ceremony**. **Residual risk — this is the trust root's real ceiling.** Key storage is irrelevant to it. Currently moot only because no root key exists.
@@ -92,7 +92,7 @@ Also in scope: the browser signer (`lib/client-crypto.ts`), the Supabase service
 - **Registering an agent named after someone else's brand.** Nothing prevents it. L1 is a self-declaration and the protocol makes no naming claim — which is exactly why L1 must never render as verified. The mitigation is the honest label, not a name check.
 - **Using a Verification Card as a trust badge in a phishing flow.** The card states plainly that L1 is not a third-party check and renders amber. A protocol that rendered it green would be supplying the fraud.
 - **Bulk-registering to squat identifiers.** Identifiers are ULIDs, not names, so squatting has no value — but T-12 still applies to cost.
-- **Using `/api/retell/agents` to probe Retell with stolen keys.** The relay neither validates nor stores the key, but the traffic originates from AgenID's domain. Rate limiting and an explicit relay policy are the fix.
+- **Using `/api/retell/agents` to probe Retell with stolen keys.** The relay neither validates nor stores the key, but the traffic originates from AgenID's domain. Now bounded at the tightest limit in the policy table, deliberately: the abuse lands on someone else's API with AgenID as the apparent source, so the reputational blast radius is larger than the load. An explicit relay policy is still owed.
 
 ## Operational threats
 
@@ -145,7 +145,7 @@ Non-test controls: strict schemas rejecting unknown members; RLS on every table;
 
 Ranked. Nothing material is omitted.
 
-1. **No rate limiting anywhere** (T-12) — real, unmitigated, and the only one exploitable today by anyone with an HTTP client.
+1. ~~**No rate limiting anywhere**~~ (T-12) — **CLOSED 2026-09-18.** All ten POST routes bounded; batch array capped. Residual risk is now MEDIUM (distributed sources, per-instance floor) rather than unmitigated. A wiring test asserts every POST route calls the limiter *before* reading the request body, so a new unbounded public endpoint fails CI on the day it is added — that guard is what found six routes the first pass had missed.
 2. **Two-path key discovery is only as strong as the operator's half** (T-4, T-9) — both routes resolve, but an agent with no `.well-known` copy gives a verifier a single source.
 3. **Root compromise would be retroactive and unbounded** (T-14) — largest architectural risk; moot until a key exists.
 4. **Domain and org control is the trust root's real ceiling** (T-13) — hardening not yet complete.
@@ -160,7 +160,9 @@ Ranked. Nothing material is omitted.
 
 **Accepted:** 120s of forward clock skew at registration; the absence of multi-statement transactions; the operator's own key custody; the truth of operator attestations, which no party can verify.
 
-**Not accepted, tracked, not yet fixed:** rate limiting (1), ceremony hardening (4), OpenAPI coverage (8), vulnerability reporting (9).
+**Not accepted, tracked, not yet fixed:** ceremony hardening (4), OpenAPI coverage (8), vulnerability reporting (9). Rate limiting (1) is fixed.
+
+**Newly documented, not yet fixed:** the system has no authorization layer, no principal (human/organization) key role, and no revocation path — see [SECURITY-GAP-ANALYSIS.md](SECURITY-GAP-ANALYSIS.md), gaps B1, D1 and A1. These are absences in the object model rather than threats against the current one, which is why they are recorded there rather than as T-numbers here.
 
 **Structurally unresolved until v1.2:** root-compromise blast radius (3). A delegation object is the fix; it is designed and undecided.
 

@@ -27,12 +27,14 @@ import {
   type DomainConnectSettings,
 } from "@/lib/domain-connect";
 import { SITE_URL } from "@/lib/api";
+import { POLICIES, checkRateLimit, rateLimitHeaders, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const HEADERS = { "content-type": "application/json" };
-const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: HEADERS });
+const json = (body: unknown, status: number, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { ...HEADERS, ...extra } });
 
 /** Bound every outbound probe: this route is polled, and a hung provider must not hang it. */
 const PROBE_TIMEOUT_MS = 4000;
@@ -74,19 +76,35 @@ async function probeWellKnown(domain: string): Promise<{ present: boolean; url: 
 }
 
 export async function POST(req: Request) {
+  /**
+   * This route is an UNAUTHENTICATED AMPLIFIER and that, not load, is why it is bounded.
+   *
+   * One call makes up to four outbound probes (CNAME, NS, a Domain Connect settings
+   * fetch, and an HTTPS request to the operator's `.well-known`) against a hostname the
+   * CALLER chooses. Each probe is individually capped at 4s, but nothing capped the
+   * number of probes — so an attacker could name a victim host and have agenid.com
+   * generate traffic against it at whatever rate they liked.
+   *
+   * The limit clears the legitimate case with room to spare: /verify/domain polls this
+   * every 6s, or ~10/min, against a 40/min bound.
+   */
+  const rl = await checkRateLimit(req, POLICIES.probe);
+  if (!rl.allowed) return tooManyRequests(rl);
+  const rlh = rateLimitHeaders(rl);
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return json({ error: "invalid_json", message: "request body must be JSON" }, 400);
+    return json({ error: "invalid_json", message: "request body must be JSON" }, 400, rlh);
   }
   const { domain, token } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof domain !== "string" || !isValidHostname(domain)) {
-    return json({ error: "invalid_domain", message: "`domain` must be a valid hostname" }, 400);
+    return json({ error: "invalid_domain", message: "`domain` must be a valid hostname" }, 400, rlh);
   }
   if (typeof token !== "string" || token.length < 16) {
-    return json({ error: "invalid_token", message: "`token` must be >= 16 characters" }, 400);
+    return json({ error: "invalid_token", message: "`token` must be >= 16 characters" }, 400, rlh);
   }
 
   const record = verificationRecord(domain, token);
@@ -194,5 +212,6 @@ export async function POST(req: Request) {
       ],
     },
     200,
+    rlh,
   );
 }

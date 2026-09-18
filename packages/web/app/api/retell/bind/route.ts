@@ -20,6 +20,7 @@
  * confers nothing — domain control is evidence an authority would weigh, not a level.
  */
 import { registerAgent, L1_DISCLOSURES } from "@/lib/register";
+import { POLICIES, MAX_BATCH_SIZE, checkRateLimit, rateLimitHeaders, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,7 +33,14 @@ export const runtime = "nodejs";
  * about whether they were browser-callable. Verified live before and after.
  */
 const HEADERS = { "content-type": "application/json", "access-control-allow-origin": "*" };
-const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: HEADERS });
+/**
+ * Extra headers are a PARAMETER, never module state. A `let` at module scope would be
+ * shared by every concurrent request on the same serverless instance, so one caller's
+ * rate-limit headers could be emitted on another caller's response — a cross-request
+ * information leak introduced by a convenience.
+ */
+const json = (body: unknown, status: number, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { ...HEADERS, ...extra } });
 
 interface AgentSubmission {
   manifest: unknown;
@@ -43,11 +51,15 @@ interface AgentSubmission {
 }
 
 export async function POST(req: Request) {
+  const rl = await checkRateLimit(req, POLICIES.bindBatch);
+  if (!rl.allowed) return tooManyRequests(rl, { "access-control-allow-origin": "*" });
+  const rlh = rateLimitHeaders(rl);
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return json({ error: "invalid_json", message: "request body must be JSON" }, 400);
+    return json({ error: "invalid_json", message: "request body must be JSON" }, 400, rlh);
   }
 
   const b = (body ?? {}) as Record<string, unknown>;
@@ -55,12 +67,27 @@ export async function POST(req: Request) {
   const agentsRaw = b.agents;
 
   if (typeof domain !== "string" || domain.length === 0) {
-    return json({ error: "invalid_domain", message: "`domain` is required" }, 400);
+    return json({ error: "invalid_domain", message: "`domain` is required" }, 400, rlh);
   }
   if (!Array.isArray(agentsRaw) || agentsRaw.length === 0) {
     return json(
       { error: "invalid_agents", message: "`agents` must be a non-empty array of signed agent submissions" },
       400,
+      rlh,
+    );
+  }
+  // The rate limit bounds how many REQUESTS a caller may make; this bounds the work
+  // inside one. Without it a single request triggers an unbounded number of store
+  // writes, so the request limit would be a bound on nothing.
+  if (agentsRaw.length > MAX_BATCH_SIZE) {
+    return json(
+      {
+        error: "batch_too_large",
+        message: `a batch may contain at most ${MAX_BATCH_SIZE} agents; split the fleet across requests`,
+        max_batch_size: MAX_BATCH_SIZE,
+      },
+      400,
+      rlh,
     );
   }
 
@@ -73,6 +100,7 @@ export async function POST(req: Request) {
       return json(
         { error: "incomplete_agent", index: i, message: `agents[${i}] must include manifest, proof, and key_document` },
         400,
+        rlh,
       );
     }
 
@@ -97,6 +125,7 @@ export async function POST(req: Request) {
           ...(result.issues ? { issues: result.issues } : {}),
         },
         result.status,
+        rlh,
       );
     }
 
@@ -128,6 +157,7 @@ export async function POST(req: Request) {
       disclosures: L1_DISCLOSURES,
     },
     201,
+    rlh,
   );
 }
 

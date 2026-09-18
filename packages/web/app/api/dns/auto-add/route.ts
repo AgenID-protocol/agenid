@@ -9,6 +9,7 @@
  * If credentials are missing for the requested provider, returns 501.
  */
 import { isValidHostname } from "@agenid/core";
+import { POLICIES, checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -102,6 +103,12 @@ async function godaddyAddTxt(domain: string, token: string): Promise<{ ok: boole
 // ---------------------------------------------------------------------------
 
 export async function POST(req: Request) {
+  /**
+   * Holds a provider credential and writes to a third party\u2019s DNS zone. Bounded at the\n   * relay rate for the same reason /api/retell/agents is: the abuse lands on someone\n   * else\u2019s API with AgenID as the apparent source.
+   */
+  const rl = await checkRateLimit(req, POLICIES.relay);
+  if (!rl.allowed) return tooManyRequests(rl);
+
   let body: unknown;
   try {
     body = await req.json();

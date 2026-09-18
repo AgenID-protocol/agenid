@@ -19,9 +19,35 @@ Protocol v1.1.1 + errata E1/E2.
 
 **No endpoint accepts a private key.** The registry cannot sign on an operator's behalf.
 
-The consequence is that nothing bounds request volume. That is a real, documented gap — see [PROJECT_STATE.md](../PROJECT_STATE.md).
-
 `AGENID_AUTHORITY_TOKEN` gates the assertion write path in `@agenid/api`. That path is not deployed.
+
+**What the signature does NOT do** is authenticate the *request*. It authenticates the *object* — so an object, once seen, can be resubmitted by anyone holding a copy for as long as its validity window lasts. Nothing binds a live HTTP request to a registered agent. See `GAP-C1`/`GAP-C2` in [SECURITY-GAP-ANALYSIS.md](SECURITY-GAP-ANALYSIS.md).
+
+## Rate limiting
+
+**Every `POST` endpoint is bounded.** Unauthenticated does not mean unmetered.
+
+| Surface | Limit | Window |
+|---|---|---|
+| `POST /api/v1/agents`, `POST /api/retell/declare` | 30 | 60s |
+| `POST /api/retell/bind` | 10 | 60s |
+| `POST /api/retell/agents`, `POST /api/dns/auto-add` | 12 | 60s |
+| `POST /api/domain/status`, `POST /api/dns/detect`, `POST /api/dns/verify`, `POST /api/verify-dns` | 40 | 60s |
+| `POST /api/v1/verify` | 240 | 60s |
+
+Limits are per client, per window, and are **abuse bounds rather than quotas** — they are set well clear of legitimate use, including the 10/min that `/verify/domain` itself polls at.
+
+Over the limit returns **`429 rate_limited`** with `retry-after` in seconds. Responses on the four highest-traffic surfaces also carry advisory `ratelimit-limit`, `ratelimit-remaining` and `ratelimit-reset` headers on success, so a client can pace itself rather than discovering the limit by hitting it.
+
+`POST /api/retell/bind` additionally caps its `agents` array at **25** and returns `400 batch_too_large` beyond it. The rate limit bounds how many requests a caller may make; this bounds the work inside one.
+
+Three properties worth stating because they are the ones that usually go wrong:
+
+- **The client is identified from a platform-set header**, not from `x-forwarded-for`. `x-forwarded-for` is caller-supplied, so keying on it would let a caller mint a fresh bucket per request — a limiter that looks like one and bounds nothing.
+- **Failure degrades, it does not disappear.** An in-process window is applied first and cannot fail; the durable counter in Postgres is consulted second. If the database is unreachable the limiter falls back to per-instance limiting, never to unbounded.
+- **A refused caller costs nothing.** The limit is checked before the request body is read, and a caller refused by the in-process floor never reaches the database — otherwise the limiter would itself be the amplifier.
+
+**Known residual:** the bound is per client IP prefix (IPv6 is collapsed to its /64), so a distributed source is limited in proportion to the address ranges it controls.
 
 ## CORS
 

@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MemoryStore } from "@agenid/api";
 import { generateKeyPair, signAgentFleet } from "../lib/client-crypto";
+import { __resetMemoryLimiter } from "../lib/rate-limit";
 
 const store = new MemoryStore();
 vi.mock("@/lib/api", async () => {
@@ -58,6 +59,10 @@ async function fleet(names: string[]) {
 }
 
 beforeEach(() => {
+  // This route is rate limited now. Without resetting the limiter between tests the
+  // suite accumulates hits under a single client key and later tests get a 429 for
+  // reasons that have nothing to do with what they assert.
+  __resetMemoryLimiter();
   (store as unknown as { agents: Map<string, unknown> }).agents?.clear?.();
   (store as unknown as { keys: Map<string, unknown> }).keys?.clear?.();
   (store as unknown as { events: unknown[] }).events?.splice?.(0);

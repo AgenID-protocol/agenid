@@ -6,6 +6,7 @@
  * Mirrors the same primitive `@agenid/mcp-server`'s `verify_agent_manifest` tool uses.
  */
 import { canonicalizeToBytes, verifyBytes, fromHex, b64uDecode, sha256, hex } from "@agenid/core";
+import { POLICIES, checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,12 @@ function decodeSignature(signature: string): Uint8Array {
 }
 
 export async function POST(req: Request) {
+  /**
+   * A pure signature check performs no I/O, but it is still CPU an unauthenticated caller\n   * can consume without bound. Generous limit, real ceiling.
+   */
+  const rl = await checkRateLimit(req, POLICIES.read);
+  if (!rl.allowed) return tooManyRequests(rl);
+
   let body: unknown;
   try {
     body = await req.json();

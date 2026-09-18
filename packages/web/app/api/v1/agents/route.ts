@@ -21,19 +21,27 @@
  */
 import { API_URL } from "@/lib/api";
 import { registerAgent, L1_DISCLOSURES } from "@/lib/register";
+import { POLICIES, checkRateLimit, rateLimitHeaders, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const HEADERS = { "content-type": "application/json", "access-control-allow-origin": "*" };
-const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: HEADERS });
+const json = (body: unknown, status: number, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { ...HEADERS, ...extra } });
 
 export async function POST(req: Request) {
+  // Bounded BEFORE the body is read. Parsing an unbounded stream from a caller who is
+  // already over the limit is work performed on that caller's behalf.
+  const rl = await checkRateLimit(req, POLICIES.register);
+  if (!rl.allowed) return tooManyRequests(rl, { "access-control-allow-origin": "*" });
+  const rlHeaders = rateLimitHeaders(rl);
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return json({ error: "invalid_json", message: "request body must be JSON" }, 400);
+    return json({ error: "invalid_json", message: "request body must be JSON" }, 400, rlHeaders);
   }
 
   // When a standalone registry is configured, it remains the writer — same precedence
@@ -45,10 +53,10 @@ export async function POST(req: Request) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      return json(await r.json(), r.status);
+      return json(await r.json(), r.status, rlHeaders);
     } catch (e) {
       console.error("registry write failed", { error: e instanceof Error ? e.message : e });
-      return json({ error: "registry_unavailable", message: "upstream registry could not be reached" }, 503);
+      return json({ error: "registry_unavailable", message: "upstream registry could not be reached" }, 503, rlHeaders);
     }
   }
 
@@ -57,6 +65,7 @@ export async function POST(req: Request) {
     return json(
       { error: result.error, message: result.message, ...(result.issues ? { issues: result.issues } : {}) },
       result.status,
+      rlHeaders,
     );
   }
 
@@ -75,6 +84,7 @@ export async function POST(req: Request) {
       disclosures: L1_DISCLOSURES,
     },
     201,
+    rlHeaders,
   );
 }
 

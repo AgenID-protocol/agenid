@@ -10,6 +10,7 @@
  */
 import { resolveTxt } from "node:dns/promises";
 import { isValidHostname } from "@agenid/core";
+import { POLICIES, checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,6 +21,12 @@ const json = (body: unknown, status: number) => new Response(JSON.stringify(body
 const PREFIX = "agenid-site-verification=";
 
 export async function POST(req: Request) {
+  /**
+   * Outbound DNS against a caller-supplied hostname.
+   */
+  const rl = await checkRateLimit(req, POLICIES.probe);
+  if (!rl.allowed) return tooManyRequests(rl);
+
   let body: unknown;
   try {
     body = await req.json();

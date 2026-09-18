@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { MemoryStore } from "@agenid/api";
 import { generateKeyPair, signAgent } from "../lib/client-crypto";
+import { __resetMemoryLimiter } from "../lib/rate-limit";
 
 // The route resolves its store through lib/api's getStore(). Pin it to one MemoryStore
 // per test so registrations are real writes that a later read can actually observe.
@@ -57,6 +58,8 @@ describe("POST /api/v1/agents", () => {
   beforeEach(() => {
     // MemoryStore has no reset; swap its backing maps between tests.
     Object.assign(store, new MemoryStore());
+    // Same for the rate limiter: it is per-client and this suite is one client.
+    __resetMemoryLimiter();
   });
 
   it("registers a browser-signed agent at exactly L1_REGISTERED", async () => {
@@ -176,6 +179,7 @@ describe("POST /api/v1/agents", () => {
 describe("registration clock policy", () => {
   beforeEach(() => {
     Object.assign(store, new MemoryStore());
+    __resetMemoryLimiter();
   });
 
   it("accepts a proof signed milliseconds ago (the same-second case that used to fail)", async () => {

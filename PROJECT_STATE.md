@@ -71,7 +71,8 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 
 - `POST /v1/agents/{id}/assertions` — blocked on the root key.
 - `L2_DOMAIN_VERIFIED` issuance. **L2 first and only**: its evidence is a DNS record any third party can re-derive, so a bad L2 is externally detectable. L3's evidence is offline documentation nobody outside can re-check.
-- Rate limiting on the public write endpoints and on the Retell relay.
+- Request-level authentication (nothing binds a live HTTP request to a registered agent).
+- An authorization layer: scopes, delegation from a principal, and revocation. See [docs/SECURITY-GAP-ANALYSIS.md](docs/SECURITY-GAP-ANALYSIS.md).
 - OpenAPI coverage for the nine deployed routes it currently omits.
 - `@agenid/adapter-*` packages for the eight documented platforms. Not started.
 - npm publication of `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server`. Scope confirmed unclaimed; the `@agenid` org does not yet exist.
@@ -158,7 +159,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 **Controls in place.** Strict schema validation rejecting unknown members · Ed25519 signature and digest-binding verification on every write · key role and controller enforcement · bounded forward clock skew at registration with none at verification · operator keys generated and held client-side only, never transmitted or stored · RLS enabled on every table with public-read policies and service-role writes · append-only event ledger storing pointers, never evidence · a public-surface test suite that makes each honesty rule a build-breaking assertion.
 
-**Known gaps.** No authentication or rate limiting on public write endpoints · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
+**Known gaps.** No request-level authentication on public write endpoints (they are rate limited as of 2026-09-18, and every write is signature-verified, but nothing ties a live request to a registered agent) · no authorization model at all: verification levels say how carefully an identity was checked, never what an agent may do · no revocation path for an agent or a key · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
 
 ## Known limitations
 
@@ -201,7 +202,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 ## Next priority
 
-**Rate limiting on the public endpoints.** With `GET /v1/keys/{key-ulid}` shipped, two-path key discovery is complete and an external party can be invited to verify an identity end to end without trusting this registry. The remaining item that is exploitable today by anyone with an HTTP client is the absence of any rate limit: two unauthenticated write paths, an unbounded batch array on `/api/retell/bind`, an unauthenticated third-party relay on `/api/retell/agents`, and a browser-polled `/api/domain/status` that probes any hostname a caller names. See T-12 in [docs/threat-model.md](docs/threat-model.md).
+**The authorization layer.** Rate limiting shipped on 2026-09-18 and closed the last item that was exploitable today by anyone with an HTTP client. The next priority is the largest *functional* gap, documented in [docs/SECURITY-GAP-ANALYSIS.md](docs/SECURITY-GAP-ANALYSIS.md): AgenID can say who an agent is and that its self-declaration verifies, but it cannot say who authorized the agent, what the agent may do, or whether that authority is still in force. Closing it needs a `principal` key role, a signed `AuthorizationGrant`, and a signed `Revocation` — additive v1.2 objects landing in the `permissions`/`authorizations` namespace the spec already reserved.
 
 ## Next blocker
 

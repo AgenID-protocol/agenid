@@ -19,6 +19,7 @@
  * domain posted to it, with no signature check of any kind.
  */
 import { ManifestProof, Manifest, KeyDocument, verifyManifestProof, manifestDigestHex } from "@agenid/core";
+import { POLICIES, checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +28,12 @@ const HEADERS = { "content-type": "application/json", "access-control-allow-orig
 const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: HEADERS });
 
 export async function POST(req: Request) {
+  /**
+   * Re-verifies an operator-signed ManifestProof: real Ed25519 and canonicalization work\n   * performed on request, unauthenticated.
+   */
+  const rl = await checkRateLimit(req, POLICIES.register);
+  if (!rl.allowed) return tooManyRequests(rl);
+
   let body: unknown;
   try {
     body = await req.json();
