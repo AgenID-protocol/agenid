@@ -18,6 +18,7 @@
     "clean": "pnpm -r run clean",
     "check:docs": "node scripts/check-docs.mjs",
     "check:docs:live": "node scripts/check-docs.mjs --live",
-    "check:vectors": "node scripts/check-vectors.mjs"
+    "check:vectors": "node scripts/check-vectors.mjs",
+    "check:schema-ids": "node scripts/check-schema-ids.mjs"
   }
 }
