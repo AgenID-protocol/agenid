@@ -17,6 +17,7 @@
     "test": "pnpm -r run test",
     "clean": "pnpm -r run clean",
     "check:docs": "node scripts/check-docs.mjs",
-    "check:docs:live": "node scripts/check-docs.mjs --live"
+    "check:docs:live": "node scripts/check-docs.mjs --live",
+    "check:vectors": "node scripts/check-vectors.mjs"
   }
 }

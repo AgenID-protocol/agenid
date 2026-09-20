@@ -266,6 +266,33 @@ describe("§8.7 adversarial canonicalization vectors", () => {
   });
 });
 
+// ---- §8 rejection vectors, driven from the fixture --------------------------
+// These five cases were hand-written here while the fixture carried no `rejections`
+// block, so the fixture could drift from the spec without any test noticing. They now
+// come FROM the fixture: an emptied or stale block fails the count assertion rather
+// than quietly reducing this suite to nothing.
+describe("§8 rejection vectors (Erratum E1) — driven from the spec fixture", () => {
+  const cases: Array<{ input_json?: string; input?: string; reason: string }> = V.rejections?.cases ?? [];
+  const labelled = cases.map((c, i) => ({ ...c, label: c.input_json ?? c.input ?? `case ${i}` }));
+
+  it("the fixture carries the spec's rejection block", () => {
+    expect(typeof V.rejections?.description).toBe("string");
+    expect(cases.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it.each(labelled)("refuses $label ($reason)", (c) => {
+    if (typeof c.input_json === "string") {
+      expect(() => canonicalizeJsonText(c.input_json as string)).toThrow(InvalidNumberDomainError);
+      return;
+    }
+    // The non-finite cases are spelled as bare literals in the fixture because no JSON
+    // text can carry them; map the spelling to the host value rather than eval-ing it.
+    const literals: Record<string, number> = { NaN: NaN, Infinity: Infinity, "-Infinity": -Infinity };
+    expect(Object.keys(literals)).toContain(c.input);
+    expect(() => canonicalize({ x: literals[c.input as string] })).toThrow(InvalidNumberDomainError);
+  });
+});
+
 describe("§7 signing construction is pure Ed25519 over the canonical bytes (no pre-hash)", () => {
   it("signBytes over the spec signing input reproduces the spec signature", () => {
     const sig = signBytes(op.privateKey, new TextEncoder().encode(V.manifest_proof.signing_input_utf8));

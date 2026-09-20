@@ -28,3 +28,20 @@ jobs:
       - run: pnpm --filter @agenid/web test
       - run: pnpm --filter @agenid/web e2e
       - run: pnpm run check:docs
+
+  spec-sync:
+    name: "normative artifacts match AgenID-protocol/spec"
+    # Separate job, and network-dependent on purpose: it reads the specification
+    # repository. The §8 vectors and the five JSON Schemas are copies of normative
+    # material; a copy is where drift hides. The vector fixture already drifted once
+    # — a stale snapshot missing the spec's `rejections` block — and nothing failed,
+    # because those cases had been hand-written into the suite instead of driven from
+    # the fixture. Both halves are fixed; this is the half that keeps it fixed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No install: the checker uses only Node builtins and fetch.
+      - run: node scripts/check-vectors.mjs
