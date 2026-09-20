@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Identity is carried as client/dynamic variables on the conversational-agent session and echoed into tool calls, where the operator's tool endpoint re-verifies the signed manifest proof.",
+  "capabilities": [
+    "Carried as client/dynamic variables on the session",
+    "Echoed into tool calls",
+    "The operator's tool endpoint re-verifies the signed proof"
+  ],
   "featured": true,
   "docs": "/docs/partners/elevenlabs-integration"
 }

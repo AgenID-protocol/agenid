@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "The documented pattern attaches the identifier at the gateway so every downstream agent call carries it. Pattern only — no adapter package exists.",
+  "capabilities": [
+    "Identifier attached at the gateway",
+    "Every downstream agent call carries it",
+    "Documented pattern only — no adapter package exists"
+  ],
   "featured": true,
   "docs": "/docs/partners/openclaw-integration"
 }

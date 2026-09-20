@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "@agenid/mcp-server exposes resolution and verification as MCP tools, so any MCP-capable client can check an agent's identity. The package builds and tests in CI; it has not been published to npm (the @agenid scope is unclaimed).",
+  "capabilities": [
+    "Resolution and verification exposed as MCP tools",
+    "Any MCP-capable client can check an agent's identity",
+    "Builds and tests in CI; not published to npm"
+  ],
   "featured": true,
   "docs": "/docs/partners/mcp-server-integration"
 }

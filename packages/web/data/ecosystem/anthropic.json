@@ -11,5 +11,10 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Same construction as any other model provider: the manifest names the operator and the agent, never the underlying model. Changing provider does not change the identity or invalidate an existing proof.",
+  "capabilities": [
+    "Identity is independent of the model vendor",
+    "The manifest names the operator and the agent, never the model",
+    "Changing provider does not invalidate an existing proof"
+  ],
   "featured": true
 }

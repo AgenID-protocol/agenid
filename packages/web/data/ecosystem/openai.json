@@ -11,5 +11,10 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "AgenID never references a model provider. An agent keeps one agenid:<ULID> across a switch of model vendor; the identifier is carried by the operator's own request context, not by the model API.",
+  "capabilities": [
+    "Identity is independent of the model vendor",
+    "One agenid:<ULID> survives a change of model provider",
+    "No model-provider API surface is used by the protocol"
+  ],
   "featured": true
 }

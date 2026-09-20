@@ -11,5 +11,10 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Runtime-neutral, same as any other host. Route 'is this agent verified' checks through @agenid/core in the operator's own service.",
-  "featured": false
+  "capabilities": [
+    "Hosts the agent runtime and key document",
+    "Verification runs in the operator's own service via @agenid/core",
+    "Runtime-neutral — no Azure-specific surface is required"
+  ],
+  "featured": true
 }

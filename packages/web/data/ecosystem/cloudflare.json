@@ -11,5 +11,10 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Two roles: DNS TXT records satisfy the L2 domain-control evidence type, and /.well-known/agenid/keys.json can be served from Workers or Pages as the domain path of two-path key discovery.",
+  "capabilities": [
+    "DNS TXT records satisfy the L2 domain-control evidence type",
+    "Serves /.well-known/agenid/keys.json from Workers or Pages",
+    "Provides the domain half of two-path key discovery"
+  ],
   "featured": true
 }

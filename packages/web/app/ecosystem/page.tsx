@@ -8,9 +8,13 @@ import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, getEcosystem, readLogoSvg } f
 export const metadata: Metadata = {
   title: "The Agent Ecosystem — Compatibility Matrix",
   description:
-    "Voice platforms, model providers, infrastructure, agent frameworks, and enterprise identity systems an agenid:<ULID> identity can be carried through. Technical compatibility only — every entry states exactly what was reviewed.",
+    "Voice platforms, model providers, infrastructure, agent frameworks, enterprise identity systems, and the payment and telephony rails an agent acts through — every surface an agenid:<ULID> identity can be carried across. Technical compatibility only: every entry states exactly what was reviewed.",
   alternates: { canonical: "/ecosystem" },
 };
+
+/** Spelled from the registry so the heading cannot drift from the cards below it. */
+const STATUS_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six"] as const;
+const STATUS_COUNT = STATUS_WORDS[Object.keys(ECOSYSTEM_STATUSES).length] ?? Object.keys(ECOSYSTEM_STATUSES).length;
 
 export default function EcosystemPage() {
   const all = getEcosystem();
@@ -80,8 +84,11 @@ export default function EcosystemPage() {
       <section className="border-b border-line/70">
         <div className="mx-auto max-w-6xl px-5 py-14">
           <div className="mb-3 font-mono text-[11px] text-muted">WHAT A LISTING MEANS</div>
-          <h2 className="text-2xl font-bold tracking-tight">Three statuses. Only one of them is currently issued.</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {/* Count derived, not typed — this read "Three statuses" until a fourth was added. */}
+          <h2 className="text-2xl font-bold tracking-tight">
+            {STATUS_COUNT} statuses. Only one of them is currently issued.
+          </h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {(Object.keys(ECOSYSTEM_STATUSES) as (keyof typeof ECOSYSTEM_STATUSES)[]).map((key) => {
               const n = countFor(key);
               return (

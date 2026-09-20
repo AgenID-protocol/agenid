@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Identity is attached to the call request's metadata object and returned on the completion webhook, where it is resolved and re-verified out-of-band.",
+  "capabilities": [
+    "Identifier attached to the call request's metadata",
+    "Returned on the completion webhook",
+    "Resolved and re-verified out of band"
+  ],
   "featured": true,
   "docs": "/docs/partners/bland-ai-integration"
 }

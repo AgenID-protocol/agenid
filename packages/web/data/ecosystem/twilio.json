@@ -1,0 +1,20 @@
+{
+  "id": "twilio",
+  "name": "Twilio",
+  "abbr": "Tw",
+  "category": "action",
+  "description": "Programmable voice and messaging",
+  "website": "https://www.twilio.com",
+  "status": "compatible",
+  "integration_type": "Call/message parameters + status webhook",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-20",
+  "compatibility_note": "The identifier travels as an operator-supplied parameter on the call or message the agent places, and comes back on the status webhook, where the operator's own handler resolves and re-verifies it with @agenid/core. Twilio carries the value as opaque data: it ships no AgenID code, performs no verification, and attaches no meaning to the field.",
+  "capabilities": [
+    "Identifier attached to an agent-placed call or message",
+    "Returned on the status webhook for out-of-band verification",
+    "Twilio treats the value as opaque and verifies nothing"
+  ],
+  "featured": true
+}

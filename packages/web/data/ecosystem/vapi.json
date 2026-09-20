@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "The identifier rides in assistant metadata and every server message; the operator's server verifies the ManifestProof before acting on a call event.",
+  "capabilities": [
+    "Identifier rides in assistant metadata",
+    "Present on every server message",
+    "ManifestProof verified before acting on a call event"
+  ],
   "featured": true,
   "docs": "/docs/partners/vapi-integration"
 }

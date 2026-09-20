@@ -52,6 +52,18 @@ describe("ecosystem registry", () => {
     expect(nonCompatible).toEqual([]);
   });
 
+  it("keeps the flag/status contract readable from the status table itself", () => {
+    // The rule used to be written as `verified === (status !== "compatible")`, which
+    // silently became wrong the moment "planned" was added — planned is neither
+    // compatible nor verified. Asserting against the table is what keeps the next
+    // status from quietly inverting the meaning of the existing ones.
+    for (const [id, def] of Object.entries(ECOSYSTEM_STATUSES)) {
+      if (def.partner) expect(def.verified, `${id}: a partner is necessarily verified`).toBe(true);
+    }
+    expect(ECOSYSTEM_STATUSES.planned.verified).toBe(false);
+    expect(ECOSYSTEM_STATUSES.planned.partner).toBe(false);
+  });
+
   it("groups entries by every declared category", () => {
     const grouped = getByCategory();
     expect(grouped.length).toBeGreaterThan(0);
@@ -87,7 +99,13 @@ describe("ecosystem registry", () => {
     for (const e of getFeatured()) expect(declared.has(e.category)).toBe(true);
   });
 
-  it("exposes exactly the three documented statuses", () => {
-    expect(Object.keys(ECOSYSTEM_STATUSES).sort()).toEqual(["compatible", "official-partner", "verified-integration"].sort());
+  it("exposes exactly the four documented statuses", () => {
+    // Was three until "planned" was added for the ecosystem cloud. Updating this
+    // deliberately — rather than loosening it to a count — is the point of pinning the
+    // set: a status appearing without anyone noticing is how a roadmap word ends up on
+    // a public graphic.
+    expect(Object.keys(ECOSYSTEM_STATUSES).sort()).toEqual(
+      ["compatible", "official-partner", "planned", "verified-integration"].sort(),
+    );
   });
 });

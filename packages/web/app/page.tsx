@@ -3,8 +3,8 @@ import { SearchBar } from "@/components/SearchBar";
 import { Terminal } from "@/components/Terminal";
 import { IdentityStory } from "@/components/IdentityStory";
 import { LifecycleDiagram, TrustModelDiagram, CryptoChainDiagram, TwoPathDiagram } from "@/components/Diagrams";
-import { EcosystemHub, type HubNode } from "@/components/ecosystem/EcosystemHub";
-import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, getEcosystem, getFeatured } from "@/lib/ecosystem";
+import { EcosystemHub, type CloudCluster } from "@/components/ecosystem/EcosystemHub";
+import { buildCloudClusters, getEcosystem } from "@/lib/ecosystem";
 
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/api";
@@ -58,17 +58,10 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 export default function Home() {
   const ecosystemCount = getEcosystem().length;
-  const hubNodes: HubNode[] = getFeatured().map((e) => ({
-    id: e.id,
-    name: e.name,
-    abbr: e.abbr,
-    category: e.category,
-    categoryLabel: ECOSYSTEM_CATEGORIES.find((c) => c.id === e.category)?.label ?? e.category,
-    statusLabel: ECOSYSTEM_STATUSES[e.status].label,
-    integration_type: e.integration_type,
-    compatibility_note: e.compatibility_note,
-    ...(e.docs ? { docs: e.docs } : {}),
-  }));
+  const layerCount = new Set(getEcosystem().map((e) => e.category)).size;
+  // Props come finished out of the registry — see buildCloudClusters()'s note on why the
+  // page does not map entries to labels itself.
+  const clusters: CloudCluster[] = buildCloudClusters();
 
   return (
     <main>
@@ -346,11 +339,14 @@ export default function Home() {
           </p>
 
           <div className="mt-10">
-            <EcosystemHub nodes={hubNodes} />
+            <EcosystemHub clusters={clusters} />
           </div>
 
           <p className="mt-8 max-w-3xl text-sm text-muted">
-            {ecosystemCount} platforms across five layers are listed as <span className="font-mono">Compatible</span> — a
+            {/* Counts are read from the registry, never typed. This sentence said "five layers"
+                until a sixth was added, which is the whole argument for deriving it. */}
+            {ecosystemCount} platforms across {layerCount} layers are listed as{" "}
+            <span className="font-mono">Compatible</span> &mdash; a
             technical statement about carrying an identity through each platform&apos;s existing, documented API surface. None
             of them ships AgenID code, none is a partner, and no adapter package exists for any of them.{" "}
             <Link href="/ecosystem" className="text-paper underline underline-offset-2 hover:no-underline">

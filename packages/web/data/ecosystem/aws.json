@@ -11,5 +11,10 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Runtime-neutral. Relevant only as a place an operator hosts the agent, its key document, or its own verification endpoint.",
+  "capabilities": [
+    "Hosts the agent runtime",
+    "Hosts the operator's key document",
+    "Hosts the operator's own verification endpoint"
+  ],
   "featured": true
 }

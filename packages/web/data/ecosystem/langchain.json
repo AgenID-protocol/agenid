@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "The identifier is carried in the run configuration and surfaced on tool boundaries, so a downstream tool can resolve and verify the calling agent before it executes.",
+  "capabilities": [
+    "Identifier carried in the run configuration",
+    "Surfaced at tool boundaries",
+    "A downstream tool can verify the caller before it executes"
+  ],
   "featured": true,
   "docs": "/docs/partners/langchain-integration"
 }

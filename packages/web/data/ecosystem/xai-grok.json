@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "The documented pattern publishes the agenid:<ULID> in the bot's own profile/disclosure surface so a reader can resolve and verify it independently. Nothing is enforced by the platform.",
+  "capabilities": [
+    "Identifier published in the bot's own disclosure surface",
+    "A reader can resolve and verify it independently",
+    "Nothing is enforced by the platform"
+  ],
   "featured": true,
   "docs": "/docs/partners/grok-bot-integration"
 }

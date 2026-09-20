@@ -11,5 +11,10 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "Listed for completeness of the model layer. No Gemini-specific surface is required or used by the protocol.",
-  "featured": false
+  "capabilities": [
+    "Identity is independent of the model vendor",
+    "No Gemini-specific surface is required or used",
+    "Listed for completeness of the model layer"
+  ],
+  "featured": true
 }

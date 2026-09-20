@@ -134,3 +134,28 @@ body { background: var(--color-ink); color: var(--color-paper); }
 @media (prefers-reduced-motion: reduce) {
   .scenario-pulse { animation: none; opacity: 1; }
 }
+
+/*
+ * Ecosystem cloud entrance (components/ecosystem/EcosystemHub.tsx).
+ *
+ * One-shot, not a loop. The scenario sprint established that continuous animation is a
+ * battery cost paid forever for a effect noticed once; this graphic sits mid-page on the
+ * homepage, so a permanent orbit would spin whether or not anyone scrolled to it. Nodes
+ * fade in on a stagger and then the animation is over — `forwards` holds the end state,
+ * and there is no second keyframe to return to.
+ *
+ * `backwards` matters: the stagger is driven by inline animation-delay, and without it a
+ * node with a 700ms delay would render at full opacity for 700ms before starting.
+ */
+@keyframes cloud-node-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.cloud-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cloud-node-in 420ms cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cloud-node { animation: none; opacity: 1; transform: none; }
+}

@@ -11,6 +11,11 @@
   "partner": false,
   "last_verified": "2026-09-13",
   "compatibility_note": "The agenid:<ULID> travels in the custom-LLM request/response payload and the post-call webhook body; verification runs in the operator's own webhook handler with @agenid/core. Retell ships no AgenID-specific code.",
+  "capabilities": [
+    "Identifier travels in the custom-LLM request and response",
+    "Returned on the post-call webhook",
+    "Verified in the operator's own handler with @agenid/core"
+  ],
   "featured": true,
   "docs": "/docs/partners/retell-ai-integration"
 }

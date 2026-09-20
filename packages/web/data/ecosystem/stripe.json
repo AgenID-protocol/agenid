@@ -1,0 +1,21 @@
+{
+  "id": "stripe",
+  "name": "Stripe",
+  "abbr": "St",
+  "category": "action",
+  "description": "Payments and payouts",
+  "website": "https://stripe.com",
+  "status": "compatible",
+  "integration_type": "Payment object metadata + webhook events",
+  "verified": false,
+  "partner": false,
+  "last_verified": "2026-09-20",
+  "compatibility_note": "The identifier is stored in the metadata map on the payment object the agent creates and is echoed back on the corresponding webhook events, so the operator can resolve and verify which agent initiated a charge before fulfilling it. Stripe treats metadata as opaque: it ships no AgenID code and performs no verification, so an identifier present here is a claim the operator must check, never a payment control.",
+  "capabilities": [
+    "Identifier stored in payment-object metadata",
+    "Echoed back on the matching webhook events",
+    "Attributes a charge to a resolvable agent after the fact",
+    "Stripe verifies nothing — it is not a payment control"
+  ],
+  "featured": true
+}

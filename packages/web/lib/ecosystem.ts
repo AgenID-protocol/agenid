@@ -11,7 +11,9 @@ import path from "node:path";
  * ever needs to be edited by non-committers, move it behind the same RegistryStore
  * interface the agent registry uses — do not add a second, looser source of truth.
  *
- * HONESTY CONTRACT (enforced by validate() and by test/ecosystem.test.ts):
+ * HONESTY CONTRACT (enforced by validate() and by the ecosystem test files):
+ *   - "planned"             — AgenID intends to support this and has NOT yet. Carries no
+ *                             technical claim at all. Reserved; see the note below.
  *   - "compatible"          — AgenID identity can be carried through this platform
  *                             today using its existing, documented API surface. It does
  *                             NOT mean AgenID has run it, that the platform ships any
@@ -20,8 +22,27 @@ import path from "node:path";
  *                             published the result. `verified` MUST be true.
  *   - "official-partner"    — a partnership is on record. `verified` and `partner` MUST
  *                             both be true.
- * As of this writing every entry is "compatible" and nothing is verified or a partner.
- * Raising an entry's status is a factual claim: it requires evidence in the same commit.
+ *
+ * As of this writing every entry is "compatible" and nothing is verified, planned, or a
+ * partner. Raising an entry's status is a factual claim: it requires evidence in the
+ * same commit.
+ *
+ * WHY "planned" EXISTS AND IS EMPTY. A roadmap status is the easiest way to pad an
+ * ecosystem graphic with aspiration, so it is defined here and deliberately unoccupied:
+ * a platform AgenID has actually written an integration brief for is already
+ * "compatible", which is the stronger and truer claim, and a platform with neither a
+ * brief nor a documented mechanism does not belong in the registry at all. The status
+ * exists so that a future genuinely-committed integration has an honest place to sit
+ * before it works — not so that today's list can look longer. The emptiness is
+ * test-enforced, exactly like "verified-integration" and "official-partner".
+ *
+ * THE verified/partner FLAGS ARE DERIVED FROM STATUS, NOT ASSERTED ALONGSIDE IT. They
+ * remain stored fields so every entry reads as a complete, reviewable record in its own
+ * diff, but the validator requires each to equal the value this table declares for that
+ * status. Writing the rule as a per-status table rather than as a boolean expression is
+ * what makes adding a fourth status safe: an expression like
+ * `verified === (status !== "compatible")` silently becomes wrong the moment a status is
+ * added that is neither compatible nor verified, which is precisely what "planned" is.
  */
 
 export const ECOSYSTEM_CATEGORIES = [
@@ -30,29 +51,91 @@ export const ECOSYSTEM_CATEGORIES = [
   { id: "infrastructure", label: "Infrastructure", blurb: "Where key documents, resolvers, and runtimes are hosted." },
   { id: "frameworks", label: "Frameworks", blurb: "Orchestration layers that pass identity between agents and tools." },
   { id: "enterprise", label: "Enterprise Identity", blurb: "IAM systems AgenID composes with rather than replaces." },
+  // The tier the ecosystem graphic exists to argue for: where a verified agent's
+  // decision stops being a message and becomes an effect someone is accountable for.
+  // Deliberately last — identity is established above it, and spent here.
+  { id: "action", label: "Action", blurb: "Where a verified agent's decision becomes a real-world effect." },
 ] as const;
 
 export type EcosystemCategory = (typeof ECOSYSTEM_CATEGORIES)[number]["id"];
 
+/**
+ * The four statuses, each carrying the flag values an entry claiming it must have.
+ * `rank` is presentation order, weakest claim first — never a sort by "importance",
+ * which is how a list starts flattering itself.
+ */
 export const ECOSYSTEM_STATUSES = {
+  planned: {
+    label: "Planned",
+    short: "Planned",
+    definition:
+      "AgenID intends to support this and does not yet. This is a statement of intent with no technical claim attached — nothing works today. Not asserted for any entry yet.",
+    verified: false,
+    partner: false,
+    rank: 0,
+  },
   compatible: {
     label: "Compatible",
+    short: "Compatible",
     definition:
       "Identity can be carried through this platform today using its existing, documented API surface. No AgenID-specific code is required from the platform, and none is claimed to exist.",
+    verified: false,
+    partner: false,
+    rank: 1,
   },
   "verified-integration": {
     label: "Verified Integration",
+    short: "Connected",
     definition:
       "AgenID has executed the integration end to end and published the result. Not asserted for any entry yet.",
+    verified: true,
+    partner: false,
+    rank: 2,
   },
   "official-partner": {
     label: "Official Partner",
+    short: "Partner",
     definition:
       "A partnership is on record with the platform. Not asserted for any entry yet.",
+    verified: true,
+    partner: true,
+    rank: 3,
   },
 } as const;
 
 export type EcosystemStatus = keyof typeof ECOSYSTEM_STATUSES;
+
+/**
+ * What AgenID's relationship with a platform actually is.
+ *
+ * DERIVED, never stored. A stored relationship field would be a second source of truth
+ * for something `status` and `docs` already determine, and this project's own history
+ * is a list of what happens when the same fact lives in two places. `relationshipOf()`
+ * cannot disagree with the registry because it *is* the registry.
+ *
+ * The distinction the ecosystem graphic depends on: "AgenID published a written
+ * integration brief" is a fact about AgenID's documentation, NOT a fact about the
+ * vendor. A platform can have a brief and know nothing about AgenID. That is why the
+ * middle value is named for the pattern being documented rather than for any
+ * relationship existing.
+ */
+export const ECOSYSTEM_RELATIONSHIPS = {
+  none: {
+    label: "No relationship",
+    definition: "Listed on technical grounds only. The platform has no involvement with AgenID.",
+  },
+  "pattern-documented": {
+    label: "Pattern documented",
+    definition:
+      "AgenID has published a written integration brief describing how identity travels through this platform. The brief is AgenID's own work; the platform has no involvement with it and ships no AgenID code.",
+  },
+  partner: {
+    label: "Partner",
+    definition: "A partnership is on record with the platform.",
+  },
+} as const;
+
+export type EcosystemRelationship = keyof typeof ECOSYSTEM_RELATIONSHIPS;
 
 export type EcosystemEntry = {
   id: string;
@@ -69,6 +152,14 @@ export type EcosystemEntry = {
   /** ISO calendar date (YYYY-MM-DD) the claim in `compatibility_note` was last reviewed. */
   last_verified: string;
   compatibility_note: string;
+  /**
+   * Short factual phrases naming what identity actually does on this platform — each
+   * one a restatement of something `compatibility_note` already establishes, never a
+   * new claim. Required on `featured` entries because those are the ones the ecosystem
+   * graphic renders, and a detail card with nothing concrete in it invites the reader
+   * to supply their own idea of what "compatible" bought them.
+   */
+  capabilities?: string[];
   featured: boolean;
   /** Optional in-repo monochrome SVG, served from public/. Inlined (not <img>) so the
    *  single-color CSS treatment applies — see components/ecosystem/PlatformMark.tsx. */
@@ -83,7 +174,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const CATEGORY_IDS = ECOSYSTEM_CATEGORIES.map((c) => c.id) as readonly string[];
 const ALLOWED_KEYS = new Set([
   "id", "name", "abbr", "category", "description", "website", "status", "integration_type",
-  "verified", "partner", "last_verified", "compatibility_note", "featured", "logo_svg", "docs",
+  "verified", "partner", "last_verified", "compatibility_note", "capabilities", "featured",
+  "logo_svg", "docs",
 ]);
 
 function fail(file: string, msg: string): never {
@@ -126,12 +218,15 @@ export function validateEntry(raw: unknown, file = "<inline>"): EcosystemEntry {
   const verified = bool("verified");
   const partner = bool("partner");
 
-  // The honesty contract, enforced mechanically rather than by review discipline.
-  if (verified !== (status !== "compatible")) {
-    fail(file, `"verified" must be ${status !== "compatible"} for status "${status}"`);
+  // The honesty contract, enforced mechanically rather than by review discipline —
+  // and read out of the status table, so adding a status cannot silently change what
+  // the existing ones mean.
+  const expected = ECOSYSTEM_STATUSES[status as EcosystemStatus];
+  if (verified !== expected.verified) {
+    fail(file, `"verified" must be ${expected.verified} for status "${status}"`);
   }
-  if (partner !== (status === "official-partner")) {
-    fail(file, `"partner" must be ${status === "official-partner"} for status "${status}"`);
+  if (partner !== expected.partner) {
+    fail(file, `"partner" must be ${expected.partner} for status "${status}"`);
   }
 
   const last_verified = str("last_verified", DATE_RE);
@@ -158,6 +253,23 @@ export function validateEntry(raw: unknown, file = "<inline>"): EcosystemEntry {
     compatibility_note,
     featured: bool("featured"),
   };
+
+  // Capabilities: optional in general, REQUIRED on anything the ecosystem graphic
+  // renders. A featured tile with an empty detail card is the failure mode this guards
+  // — the reader fills the silence with whatever "compatible" sounds like to them.
+  if (o.capabilities !== undefined) {
+    const caps = o.capabilities;
+    if (!Array.isArray(caps) || caps.length === 0) fail(file, `"capabilities" must be a non-empty array`);
+    if (caps.length > 6) fail(file, `"capabilities" must be at most 6 items — this is a summary, not a spec sheet`);
+    for (const c of caps) {
+      if (typeof c !== "string" || c.trim().length < 3) fail(file, `every capability must be a non-trivial string`);
+      if (c.length > 80) fail(file, `capability too long to read as a tag: ${JSON.stringify(c)}`);
+    }
+    if (new Set(caps as string[]).size !== caps.length) fail(file, `"capabilities" contains a duplicate`);
+    entry.capabilities = caps as string[];
+  } else if (entry.featured) {
+    fail(file, `"capabilities" is required on a featured entry — it is what the ecosystem graphic shows`);
+  }
 
   if (o.logo_svg !== undefined) {
     const p = str("logo_svg");
@@ -197,6 +309,97 @@ export function getEcosystem(): EcosystemEntry[] {
 
 export function getFeatured(): EcosystemEntry[] {
   return getEcosystem().filter((e) => e.featured);
+}
+
+/**
+ * AgenID's actual relationship with a platform, computed from the registry.
+ *
+ * Deliberately not a stored field — see ECOSYSTEM_RELATIONSHIPS. Note the ordering:
+ * a partnership outranks a brief, and a brief is only ever "AgenID wrote something
+ * down", never "the platform participated".
+ */
+export function relationshipOf(entry: EcosystemEntry): EcosystemRelationship {
+  if (entry.status === "official-partner") return "partner";
+  if (entry.docs) return "pattern-documented";
+  return "none";
+}
+
+/**
+ * Entries grouped for the ecosystem graphic, in declared category order, with empty
+ * categories dropped.
+ *
+ * The graphic clusters by category rather than spacing every node evenly around one
+ * ring, because the clustering *is* the argument: model providers, voice platforms and
+ * payment rails are different kinds of thing, and a flat ring says they are
+ * interchangeable neighbours of AgenID. Empty categories are dropped rather than
+ * rendered as an empty arc — a labelled sector with nothing in it reads as something
+ * missing rather than as something not claimed.
+ */
+/**
+ * Clockwise placement order for the cloud, starting at the top.
+ *
+ * Deliberately NOT the declared category order, which exists for the compatibility
+ * matrix and is grouped by how a reader browses. The cloud is read as a sentence
+ * instead: the technology an agent is built from sits above it, the rails it acts
+ * through sit below, and identity is the layer in between. Models therefore start at
+ * twelve o'clock and Action falls in the lower half, which is the one arrangement that
+ * makes the centre claim legible without a caption.
+ */
+const CLOUD_ORDER: readonly EcosystemCategory[] = [
+  "models",
+  "voice",
+  "infrastructure",
+  "action",
+  "frameworks",
+  "enterprise",
+];
+
+export function getCloudClusters(): { category: (typeof ECOSYSTEM_CATEGORIES)[number]; entries: EcosystemEntry[] }[] {
+  const byId = new Map(getByCategory().map((g) => [g.category.id, g]));
+  // Anything not named in CLOUD_ORDER still renders, after the ordered ones — a new
+  // category must never silently vanish from the graphic just because this list is stale.
+  const ids = [...CLOUD_ORDER, ...[...byId.keys()].filter((id) => !CLOUD_ORDER.includes(id))];
+  return ids
+    .map((id) => byId.get(id))
+    .filter((g): g is NonNullable<typeof g> => Boolean(g))
+    .filter((g) => g.entries.some((e) => e.featured))
+    .map((g) => ({ category: g.category, entries: g.entries.filter((e) => e.featured) }));
+}
+
+/**
+ * The ecosystem cloud's render data, built once here rather than in each page.
+ *
+ * Every page that shows the cloud gets its props from this function. The alternative —
+ * each page mapping registry entries to component props itself — is a second place
+ * where a status label could be chosen, and two surfaces disagreeing about what
+ * "compatible" is called is the smaller version of the defect this registry exists to
+ * prevent. The component receives finished strings and picks none of them.
+ */
+export function buildCloudClusters() {
+  return getCloudClusters().map(({ category, entries }) => ({
+    id: category.id,
+    label: category.label,
+    blurb: category.blurb,
+    nodes: entries.map((e) => {
+      const rel = ECOSYSTEM_RELATIONSHIPS[relationshipOf(e)];
+      return {
+        id: e.id,
+        name: e.name,
+        abbr: e.abbr,
+        status: e.status,
+        statusLabel: ECOSYSTEM_STATUSES[e.status].label,
+        statusDefinition: ECOSYSTEM_STATUSES[e.status].definition,
+        relationshipLabel: rel.label,
+        relationshipDefinition: rel.definition,
+        integration_type: e.integration_type,
+        compatibility_note: e.compatibility_note,
+        // Non-null by construction: the validator refuses a featured entry without
+        // capabilities, and only featured entries reach the cloud.
+        capabilities: e.capabilities ?? [],
+        ...(e.docs ? { docs: e.docs } : {}),
+      };
+    }),
+  }));
 }
 
 export function getByCategory(): { category: (typeof ECOSYSTEM_CATEGORIES)[number]; entries: EcosystemEntry[] }[] {
