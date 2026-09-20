@@ -20,7 +20,7 @@ const PILLARS = [
   {
     n: "01",
     title: "Portable Identity",
-    body: "Every agent gets an agenid:<ULID> that never changes — not when it moves platforms, not when its config changes, not when a deployment is retired. Revoked identities stay on record forever.",
+    body: "Every agent gets an agenid:<ULID> that never changes — not when it moves platforms, not when its config changes, not when a deployment is retired. An identifier is never reissued or recycled, and a record once registered stays resolvable forever.",
     tag: "agenid:01J…",
   },
   {
@@ -37,12 +37,24 @@ const PILLARS = [
   },
 ];
 
+/**
+ * Two separate questions, deliberately two separate columns.
+ *
+ * `definedInV111` is a fact about the SPECIFICATION: the level exists, with a claim type
+ * and an evidence type, and a conforming implementation could issue it.
+ * `issuedToday` is a fact about THIS DEPLOYMENT: whether agenid.com actually issues it
+ * right now. They were one boolean called `issuable`, rendered as "issuable in v1.1.1",
+ * which a reader has every reason to read as "available" — and L2, L3 and L4 are not
+ * available, because issuing any of them requires the root authority key, which does not
+ * exist yet. Collapsing a spec capability and a deployed capability into one word is the
+ * defect; the two columns are the fix.
+ */
 const LEVELS = [
-  { l: "L1", name: "Registered", claim: "registration", evidence: "schema_validation", issuable: true },
-  { l: "L2", name: "Domain Verified", claim: "domain_control", evidence: "dns_txt_challenge / http_wellknown_challenge", issuable: true },
-  { l: "L3", name: "Organization Verified", claim: "organization_identity", evidence: "business_registry_match / document_review", issuable: true },
-  { l: "L4", name: "Deployment Verified", claim: "deployment_conformance", evidence: "deployment_sample_review", issuable: true },
-  { l: "L5", name: "Continuously Monitored", claim: "—", evidence: "—", issuable: false },
+  { l: "L1", name: "Registered", claim: "registration", evidence: "schema_validation", definedInV111: true, issuedToday: true },
+  { l: "L2", name: "Domain Verified", claim: "domain_control", evidence: "dns_txt_challenge / http_wellknown_challenge", definedInV111: true, issuedToday: false },
+  { l: "L3", name: "Organization Verified", claim: "organization_identity", evidence: "business_registry_match / document_review", definedInV111: true, issuedToday: false },
+  { l: "L4", name: "Deployment Verified", claim: "deployment_conformance", evidence: "deployment_sample_review", definedInV111: true, issuedToday: false },
+  { l: "L5", name: "Continuously Monitored", claim: "—", evidence: "—", definedInV111: false, issuedToday: false },
 ];
 
 const AUDIENCES = [
@@ -95,7 +107,12 @@ export default function Home() {
       <section className="grid-bg border-b border-line/70">
         <div className="mx-auto max-w-6xl px-5 pb-16 pt-20 text-center">
           <p className="pill mx-auto">
-            <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Protocol v1.1.1 · Locked · MIT
+            {/* "Locked · MIT" read as "the software is finished and open-source". Neither
+                half was a claim this project can make: the spec is versioned and still
+                taking errata, and the only MIT-licensed, publicly readable artifacts are
+                the specification and the conformance suite — the reference implementation
+                is not public yet. */}
+            <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Protocol v1.1.1 · Specification public · MIT
           </p>
           <h1 className="mt-6 text-5xl font-bold tracking-tight md:text-6xl">AI agents need an identity.</h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted">
@@ -192,8 +209,8 @@ export default function Home() {
               <ul className="mt-3 space-y-2 text-sm text-muted">
                 <li>· Verification ≠ compliance. A VERIFIED claim is bound to what its evidence type actually checked (domain control, org identity, a deployment sample) — never a general safety or legal guarantee.</li>
                 <li>· L5 (<span className="font-mono">L5_CONTINUOUSLY_MONITORED</span>) is a reserved name only. No continuous-integrity claim exists in v1.1.1 — it cannot be issued.</li>
-                <li>· AUTHORIZED (what an agent is permitted to do) is reserved for protocol v1.2. No signed object for it exists yet.</li>
-                <li>· The production root authority key has not completed its HSM ceremony. The verification <em>mechanism</em> for trust anchors is fully specified and testable (§9.5) — the root key itself is a pre-launch operational step, not a protocol gap.</li>
+                <li>· AUTHORIZED (what an agent is permitted to do) is not part of v1.1.1. A signed authorization object exists in <span className="font-mono">@agenid/core</span> as <span className="font-mono">v1.2-DRAFT</span> — draft, not normative, not ratified, and not issuable. Nothing on this deployment issues or evaluates an authorization claim, and no agent here carries one.</li>
+                <li>· The production root authority key has not completed its HSM ceremony. The verification <em>mechanism</em> for trust anchors is fully specified and testable (§9.5) — the root key itself is a pre-launch operational step, not a protocol gap. Until it is done, no VerificationAssertion can be signed, so L2, L3 and L4 are defined but not issued here.</li>
               </ul>
             </div>
           </div>
@@ -208,7 +225,8 @@ export default function Home() {
                     <th className="py-2 pr-4">Name</th>
                     <th className="py-2 pr-4">Claim type</th>
                     <th className="py-2 pr-4">Typical evidence</th>
-                    <th className="py-2">Status</th>
+                    <th className="py-2 pr-4">Defined in v1.1.1</th>
+                    <th className="py-2">Issued by AgenID today</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,11 +236,18 @@ export default function Home() {
                       <td className="py-2.5 pr-4">{row.name}</td>
                       <td className="py-2.5 pr-4 font-mono text-[12px] text-muted">{row.claim}</td>
                       <td className="py-2.5 pr-4 text-muted">{row.evidence}</td>
-                      <td className="py-2.5">
-                        {row.issuable ? (
-                          <span className="pill pill-ok !py-0.5 !text-[11px]">issuable in v1.1.1</span>
+                      <td className="py-2.5 pr-4">
+                        {row.definedInV111 ? (
+                          <span className="pill pill-ok !py-0.5 !text-[11px]">defined</span>
                         ) : (
-                          <span className="pill pill-warn !py-0.5 !text-[11px]">reserved name · not issuable</span>
+                          <span className="pill pill-warn !py-0.5 !text-[11px]">reserved name only</span>
+                        )}
+                      </td>
+                      <td className="py-2.5">
+                        {row.issuedToday ? (
+                          <span className="pill pill-ok !py-0.5 !text-[11px]">issued today</span>
+                        ) : (
+                          <span className="pill pill-warn !py-0.5 !text-[11px]">not issued</span>
                         )}
                       </td>
                     </tr>
@@ -230,6 +255,13 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+            <p className="mt-4 max-w-3xl text-sm text-muted">
+              Defined and issued are different claims. L2, L3 and L4 are defined in v1.1.1 and a conforming
+              implementation could issue them — but every one of them is a VerificationAssertion signed by the root
+              authority key, and that key has not been generated yet. <strong className="font-semibold text-paper">The
+              only level agenid.com issues today is L1_REGISTERED.</strong> Nothing on this deployment can raise an
+              identity above it, and no page here should be read as offering L2, L3 or L4 now.
+            </p>
           </div>
         </div>
       </section>
@@ -274,7 +306,12 @@ export default function Home() {
                 <span className="font-mono text-paper">@agenid/core</span> gives you identifiers, RFC 8785 canonicalization, the normative schemas, and the Ed25519 proof engine — the same code that passes the specification&apos;s deterministic test vectors byte-for-byte.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <a className="btn btn-primary" href="https://github.com/AgenID-protocol/agenid">Get @agenid/core</a>
+                {/* This button said "Get @agenid/core" and pointed at AgenID-protocol/agenid,
+                    which is a PRIVATE repository: every logged-out visitor who clicked the
+                    homepage's primary developer CTA got GitHub's 404. The package is not on
+                    npm either, so there is nothing to "get" yet — the honest destination is
+                    the quick start, which explains how to work with the protocol today. */}
+                <Link className="btn btn-primary" href="/docs/onboarding">Build with AgenID</Link>
                 <a className="btn btn-ghost" href="https://github.com/AgenID-protocol/spec">Read the spec</a>
               </div>
               <div className="mt-6 rounded-lg border border-line bg-ink-2 p-4 text-sm text-muted">
@@ -283,7 +320,7 @@ export default function Home() {
                   {'<script src="https://agenid.com/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y"></script>'}
                 </code>
                 <p className="mt-2 text-xs">
-                  Renders the current verification level, live — a suspended or revoked identity changes everywhere it&apos;s embedded. The badge is the human-facing UI; the signed record underneath is what actually carries trust.
+                  Re-resolves from the registry every time it renders, so it always shows whatever the registry currently reports for that identifier — it is never a static image of a past result. The badge is the human-facing UI; the signed record underneath is what actually carries trust. The protocol defines agent status transitions (<span className="font-mono">CHANGED</span>, <span className="font-mono">STALE</span>, <span className="font-mono">SUSPENDED</span>, <span className="font-mono">REVOKED</span>) and the badge renders them, but no write path on this deployment sets them yet — every registered agent is <span className="font-mono">ACTIVE</span>, and there is no revocation flow today.
                 </p>
                 <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
                   <span className="text-xs text-muted">Live example (points at an unregistered example ID, so it honestly shows &ldquo;unavailable&rdquo;):</span>
@@ -307,10 +344,23 @@ export default function Home() {
             <span className="font-mono">GET /a/&lt;agenid&gt;</span> answers a browser with the verification card UI and answers a request sent with <span className="font-mono">Accept: application/json</span> with the raw resolution envelope — manifest, proof, assertions, and key-discovery pointers, ready for a program or another agent to parse and re-verify before it transacts.
           </p>
           <p className="mt-4 max-w-3xl text-muted">
-            <span className="font-mono text-paper">@agenid/mcp-server</span> puts that same resolution and verification behind a stdio MCP tool — an agent running in Claude Desktop, Cursor, Windsurf, or a custom MCP client can call <span className="font-mono">resolve_agent_identity</span> and <span className="font-mono">verify_agent_manifest</span> directly, no HTTP client required.
+            {/* This named three specific MCP client applications by brand. AgenID has not
+                run this server in any of them, and the ecosystem registry — the single
+                source of truth for which companies this site names — carries no entry for
+                any of them. A vendor name is a claim about that vendor; it needs evidence
+                or it does not belong on the page. */}
+            <span className="font-mono text-paper">@agenid/mcp-server</span> puts that same resolution and verification behind a stdio MCP tool — an agent running in any MCP client can call <span className="font-mono">resolve_agent_identity</span> and <span className="font-mono">verify_agent_manifest</span> directly, no HTTP client required.
+          </p>
+          <p className="mt-4 max-w-3xl text-sm text-muted">
+            <strong className="font-semibold text-paper">Not yet installable.</strong>{" "}
+            <span className="font-mono">@agenid/mcp-server</span> is not published to npm — neither it nor{" "}
+            <span className="font-mono">@agenid/core</span> nor <span className="font-mono">@agenid/cli</span> has been
+            published, and the monorepo that contains them is not public yet. The brief below documents the
+            integration pattern and the tool surface; running the server today means building it from a source tree
+            you do not have access to. Nothing here is available to install.
           </p>
           <div className="mt-6">
-            <Link href="/docs/partners/mcp-server-integration" className="btn btn-primary">Use AgenID with MCP</Link>
+            <Link href="/docs/partners/mcp-server-integration" className="btn btn-primary">Read the MCP integration brief</Link>
           </div>
         </div>
       </section>

@@ -39,11 +39,16 @@ export default function PartnersIndexPage() {
       <p className="mt-4 max-w-2xl text-muted">
         Integration <em>patterns</em>, not shipped adapter packages — how to carry an{" "}
         <span className="font-mono">agenid:&lt;ULID&gt;</span> identity through each platform&rsquo;s existing,
-        documented API surface and verify it with{" "}
-        <a href="https://github.com/AgenID-protocol/agenid" className="underline hover:text-paper">
-          @agenid/core
-        </a>
-        . Every brief is explicit about what&rsquo;s actually shipped versus illustrative.
+        documented API surface and verify it with <span className="font-mono">@agenid/core</span>. Every brief is
+        explicit about what&rsquo;s actually shipped versus illustrative.{" "}
+        {/* This linked @agenid/core to AgenID-protocol/agenid, a private repository — a 404
+            for every logged-out reader. The package is not published to npm either, so
+            there is no public destination to link to; saying so is more useful than a link
+            that fails. */}
+        <span className="text-muted">
+          <span className="font-mono">@agenid/core</span> is not published to npm and its repository is not public
+          yet, so the briefs describe the pattern rather than a package you can install today.
+        </span>
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">

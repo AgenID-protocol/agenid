@@ -4,15 +4,31 @@ import { useEffect, useState } from "react";
 
 type Step = { cmd: string; out: string[] };
 
+/**
+ * Every line below is something a reader can actually run, and every output is what the
+ * live system actually returns.
+ *
+ * It used to open with `npm install @agenid/core` → "added 1 package in 0.8s", and close
+ * by resolving the specification's example identifier to `"level": "L2_DOMAIN_VERIFIED"`
+ * with one valid assertion. Neither was true. Nothing in this project is published to
+ * npm — @agenid/core, @agenid/cli and @agenid/mcp-server all 404 on the registry — and
+ * L2 cannot be issued by anyone, because it is a VerificationAssertion signed by a root
+ * authority key that does not exist yet. The homepage was demonstrating a level the
+ * product cannot issue, in a panel that looks like a real terminal session, three
+ * sections below a paragraph explaining that the same example identifier is unregistered.
+ *
+ * A demo is a claim. This one now shows the fail-safe path, which is the more honest
+ * argument anyway: an unregistered identifier returns a clean not-found rather than a
+ * fabricated result.
+ */
 const STEPS: Step[] = [
-  { cmd: "npm install @agenid/core", out: ["added 1 package in 0.8s", ""] },
   {
-    cmd: "node -e \"import('@agenid/core').then(c=>console.log(c.generateAgentId()))\"",
-    out: ["agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y", ""],
+    cmd: "curl -s https://agenid.com/a/<your-agenid> -H 'Accept: application/json' | jq .verification",
+    out: ["{", '  "level": "L1_REGISTERED",', '  "valid_assertions": 0,', '  "total_assertions": 0', "}"],
   },
   {
-    cmd: "curl -s https://agenid.com/a/agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y -H 'Accept: application/json' | jq .verification",
-    out: ["{", '  "level": "L2_DOMAIN_VERIFIED",', '  "valid_assertions": 1,', '  "total_assertions": 1', "}"],
+    cmd: "curl -s https://agenid.com/a/agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y -H 'Accept: application/json' | jq .error",
+    out: ['"agent_not_found"', ""],
   },
 ];
 

@@ -16,7 +16,8 @@ const COLUMNS: Col[] = [
     title: "Developers",
     links: [
       { href: "/docs/onboarding", label: "Quick Start" },
-      { href: "https://github.com/AgenID-protocol/agenid", label: "@agenid/core", external: true },
+      // Was "@agenid/core" → AgenID-protocol/agenid, a private repository. Same fix as Nav.
+      { href: "https://github.com/AgenID-protocol", label: "AgenID on GitHub", external: true },
       { href: "/docs/partners/mcp-server-integration", label: "MCP Server" },
       { href: "https://github.com/AgenID-protocol/spec", label: "Protocol Spec", external: true },
     ],
@@ -34,7 +35,9 @@ const COLUMNS: Col[] = [
     links: [
       { href: "/trust", label: "Security & Cryptography" },
       { href: "/why-agent-identity", label: "Why Agent Identity?" },
-      { href: "https://github.com/AgenID-protocol/spec/blob/main/ERRATA.md", label: "Errata Log", external: true },
+      // ERRATA.md does not exist at the repository root — that URL was a 404. The errata
+      // log lives at docs/errata.md.
+      { href: "https://github.com/AgenID-protocol/spec/blob/main/docs/errata.md", label: "Errata Log", external: true },
     ],
   },
 ];
@@ -81,7 +84,9 @@ export function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-line/70 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-          <span>AgenID Protocol v1.1.1 · MIT · Maintained by AI Venture Holdings LLC</span>
+          {/* "MIT" unqualified read as "this product is open-source". The MIT-licensed,
+              publicly readable artifacts are the specification and the conformance suite. */}
+          <span>AgenID Protocol v1.1.1 · Specification MIT-licensed · Maintained by AI Venture Holdings LLC</span>
           <span className="font-mono">agenid:&lt;ULID&gt; · RFC 8785 JCS · Ed25519</span>
         </div>
       </div>

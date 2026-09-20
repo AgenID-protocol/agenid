@@ -46,4 +46,4 @@ Retell signs every webhook payload and sends the signature in the `x-retell-sign
 - [Retell AI — Function Calling Overview](https://docs.retellai.com/build/single-multi-prompt/function-calling)
 - [Retell AI — Webhook Overview](https://docs.retellai.com/features/webhook-overview)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- [`@agenid/core`](https://github.com/AgenID-protocol/agenid)
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.

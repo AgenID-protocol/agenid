@@ -79,7 +79,23 @@ export default function TrustPage() {
           key can never produce a valid VerificationAssertion, and an authority key can never produce a valid
           ManifestProof. That separation is enforced at verification time, not by convention.
         </p>
-        <p>Retired or revoked keys stay resolvable forever — a revoked key&rsquo;s history is never deleted.</p>
+        {/* This read as a description of a working lifecycle. The KeyDocument schema
+            defines active/retired/revoked and the resolver serves whatever is stored, but
+            nothing on this deployment writes a retirement or a revocation — every key
+            published here is active. Saying what the schema supports and what the
+            deployment does are two statements, so they are two sentences. */}
+        <p>
+          Nothing is ever deleted: a key stays resolvable forever, so a signature made years ago can still be
+          checked against the key that made it. The <span className="font-mono">KeyDocument</span> schema defines{" "}
+          <span className="font-mono">active</span>, <span className="font-mono">retired</span> and{" "}
+          <span className="font-mono">revoked</span> states and the resolver serves whichever is stored — but this
+          deployment has no key-rotation or key-revocation flow yet, so every key published here is{" "}
+          <span className="font-mono">active</span>. The same is true one level up: agent status transitions
+          (<span className="font-mono">CHANGED</span>, <span className="font-mono">STALE</span>,{" "}
+          <span className="font-mono">SUSPENDED</span>, <span className="font-mono">REVOKED</span>) are defined in the
+          protocol and stored in the registry&rsquo;s schema, and no write path sets them. There is no revocation
+          flow today, and this page will say so until there is.
+        </p>
         <div className="pt-2"><TwoPathDiagram /></div>
       </Section>
 
@@ -88,13 +104,52 @@ export default function TrustPage() {
           Verification is a distinct, signed act — a VerificationAssertion, made by an authority key, bound to one
           specific manifest digest and evidence type. It is never inferred from an operator&rsquo;s own declaration.
         </p>
+        {/*
+          These five lines said "Issuable." three times and meant it in the SPECIFICATION
+          sense — the level is defined, a conforming implementation could issue it. On a
+          Trust Center, next to a deployed product, a reader has every reason to read
+          "Issuable" as "available to me". It is not: issuing any of L2, L3 or L4 requires
+          a VerificationAssertion signed by the root authority key, and that key does not
+          exist yet. Defined and issued are now two separate statements per level.
+        */}
+        <p>
+          Two different questions, kept apart deliberately: <em>defined in v1.1.1</em> is a fact about the
+          specification, and <em>issued by AgenID today</em> is a fact about this deployment. They are not the same
+          answer for any level above L1.
+        </p>
         <ul className="list-disc space-y-1.5 pl-5">
-          <li><span className="font-mono">L1_REGISTERED</span> — schema_validation. Issuable.</li>
-          <li><span className="font-mono">L2_DOMAIN_VERIFIED</span> — dns_txt_challenge / http_wellknown_challenge. Issuable.</li>
-          <li><span className="font-mono">L3_ORGANIZATION_VERIFIED</span> — business_registry_match / document_review. Issuable.</li>
-          <li><span className="font-mono">L4_DEPLOYMENT_VERIFIED</span> — deployment_conformance via deployment_sample_review. Issuable, but the sampling methodology itself is still being finalized — see below.</li>
-          <li><span className="font-mono">L5_CONTINUOUSLY_MONITORED</span> — a reserved name only. No continuous-integrity claim exists in v1.1.1; it cannot be issued.</li>
+          <li>
+            <span className="font-mono">L1_REGISTERED</span> — schema_validation.{" "}
+            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Issued by AgenID today.</strong>
+          </li>
+          <li>
+            <span className="font-mono">L2_DOMAIN_VERIFIED</span> — dns_txt_challenge / http_wellknown_challenge.{" "}
+            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
+            The evidence can be collected now at <Link href="/verify/domain" className="text-paper underline hover:no-underline">/verify/domain</Link>; what cannot happen yet is signing the assertion.
+          </li>
+          <li>
+            <span className="font-mono">L3_ORGANIZATION_VERIFIED</span> — business_registry_match / document_review.{" "}
+            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
+            Deferred behind a written evidence standard as well as the root key.
+          </li>
+          <li>
+            <span className="font-mono">L4_DEPLOYMENT_VERIFIED</span> — deployment_conformance via
+            deployment_sample_review.{" "}
+            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
+            The sampling methodology is also still open — see below.
+          </li>
+          <li>
+            <span className="font-mono">L5_CONTINUOUSLY_MONITORED</span> — a reserved name only. No
+            continuous-integrity claim exists in v1.1.1.{" "}
+            <strong className="font-semibold text-paper/90">Not defined · Not issued.</strong>
+          </li>
         </ul>
+        <p className="rounded-lg border border-amber/40 bg-amber/10 p-4 text-paper/90">
+          <span className="font-semibold">The ceiling on this deployment is L1_REGISTERED.</span> Every level above it
+          is a VerificationAssertion signed by the root authority key, and that key has not been generated — see below.
+          An operator can complete every step that exists today and will still hold an L1 identity. Nothing on this
+          site is an offer of L2, L3 or L4.
+        </p>
         <p>
           A VERIFIED claim is scoped to exactly what its evidence type checked. It is never a general safety,
           behavioral, or legal guarantee — verification is not compliance.
@@ -130,8 +185,12 @@ export default function TrustPage() {
       <Section id="privacy" title="Privacy">
         <p>
           A registered manifest&rsquo;s declared fields (identity, operator, purpose, disclosure) are public by design
-          — that is what makes independent verification possible. AgenID does not publish a directory of registered
-          agents for open discovery yet; resolution is by identifier, not by browsing.
+          — that is what makes independent verification possible.
+          {/* "does not publish a directory … yet" reads as a shipping roadmap, which is a
+              claim about a thing nobody has built. State the deployed behaviour instead. */}{" "}
+          AgenID publishes no directory of registered agents. Resolution is by identifier only: there is no browse,
+          search, enumeration or listing endpoint on this deployment, and no such endpoint is deployed anywhere. If
+          that ever changes it will be a disclosed change on this page, not a silent one.
         </p>
       </Section>
     </main>

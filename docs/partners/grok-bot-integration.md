@@ -28,4 +28,4 @@ xAI's published docs do not currently document a metadata field, a custom-tool/w
 
 - [xAI — Grok Bot overview](https://docs.x.ai/grok-bot/overview)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- [`@agenid/core`](https://github.com/AgenID-protocol/agenid)
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.

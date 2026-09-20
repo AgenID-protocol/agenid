@@ -48,4 +48,4 @@ Bland signs its webhooks (including [post-call webhooks](https://docs.bland.ai/a
 - [Bland AI — Webhook Signing](https://docs.bland.ai/tutorials/webhook-signing)
 - [Bland AI — Post-call Webhooks](https://docs.bland.ai/api-v1/post/postcall-webhooks-create)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- [`@agenid/core`](https://github.com/AgenID-protocol/agenid)
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.

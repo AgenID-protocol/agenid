@@ -28,4 +28,4 @@ Because OpenClaw is self-hosted and open source, an operator has more direct con
 
 - [OpenClaw — GitHub repository](https://github.com/openclaw/openclaw)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- [`@agenid/core`](https://github.com/AgenID-protocol/agenid)
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.
