@@ -53,7 +53,7 @@ Three properties worth stating because they are the ones that usually go wrong:
 
 **Verified by live request.** These nine send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
 
-`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key-ulid}`
+`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key_ulid}`
 
 The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin only.
 
@@ -75,7 +75,7 @@ The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin 
 | POST | `/api/retell/declare` | **Production** |
 | POST | `/api/retell/bind` | **Production** |
 | POST | `/api/retell/agents` | **Production** |
-| GET | `/v1/keys/{key-ulid}` | **Production** |
+| GET | `/v1/keys/{key_ulid}` | **Production** |
 | GET | `/v1/keys?key_id={percent-encoded logical id}` | **Production** — returns the identical document |
 | POST | `/v1/agents/{id}/assertions` | **Not deployed** — 404. No root key exists to sign with. |
 | GET | `/.well-known/agenid/authorities.json` | **Not published** — 404, correctly |
@@ -268,7 +268,7 @@ Errors: `invalid_domain`, `invalid_token`, `invalid_json`, `dns_error`.
 
 ---
 
-## GET /v1/keys/{key-ulid} — key discovery
+## GET /v1/keys/{key_ulid} — key discovery
 
 The registry half of two-path key discovery (spec §9.2). Read-only, unauthenticated, no body, no side effects. It resolves a key document already held by the registry; it verifies nothing, reports no verification level, and says nothing about any agent.
 
@@ -363,7 +363,9 @@ The envelope carries its own `agenid_envelope_version: "1.0"`.
 
 ## OpenAPI
 
-[`/api/v1/openapi.json`](https://www.agenid.com/api/v1/openapi.json) — **OpenAPI 3.0.3** (not 3.1). Verified live: it documents four paths (`/api/resolve/{agenid}`, `/api/v1/verify`, `/api/v1/agents`, `/badge/{agenid}/shield.svg`), six component schemas (`RegisterRequest`, `RegisterResponse`, `VerifyRequest`, `VerifyResponse`, `ResolutionEnvelope`, `Error`), and one server (`https://www.agenid.com`). Its request and response shapes match the implementation and this document.
+[`/api/v1/openapi.json`](https://www.agenid.com/api/v1/openapi.json) — **OpenAPI 3.0.3** (not 3.1). Verified live: it documents **all 14 deployed paths** — `/api/v1/agents`, `/api/resolve/{agenid}`, `/a/{agenid}`, `/api/v1/verify`, `/api/v1/openapi.json`, `/badge/{agenid}/shield.svg`, `/badge.js`, `/v1/keys/{key_ulid}`, `/v1/keys`, `/api/verify-dns`, `/api/domain/status`, `/api/retell/declare`, `/api/retell/bind`, `/api/retell/agents` — eight component schemas (`RegisterRequest`, `RegisterResponse`, `VerifyRequest`, `VerifyResponse`, `ResolutionEnvelope`, `DomainControlResult`, `DomainStatus`, `Error`), and one server (`https://www.agenid.com`). Its request and response shapes match the implementation and this document.
+
+Coverage is enforced in both directions by `packages/web/test/dns-surface.test.ts` — a route handler with no documented path fails the suite, and so does a documented path with no handler — and `scripts/check-docs.mjs` re-asserts it against the live document.
 
 ### Known documentation gaps
 

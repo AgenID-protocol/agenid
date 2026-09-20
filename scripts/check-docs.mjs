@@ -205,8 +205,12 @@ if (LIVE) {
     if (!api.includes(`OpenAPI ${oa.openapi}`)) fail("OpenAPI version mismatch", `live is ${oa.openapi}; docs/api.md does not say so`);
     for (const p of Object.keys(oa.paths)) if (!api.includes(p)) fail("OpenAPI path undocumented", p);
     const n = Object.keys(oa.paths).length;
-    if (!api.includes(`${n} of the 13 deployed routes`) && !api.includes(`documents four paths`)) {
-      fail("OpenAPI coverage claim", `live document has ${n} paths; docs/api.md does not state the coverage gap`);
+    // This assertion used to require docs/api.md to STATE THE COVERAGE GAP, which
+    // meant it would have passed only while the gap existed and quietly become a
+    // no-op the moment the gap was closed. It now requires the document to state
+    // the live path count, so it keeps biting after the work is done.
+    if (!api.includes(`all ${n} deployed paths`)) {
+      fail("OpenAPI coverage claim", `live document has ${n} paths; docs/api.md does not say "all ${n} deployed paths"`);
     }
     pass(`OpenAPI ${oa.openapi}, ${n} paths, all documented`);
   } catch (e) {
