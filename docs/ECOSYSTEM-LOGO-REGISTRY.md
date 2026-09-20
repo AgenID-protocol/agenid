@@ -129,6 +129,15 @@ which is what makes `currentColor` work.
 
 **No entry carries a `logo_svg` today.** Every mark on the site is typographic.
 
+That is not an accident of effort. [`docs/brand-compliance-audit.md`](brand-compliance-audit.md)
+reviewed sixteen providers' published trademark terms and found **zero** of them permit
+an unaffiliated company to display their mark in a marketing ecosystem graphic — nine
+expressly prohibit recolouring, which is exactly what this registry's monochrome
+treatment requires. `packages/web/data/brand-permissions.json` is the machine-readable
+record and `test/brand-permissions.test.ts` enforces it, so adding a `logo_svg` is now a
+build failure unless that provider's terms say otherwise. Read that audit before
+sourcing any mark.
+
 ## Aliases
 
 `aliases` maps other brand names for the same platform onto the entry that governs it —
@@ -209,6 +218,7 @@ by the next session.
 | Every vendor named on a public surface resolves to an entry | `test/ecosystem-registry-integrity.test.ts` |
 | No brand name resolves two ways | `test/ecosystem-registry-integrity.test.ts` |
 | The public surfaces assert no relationship | `test/ecosystem-registry-integrity.test.ts` |
+| No mark ships without that provider's terms permitting it | `test/brand-permissions.test.ts` |
 
 The vendor-resolution guard is the one worth understanding. Its vocabulary of company
 names is deliberately kept *outside* the registry: a guard built only from the registry

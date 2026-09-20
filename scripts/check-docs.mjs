@@ -30,6 +30,7 @@ const DOCS = [
   "docs/threat-model.md",
   "docs/api.md",
   "docs/ECOSYSTEM-LOGO-REGISTRY.md",
+  "docs/brand-compliance-audit.md",
 ];
 
 const failures = [];
