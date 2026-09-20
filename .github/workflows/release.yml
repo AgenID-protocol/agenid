@@ -1,0 +1,94 @@
+name: Release (manual)
+
+# Nothing here runs on its own. There is no push, tag, or schedule trigger, by
+# decision: publication is a human gate, not a consequence of merging.
+#
+# WHAT THIS IS NOT, until a real run proves otherwise:
+#   - It is not evidence that anything is published. `@agenid/core`, `@agenid/cli`
+#     and `@agenid/mcp-server` all return 404 on the npm registry today.
+#   - It is not evidence that provenance exists. npm will only attach a provenance
+#     attestation from a PUBLIC repository; while `AgenID-protocol/agenid` is
+#     private, `--provenance` fails. No document may claim provenance until an
+#     actual release has produced one.
+#
+# FIRST PUBLISH vs AFTER. A first publish needs a granular npm automation token in
+# `secrets.NPM_TOKEN`, because npm trusted publishing is configured per package and
+# a package that does not exist yet cannot be configured. Once each package exists,
+# link it to this workflow on npmjs.com and delete the token: `id-token: write` is
+# already requested below, so trusted publishing takes over with no other change.
+#
+# Run it with `dry_run: true` first. That does everything except the publish.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to release"
+        required: true
+        type: choice
+        options:
+          - "@agenid/core"
+          - "@agenid/cli"
+          - "@agenid/mcp-server"
+      dry_run:
+        description: "Build, test and pack only — do not publish"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write        # required for npm provenance / trusted publishing
+
+jobs:
+  release:
+    name: "${{ inputs.package }} (dry_run=${{ inputs.dry_run }})"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4   # version comes from package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+
+      # The full suite, not just this package's: these packages share @agenid/core,
+      # and a release is the wrong moment to learn that something downstream broke.
+      - run: pnpm -r test
+      - run: pnpm run check:docs
+      - run: node scripts/check-vectors.mjs
+
+      # Refuse to ship a tarball that carries no licence or no readme. The manifests
+      # declare both; this is the step that proves the declaration was true.
+      - name: Verify the tarball contents
+        run: |
+          set -euo pipefail
+          DIR="packages/$(echo '${{ inputs.package }}' | sed 's|@agenid/||')"
+          test -f "$DIR/LICENSE" || { echo "::error::$DIR/LICENSE is missing"; exit 1; }
+          test -f "$DIR/README.md" || { echo "::error::$DIR/README.md is missing"; exit 1; }
+          cd "$DIR"
+          npm pack --dry-run 2>&1 | tee /tmp/pack.txt
+          grep -q "LICENSE" /tmp/pack.txt || { echo "::error::LICENSE not in the tarball"; exit 1; }
+          grep -q "README.md" /tmp/pack.txt || { echo "::error::README.md not in the tarball"; exit 1; }
+
+      - name: Publish
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          set -euo pipefail
+          DIR="packages/$(echo '${{ inputs.package }}' | sed 's|@agenid/||')"
+          cd "$DIR"
+          npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: What ran
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Dry run: built, tested and packed ${{ inputs.package }}. Nothing was published."
+          else
+            echo "Published ${{ inputs.package }} with provenance. Verify at https://www.npmjs.com/package/${{ inputs.package }}"
+          fi
