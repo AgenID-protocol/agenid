@@ -24,6 +24,7 @@ import {
   AUTHORITY_ID_REGEX,
   DEPLOYMENT_ID_REGEX,
   KEY_ID_REGEX,
+  PRINCIPAL_ID_REGEX,
   isValidHostname,
 } from "./identifier.js";
 import { SchemaValidationError } from "./errors.js";
@@ -60,6 +61,8 @@ export const KeyId = z
   .refine((s) => KEY_ID_REGEX.test(s), "must match agenid:key:<ULID>");
 export const AssertionId = z.string().regex(ASSERTION_ID_REGEX, "must match assertion:<ULID>");
 export const AuthorityId = z.string().regex(AUTHORITY_ID_REGEX, "must match agenid:authority:<name>");
+/** v1.2-DRAFT. See authorization.ts. */
+export const PrincipalId = z.string().regex(PRINCIPAL_ID_REGEX, "must match agenid:principal:<ULID>");
 export const DeploymentId = z.string().regex(DEPLOYMENT_ID_REGEX, "must match dep_<opaque>");
 export const Hostname = z.string().refine(isValidHostname, "must be a valid hostname");
 
@@ -275,7 +278,18 @@ export const VerificationAssertion = VerificationAssertionBase.superRefine(asser
 // §9.1 Key document, §9.3/9.4 keys.json, §9.5 authorities.json
 // ---------------------------------------------------------------------------
 
-export const KeyRole = z.enum(["operator", "authority"]);
+/**
+ * `principal` is a v1.2-DRAFT addition: a key controlled by the human or organization an
+ * agent represents, which is the node that did not exist above the agent in the key
+ * graph (GAP-B1). Adding an enum member is a MINOR VERSION change, not an erratum — a
+ * v1.1.1 validator rejects it, correctly, by `.strict()`.
+ *
+ * Nothing in the v1.1.1 verification path accepts it: `verifyManifestProof` requires
+ * role=operator and `verifyVerificationAssertion` requires role=authority, so a
+ * principal key cannot be substituted into either. That is asserted by test rather than
+ * left to inspection.
+ */
+export const KeyRole = z.enum(["operator", "authority", "principal"]);
 export type KeyRole = z.infer<typeof KeyRole>;
 export const KeyStatus = z.enum(["active", "retired", "revoked"]);
 export type KeyStatus = z.infer<typeof KeyStatus>;
@@ -294,8 +308,17 @@ export const KeyDocument = z
   })
   .strict()
   .refine(
-    (k) => (k.role === "operator" ? AGENT_ID_REGEX.test(k.controller) : AUTHORITY_ID_REGEX.test(k.controller)),
-    { message: "controller must be agenid:<ULID> for role=operator or agenid:authority:<name> for role=authority", path: ["controller"] },
+    (k) =>
+      k.role === "operator"
+        ? AGENT_ID_REGEX.test(k.controller)
+        : k.role === "authority"
+          ? AUTHORITY_ID_REGEX.test(k.controller)
+          : PRINCIPAL_ID_REGEX.test(k.controller),
+    {
+      message:
+        "controller must be agenid:<ULID> for role=operator, agenid:authority:<name> for role=authority, or agenid:principal:<ULID> for role=principal",
+      path: ["controller"],
+    },
   )
   .refine((k) => (k.status === "retired") === (k.retired_at !== null) || k.status === "revoked", {
     message: "status=retired iff retired_at is set",

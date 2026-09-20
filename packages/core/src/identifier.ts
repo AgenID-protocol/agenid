@@ -7,6 +7,12 @@
  *   agenid:authority:<name>    Verification authority
  *   assertion:<ULID>           VerificationAssertion
  *   dep_<opaque>               Deployment (platform-scoped)
+ *
+ * v1.2-DRAFT adds three more (see authorization.ts). They are NOT part of
+ * v1.1.1 and nothing in the v1.1.1 verification path accepts them:
+ *   agenid:principal:<ULID>    Principal — the human or organization an agent represents
+ *   grant:<ULID>               AuthorizationGrant
+ *   revocation:<ULID>          Revocation
  */
 
 import { randomBytes } from "node:crypto";
@@ -25,6 +31,19 @@ export const KEY_ID_REGEX = /^agenid:key:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 export const ASSERTION_ID_REGEX = /^assertion:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 export const AUTHORITY_ID_REGEX = /^agenid:authority:[a-z0-9][a-z0-9-]{0,62}$/;
 export const DEPLOYMENT_ID_REGEX = /^dep_[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * v1.2-DRAFT identifiers.
+ *
+ * A principal is a ULID, deliberately, and not a name: a human-readable principal
+ * identifier would be squattable and would invite verifiers to recognize a principal by
+ * its string instead of by the key that controls it. `agenid:authority:<name>` is named
+ * because there is a tiny, pinned set of authorities; principals are open-enrolment and
+ * therefore anonymous by construction.
+ */
+export const PRINCIPAL_ID_REGEX = /^agenid:principal:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+export const GRANT_ID_REGEX = /^grant:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+export const REVOCATION_ID_REGEX = /^revocation:[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
 export function isValidUlid(value: string): boolean {
   return ULID_REGEX.test(value);
@@ -179,6 +198,29 @@ export function isValidAuthorityId(value: string): boolean {
 }
 export function isValidDeploymentId(value: string): boolean {
   return DEPLOYMENT_ID_REGEX.test(value);
+}
+
+// ---------------------------------------------------------------------------
+// v1.2-DRAFT identifiers
+// ---------------------------------------------------------------------------
+
+export function generatePrincipalId(now?: number): string {
+  return `agenid:principal:${generateUlid(now)}`;
+}
+export function isValidPrincipalId(value: string): boolean {
+  return PRINCIPAL_ID_REGEX.test(value);
+}
+export function generateGrantId(now?: number): string {
+  return `grant:${generateUlid(now)}`;
+}
+export function isValidGrantId(value: string): boolean {
+  return GRANT_ID_REGEX.test(value);
+}
+export function generateRevocationId(now?: number): string {
+  return `revocation:${generateUlid(now)}`;
+}
+export function isValidRevocationId(value: string): boolean {
+  return REVOCATION_ID_REGEX.test(value);
 }
 
 /** Well-known discovery URIs (§9.3, §9.4). Always HTTPS. */

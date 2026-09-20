@@ -20,7 +20,7 @@
 | **Production status** | **PRODUCTION** for registration, resolution, verification cards and badges |
 | **Deployment status** | Vercel, deployed from `main`, root directory `packages/web` |
 | **Last verified** | 2026-09-15, commit `a95928b`, by calling every live endpoint and diffing the served OpenAPI document against the routes |
-| **Test suite** | 189 green — core 54, api 32, cli 8, mcp-server 4, web 91 |
+| **Test suite** | core **93** (was 54 — the v1.2-draft authorization layer's first suite), api 84, cli 8, mcp-server 4, web +18 pilot tests. Concurrent sessions are actively adding to `web` and `api`; re-count rather than assuming a delta is yours. CI reports the authoritative count for the committed tree. |
 | **CI** | **Green on Node 20, 22 and 24.** Previously red on the Node 20 leg for several commits; root-caused and fixed in `a95928b`. |
 | **npm** | Nothing published. `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server` all 404 on the registry. |
 
@@ -59,6 +59,7 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 | **`GET /v1/keys/{key-ulid}`** | Live; resolves a published operator key by its wire form, and `?key_id=` returns a byte-identical document; unknown key is `404 key_not_found`; malformed reference and URI fragment are `400 invalid_key_id` |
 | **Every "not deployed" claim** | `/v1/agents/…/assertions` and `/.well-known/agenid/authorities.json` each confirmed `404` |
 | **Public site** | All 11 pages return 200; `/sitemap.xml` and `/robots.txt` live; `/onboarding/retell` serves `noindex, nofollow` |
+| **First real pilot agent** | `agenid:01M30753M8KR2AMB86WKR4DDFB` — a live AIVH-operated agent registered through the public write path, `201 L1_REGISTERED`; card, envelope, amber badge and both key-discovery wire forms confirmed live; envelope re-verified **offline** with `@agenid/core` alone. See [docs/grok-bot-pilot.md](docs/grok-bot-pilot.md) |
 
 ## In development
 
@@ -66,6 +67,7 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 |---|---|
 | Root authority key ceremony | Custody **decided** — Google Cloud KMS, `EC_SIGN_ED25519`, HSM protection level. Policy and runbook drafted, awaiting approval. **No key has been generated.** |
 | Protocol v1.2 delegation object | Design drafted. Would restore the offline-root pattern and sharply cut root-compromise blast radius. |
+| Protocol v1.2 authorization layer | **Implemented in `@agenid/core`, DRAFT and NOT NORMATIVE.** `AuthorizationGrant`, `Revocation`, a `principal` key role, and an offline `evaluateAuthorization`. Labelled `v1.2-draft` on every surface; `PROTOCOL_VERSION` stays `1.1.1`. Nothing in the deployed registry stores, serves or revokes a grant. Not issuable. |
 
 ## Planned
 
@@ -89,7 +91,6 @@ Exists in code, unavailable in production.
 | `POST /v1/agents/{id}/assertions` | No root authority key exists to sign an assertion with |
 | `/.well-known/agenid/authorities.json` | Correctly absent — publishing a pin for a nonexistent key would be the worst possible false claim |
 | `@agenid/api` as a running service | Production serves the equivalent routes from `packages/web`; the Fastify server is not deployed anywhere |
-| `POST /api/dns/auto-add` | Neither `CLOUDFLARE_API_TOKEN` nor `GODADDY_API_KEY` is set in production; `/api/dns/detect` gates on their presence, so it is unreachable from the UI |
 | `0002_onboarding_tables.sql` | Written, deliberately unapplied. Wizard-specific state only; the wizard persists to the canonical tables today. |
 | Agent statuses `CHANGED`, `STALE`, `SUSPENDED`, `REVOKED` | The column and enum exist so the envelope shape is stable, but no transition writes them. Every registered agent is `ACTIVE`. |
 
@@ -107,7 +108,7 @@ Nothing is currently deprecated. `_quarantine/` holds removed fabricated stubs f
 
 **Retell fleet onboarding.** `/onboarding/retell` (`noindex`, linked from nothing) collects operator identity and attestations, signs client-side, and batch-registers through `POST /api/retell/bind`, which delegates to the same registration implementation as the public write path.
 
-**Prove domain control.** Publish a `_agenid.<domain>` TXT record, then `POST /api/dns/verify`. This reports evidence of domain control. **It does not and cannot issue L2** — that needs the root key.
+**Prove domain control.** Publish a `_agenid.<domain>` TXT record, then `POST /api/verify-dns` (or use `/verify/domain`, which polls `POST /api/domain/status`). This reports evidence of domain control. **It does not and cannot issue L2** — that needs the root key.
 
 ## Current API surfaces
 
@@ -116,9 +117,8 @@ Full reference, verified live: [docs/api.md](docs/api.md).
 | Route | Status |
 |---|---|
 | `POST /api/v1/agents` · `GET /api/resolve/{agenid}` · `GET /a/{agenid}` · `POST /api/v1/verify` · `GET /api/v1/openapi.json` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` | **Production** |
-| `POST /api/verify-dns` · `POST /api/dns/verify` | Production — two routes, one behavior; one will be removed |
-| `POST /api/dns/detect` | Production, returns `manual` |
-| `POST /api/dns/auto-add` | Implemented, unconfigured |
+| `POST /api/verify-dns` | Production — the one standalone TXT check |
+| `POST /api/domain/status` | Production — provider, record and key-discovery state in one read |
 | `POST /api/retell/declare` · `/bind` · `/agents` | Production |
 | `GET /v1/keys/{key-ulid}` | Production |
 | `POST /v1/agents/{id}/assertions` · `/.well-known/agenid/authorities.json` | **Not deployed** (404) |
@@ -169,13 +169,15 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 4. **The trust root's real ceiling is control of the `agenid.com` zone and the `AgenID-protocol` GitHub org**, not key storage. An attacker controlling either publishes a different pin using none of AgenID's key material.
 5. **Public write endpoints are unauthenticated and unrated.** Every write is signature-verified and self-attributed, but volume is unbounded, and `/api/retell/bind` accepts an unbounded array.
 6. **`packages/web` carries a second registry implementation** mirroring `@agenid/api`'s validation, because `zod` is not resolvable inside `packages/web`. Equivalence is held by test, not by shared code.
-7. **The OpenAPI document covers 4 of 13 deployed routes.**
-8. **`/api/verify-dns` and `/api/dns/verify` are duplicates.**
+7. **`/onboarding/retell` cannot complete a one-click DNS setup.** Its `apply_url` is null until AgenID's Domain Connect service template is registered with providers, so the operator adds the TXT record by hand. This is the correct failure mode — the alternative was a link that 404s on someone else's dashboard — but it is a real gap in that flow.
 9. **Agent lifecycle statuses are stored but never written.** Every agent is `ACTIVE`; there is no revocation or status-change path in production.
 10. **Some content is manually mirrored** — `packages/web/public/schemas/`, `content/partners/` and `content/onboarding.md` are byte-identical twins of their sources, kept in sync by hand.
 11. **`/onboarding/retell` has never been rendered in a browser.** It has been exercised over HTTP and by grepping the shipped JS bundle only.
 12. **A malformed percent-escape is a `500` on a self-hosted `next start`.** `/v1/keys/%ZZ` and `/v1/keys/%` make Next's own parameter decoding throw before the route handler runs, so the raw-target rule never gets to answer them. It cannot be fixed inside a route handler. Production is unaffected: Vercel's edge refuses those targets with its own plain `400 Bad Request` first — verified by sending the raw target directly, since curl will not transmit it.
 13. **A single layer of unreserved-character percent-encoding in a path is invisible on Vercel.** The platform normalizes it away before any application code runs, so this registry cannot tell `/v1/keys/01J8…` from `/v1/keys/%30%31…`. That is RFC 3986 §2.3 equivalence, not an alias — and nothing beyond one layer resolves on any platform — but it does mean a local test cannot prove production's answer for that one spelling.
+14. **No deployment binding exists.** v1.1.1 has no object tying an identity to the runtime it executes on, so presenting a valid identity from an unauthorized deployment is not detectable by the protocol. Found by the first pilot; see [docs/grok-bot-pilot.md](docs/grok-bot-pilot.md).
+15. **No capability or provider object exists.** `platform`, `permissions` and `configuration_fingerprint` are reserved manifest keys that `.strict()` rejects, so what an agent can do — and which vendor actually ships it — cannot be expressed in signed protocol material. The pilot records both as repository evidence, explicitly outside the protocol.
+16. **`evaluateAuthorization` binds the actor only when asked to.** The v1.2-draft evaluator ties the presented agent to the grant's subject only if both `manifest` and `operatorKey` are supplied; omit them and a grant issued for a *different* agent evaluates `PERMITTED`. Pinned by a core test that runs one forged grant both bound and unbound. It needs the treatment `revocationsChecked` already gets — report the gap rather than let it read as a bound decision.
 
 ## Known risks
 
