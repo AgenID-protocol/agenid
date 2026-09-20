@@ -98,8 +98,9 @@ With no Supabase credentials configured, the registry falls back to `MemoryStore
 pnpm -r test                          # all five packages
 pnpm --filter @agenid/core test       # protocol conformance vectors
 pnpm --filter @agenid/web e2e         # builds the site, boots the registry, exercises register → resolve → card → badge
-pnpm run check:docs                   # documentation consistency (links, packages, claims)
+pnpm run check:docs                   # documentation consistency (links, packages, claims, packaging)
 pnpm run check:docs:live              # ...plus every documented endpoint claim against production
+pnpm run check:vectors                # §8 vectors and the five schemas vs AgenID-protocol/spec
 ```
 
 CI runs the full matrix on Node 20, 22, and 24. Tests live in `packages/*/test/` and `packages/*/tests/`.

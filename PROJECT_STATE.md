@@ -20,8 +20,8 @@
 | **Production status** | **PRODUCTION** for registration, resolution, verification cards and badges |
 | **Deployment status** | Vercel, deployed from `main`, root directory `packages/web` |
 | **Last verified** | 2026-09-15, commit `a95928b`, by calling every live endpoint and diffing the served OpenAPI document against the routes |
-| **Test suite** | core **93** (was 54 — the v1.2-draft authorization layer's first suite), api 84, cli 8, mcp-server 4, web +18 pilot tests. Concurrent sessions are actively adding to `web` and `api`; re-count rather than assuming a delta is yours. CI reports the authoritative count for the committed tree. |
-| **CI** | **Green on Node 20, 22 and 24.** Previously red on the Node 20 leg for several commits; root-caused and fixed in `a95928b`. |
+| **Test suite** | **678 passing** — core 99 (93 + the six §8 rejection vectors now driven from the spec fixture), api 84, cli 8, mcp-server 4, web 483. Concurrent sessions are actively adding to `web` and `api`; re-count rather than assuming a delta is yours. CI reports the authoritative count for the committed tree. |
+| **CI** | **Green on Node 20, 22 and 24.** Previously red on the Node 20 leg for several commits; root-caused and fixed in `a95928b`. A second job, `spec-sync`, fails the build if the §8 vector fixture or any of the five JSON Schemas drifts from `AgenID-protocol/spec`. |
 | **npm** | Nothing published. `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server` all 404 on the registry. |
 
 **The honest ceiling: `L1_REGISTERED` is the highest level this deployment can issue, and L1 is a self-declaration.** Every surface renders it amber, never emerald.
@@ -39,7 +39,7 @@ Capabilities that exist in code. Implemented is not the same as deployed, and ne
 | Site, `/issue`, resolver, badges, and the deployed API routes | `@agenid/web` |
 | Browser Ed25519 signer with an independent JCS implementation | `packages/web/lib/client-crypto.ts` |
 | Assertion write path (`POST /v1/agents/:id/assertions`) | `@agenid/api` — **not deployed** |
-| DNS auto-add via Cloudflare and GoDaddy | `packages/web` — **not configured in production** |
+| Domain-control evidence — `POST /api/verify-dns` (real `_agenid.<domain>` TXT lookup) and `POST /api/domain/status` (provider detection, Domain Connect, `.well-known` state) | `packages/web`. **No DNS write path exists:** `/api/dns/auto-add` is deleted, not unconfigured, and AgenID holds no provider credential |
 | Ecosystem registry and validator — 25 platforms, one reviewable JSON file each | `packages/web/data/ecosystem/`, `lib/ecosystem.ts` |
 
 ## Production verified
@@ -77,9 +77,9 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 - An authorization layer: scopes, delegation from a principal, and revocation. See [docs/SECURITY-GAP-ANALYSIS.md](docs/SECURITY-GAP-ANALYSIS.md).
 - OpenAPI coverage for the nine deployed routes it currently omits.
 - `@agenid/adapter-*` packages for the eight documented platforms. Not started.
-- npm publication of `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server`. Scope confirmed unclaimed; the `@agenid` org does not yet exist.
+- npm publication of `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server`. Scope confirmed unclaimed; the `@agenid` org does not yet exist. All three are now *packaged* for it — LICENSE, README and `publishConfig.access` in place, asserted by `check:docs` — and `.github/workflows/release.yml` is a manual, dry-run-by-default publish path. **Nothing is published, and provenance does not exist until a real release produces one:** npm attaches a provenance attestation only from a public repository.
 - Flip this repository public at launch.
-- Go and Rust reference implementations; automated conformance-vector re-sync from the spec.
+- Go and Rust reference implementations.
 - Rendered-browser visual QA and Lighthouse pass; reduced-motion and keyboard navigation confirmed in a real browser.
 
 ## Not deployed

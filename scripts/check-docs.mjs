@@ -13,6 +13,7 @@
  *   node scripts/check-docs.mjs --live   # also verify every endpoint claim against production
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -219,6 +220,82 @@ if (LIVE) {
     fail("OpenAPI check failed", e.message);
   }
 }
+
+// ---------------------------------------------------------------------------
+// 7. No document or environment template presents a DNS provider write credential.
+// ---------------------------------------------------------------------------
+// AgenID holds no write access to an operator's DNS zone, and `POST /api/dns/auto-add`
+// — which did — is deleted rather than left unconfigured. `dns-surface.test.ts` already
+// forbids any SOURCE file under packages/web from reading these variables, but it
+// explicitly excludes tests and never looked at documentation, which is exactly where
+// the claim survived: CONTRIBUTING.md listed all three as configurable and
+// packages/web/.env.example carried a fifteen-line block explaining how to set them,
+// for a route that no longer exists. A reader following either would have provisioned
+// the one credential this product's whole argument is against.
+//
+// Allowlist, not a negation heuristic: two documents are the historical record of the
+// deletion and one file is the guard itself.
+const CRED_ALLOWED = new Set([
+  "docs/api.md",
+  "CHANGELOG.md",
+  "packages/web/test/dns-surface.test.ts",
+  "scripts/check-docs.mjs",
+]);
+const CRED_NAMES = /CLOUDFLARE_API_TOKEN|GODADDY_API_KEY|GODADDY_API_SECRET/;
+const TEXTY = /\.(md|mjs|js|cjs|ts|tsx|json|ya?ml|txt|example)$/;
+/**
+ * The files IN THE REPOSITORY, as git sees them. Enumerating from `git ls-files`
+ * rather than walking the directory keeps ignored local artifacts — build output, a
+ * scratch folder, an agent's delivered report — out of a check about repository
+ * content. A hand-rolled directory walk would re-implement .gitignore badly and fail
+ * on a developer's machine for reasons CI could never reproduce.
+ */
+function repoTextFiles() {
+  try {
+    const listed = execFileSync("git", ["-C", ROOT, "ls-files", "-z"], { encoding: "utf-8", maxBuffer: 32 * 1024 * 1024 });
+    return listed.split("\0").filter((f) => f && TEXTY.test(f));
+  } catch {
+    fail("cannot enumerate repository files", "git ls-files failed; this check needs a git work tree");
+    return [];
+  }
+}
+let credScanned = 0;
+for (const rel of repoTextFiles()) {
+  if (CRED_ALLOWED.has(rel)) continue;
+  credScanned++;
+  const src = readFileSync(join(ROOT, rel), "utf-8");
+  for (const [i, line] of src.split("\n").entries()) {
+    if (CRED_NAMES.test(line)) fail("DNS provider write credential presented as configurable", `${rel}:${i + 1}`);
+  }
+}
+pass(`no DNS provider write credential in ${credScanned} scanned files`);
+
+// ---------------------------------------------------------------------------
+// 8. Every package declared for npm publication is actually publishable.
+// ---------------------------------------------------------------------------
+// A manifest that names a file it does not ship is a claim like any other. All three
+// of these declared `files: ["dist", "README.md"]`; two had no README.md, none had a
+// LICENSE (npm only picks one up from the PACKAGE directory, never the repo root), and
+// two lacked `publishConfig.access`, which makes `npm publish` fail or publish private.
+//
+// @agenid/api is deliberately absent: it carries publish metadata but appears in no
+// publication plan, and whether it ships is an open decision, not a defect to assert.
+const PUBLISHABLE = ["core", "cli", "mcp-server"];
+for (const dir of PUBLISHABLE) {
+  const base = join(ROOT, "packages", dir);
+  const pkg = JSON.parse(readFileSync(join(base, "package.json"), "utf-8"));
+  if (pkg.private) fail("declared publishable but marked private", pkg.name);
+  if (pkg.publishConfig?.access !== "public") {
+    fail("scoped package without publishConfig.access", `${pkg.name} — npm publish defaults to restricted`);
+  }
+  if (!existsSync(join(base, "LICENSE"))) {
+    fail("no LICENSE in the package directory", `${pkg.name} — the root LICENSE is not included in the tarball`);
+  }
+  for (const f of pkg.files ?? []) {
+    if (!existsSync(join(base, f))) fail("manifest declares a file it does not ship", `${pkg.name} -> ${f}`);
+  }
+}
+pass(`${PUBLISHABLE.length} publishable packages ship a LICENSE, a README and every declared file`);
 
 // ---------------------------------------------------------------------------
 console.log(checks.map((c) => `  ok  ${c}`).join("\n"));

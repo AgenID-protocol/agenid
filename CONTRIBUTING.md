@@ -34,8 +34,9 @@ Never commit a secret. `.env*` is gitignored; `packages/api/.env.example` and `p
 | `AGENID_API_URL`, `AGENID_API_BASE_URL` | web | Registry the web resolver reads from |
 | `NEXT_PUBLIC_SITE_URL` | web | Canonical site origin |
 | `AGENID_AUTHORITY_TOKEN` | api | Authorization for the assertion write path (not deployed) |
-| `CLOUDFLARE_API_TOKEN`, `GODADDY_API_KEY`, `GODADDY_API_SECRET` | web | Optional DNS auto-add. **Unset in production**, and `/api/dns/detect` gates on their presence, so the feature is never advertised where it cannot run. |
 | `PORT`, `HOST` | api | Standalone registry server |
+
+AgenID holds **no DNS provider write credential**, by decision rather than by omission. `POST /api/dns/auto-add` held one and is deleted, not left unconfigured — see [docs/api.md](docs/api.md). Domain control is proved by a TXT record the operator publishes at their own provider (`POST /api/verify-dns`) or authorizes through Domain Connect (`POST /api/domain/status`). `packages/web/test/dns-surface.test.ts` fails the build if any source file under `packages/web` reads a provider credential or calls a provider's write API, the whole `/api/dns` namespace must stay empty, and `scripts/check-docs.mjs` fails if any document or environment template presents such a credential as configurable.
 
 ## Database
 
@@ -94,7 +95,11 @@ If a claim is about the product's capability, it must trace back to an implement
 
 ## Publishing
 
-Nothing is published to npm yet, and publishing is a deliberate, separately-authorized action. Before any npm work, confirm the root `"private": true` guard is intact.
+**Nothing is published to npm.** `@agenid/core`, `@agenid/cli` and `@agenid/mcp-server` all return 404 on the registry today. Publishing is a deliberate, separately-authorized action; before any npm work, confirm the root `"private": true` guard is intact.
+
+The three packages are *packaged* for publication — each ships its own `LICENSE` (npm never picks one up from the repository root) and `README.md`, and declares `publishConfig.access: public`, without which a scoped `npm publish` fails or publishes privately. `pnpm run check:docs` asserts all three, so a package cannot quietly stop being publishable.
+
+`.github/workflows/release.yml` is the release path: `workflow_dispatch` only, one package per run, `dry_run: true` by default, and it refuses to ship a tarball that carries no LICENSE or README. It requests `id-token: write` so `npm publish --provenance` can attach an attestation — but **npm only attaches provenance from a public repository**, so no document may claim provenance exists until an actual release has produced one. A first publish needs a granular token in `secrets.NPM_TOKEN`; once each package exists on npm, link it to the workflow there and drop the token in favour of trusted publishing.
 
 ## Conformance
 
