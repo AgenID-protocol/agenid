@@ -239,6 +239,18 @@ describe("T-4 — no public surface claims a capability this deployment does not
     }
   });
 
+  it("lets the terminal demo show its own commands instead of clipping them", () => {
+    // Not a link or an availability claim, but the same failure mode: a surface that
+    // does not deliver what it says it delivers. The honest commands are long enough to
+    // run off the card, and a clipped command with a scrollbar under it means the reader
+    // never reaches the output the demo exists to show. Found by watching it, not by a
+    // test — so it gets a test.
+    const term = read(path.join("components", "Terminal.tsx"));
+    const pre = term.match(/<pre className="([^"]+)"/);
+    expect(pre, "the terminal's <pre> did not parse").not.toBeNull();
+    expect(pre![1], "the terminal must wrap long commands").toMatch(/whitespace-pre-wrap/);
+  });
+
   it("describes the absent agent directory as absent, not as pending", () => {
     const trust = read(TRUST);
     expect(trust, "'…no directory yet' reads as a roadmap for something nobody is building").not.toMatch(

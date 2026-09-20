@@ -72,7 +72,17 @@ export function Terminal() {
         <span className="h-2.5 w-2.5 rounded-full bg-mint/70" />
         <span className="ml-3 font-mono text-[11px] text-muted">agenid — zsh</span>
       </div>
-      <pre className="min-h-[220px] overflow-x-auto p-4 font-mono text-[12.5px] leading-relaxed text-paper/90" aria-live="polite">
+      {/*
+        FOUND BY A RENDERED-BROWSER PASS, NOT BY A TEST. The demo's commands used to be
+        short (`npm install @agenid/core`), so nothing ever reached the panel's right
+        edge. The honest replacements are real curl invocations and they do: with
+        `overflow-x-auto` alone the command typed itself off the edge of the card and
+        parked a horizontal scrollbar under it, so a reader saw a clipped command and
+        never reached the output — which is the part that carries the argument. Wrapping
+        is the fix, not shorter commands: a command trimmed to fit this card at this
+        breakpoint is one viewport away from clipping again.
+      */}
+      <pre className="min-h-[220px] overflow-x-auto whitespace-pre-wrap break-words p-4 font-mono text-[12.5px] leading-relaxed text-paper/90" aria-live="polite">
         {lines.map((l, i) => (
           <div key={i} className={l.t === "cmd" ? "text-paper" : "text-muted"}>
             {l.t === "cmd" ? <span className="text-mint">$ </span> : "  "}
