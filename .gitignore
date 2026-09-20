@@ -6,3 +6,9 @@ dist/
 _quarantine/
 .vercel
 .env*
+
+# Local agent tooling and delivered reports. Ignored at the repository level so the
+# rule travels with a clone: today these are excluded only by a personal global
+# gitignore on one machine, which no contributor inherits.
+.claude/
+Claude outputs/
