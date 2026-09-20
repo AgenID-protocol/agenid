@@ -159,6 +159,7 @@ Stated plainly, because a trust product that hides these is not a trust product:
 | [docs/threat-model.md](docs/threat-model.md) | Adversaries, assumptions, what the protocol defends against, and what it does not |
 | [docs/api.md](docs/api.md) | Endpoint reference, request and response shapes, error codes, deployment status |
 | [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md) | End-to-end operator walkthrough |
+| [docs/ECOSYSTEM-LOGO-REGISTRY.md](docs/ECOSYSTEM-LOGO-REGISTRY.md) | The registry behind every third-party name on the site: statuses, evidence rules, asset policy, and the tests that keep compatibility from reading as partnership |
 | [SECURITY.md](SECURITY.md) | Reporting process, security model, and the standing rules this project enforces by test |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Environment, workflow, review bar, commit conventions |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |

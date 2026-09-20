@@ -18,9 +18,15 @@ describe("ecosystem registry", () => {
   });
 
   it("enforces the honesty contract: verified/partner must agree with status", () => {
+    // Asserted against the status table, not against `status !== "compatible"`. That
+    // expression is the exact one lib/ecosystem.ts documents as unsafe: it silently
+    // became wrong when "planned" was added — planned is neither compatible nor
+    // verified — and only kept passing because no entry occupies that status. A test
+    // that agrees with the code only by coincidence is not checking the code.
     for (const e of getEcosystem()) {
-      expect(e.verified).toBe(e.status !== "compatible");
-      expect(e.partner).toBe(e.status === "official-partner");
+      const expected = ECOSYSTEM_STATUSES[e.status];
+      expect(e.verified, `${e.id}`).toBe(expected.verified);
+      expect(e.partner, `${e.id}`).toBe(expected.partner);
     }
   });
 

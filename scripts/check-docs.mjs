@@ -29,6 +29,7 @@ const DOCS = [
   "docs/trust-model.md",
   "docs/threat-model.md",
   "docs/api.md",
+  "docs/ECOSYSTEM-LOGO-REGISTRY.md",
 ];
 
 const failures = [];

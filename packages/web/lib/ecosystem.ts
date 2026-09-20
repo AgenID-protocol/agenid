@@ -43,6 +43,15 @@ import path from "node:path";
  * what makes adding a fourth status safe: an expression like
  * `verified === (status !== "compatible")` silently becomes wrong the moment a status is
  * added that is neither compatible nor verified, which is precisely what "planned" is.
+ *
+ * EVIDENCE IS A REQUIRED MEMBER OF ANY STATUS THAT CLAIMS SOMETHING HAPPENED. Raising
+ * an entry above "compatible" asserts a fact about the world — AgenID ran the
+ * integration, or a partnership is on record — and this project's own history is a list
+ * of claims that were asserted without being computed. So `requiresEvidence` is read out
+ * of the status table exactly like `verified` and `partner`, and the validator refuses
+ * the entry rather than trusting the commit message. "Evidence in the same commit" was
+ * previously a convention written in this comment; a rule that lives only in a comment
+ * gets re-broken by the next author.
  */
 
 export const ECOSYSTEM_CATEGORIES = [
@@ -63,6 +72,11 @@ export type EcosystemCategory = (typeof ECOSYSTEM_CATEGORIES)[number]["id"];
  * The four statuses, each carrying the flag values an entry claiming it must have.
  * `rank` is presentation order, weakest claim first — never a sort by "importance",
  * which is how a list starts flattering itself.
+ *
+ * `requiresEvidence` names the statuses whose entries must cite what makes the claim
+ * true. "planned" is exempt because it carries no technical claim at all, and
+ * "compatible" because its evidence IS `compatibility_note` — the documented API
+ * surface, which the validator already requires to be substantive.
  */
 export const ECOSYSTEM_STATUSES = {
   planned: {
@@ -72,6 +86,7 @@ export const ECOSYSTEM_STATUSES = {
       "AgenID intends to support this and does not yet. This is a statement of intent with no technical claim attached — nothing works today. Not asserted for any entry yet.",
     verified: false,
     partner: false,
+    requiresEvidence: false,
     rank: 0,
   },
   compatible: {
@@ -81,6 +96,7 @@ export const ECOSYSTEM_STATUSES = {
       "Identity can be carried through this platform today using its existing, documented API surface. No AgenID-specific code is required from the platform, and none is claimed to exist.",
     verified: false,
     partner: false,
+    requiresEvidence: false,
     rank: 1,
   },
   "verified-integration": {
@@ -90,6 +106,7 @@ export const ECOSYSTEM_STATUSES = {
       "AgenID has executed the integration end to end and published the result. Not asserted for any entry yet.",
     verified: true,
     partner: false,
+    requiresEvidence: true,
     rank: 2,
   },
   "official-partner": {
@@ -99,6 +116,7 @@ export const ECOSYSTEM_STATUSES = {
       "A partnership is on record with the platform. Not asserted for any entry yet.",
     verified: true,
     partner: true,
+    requiresEvidence: true,
     rank: 3,
   },
 } as const;
@@ -142,6 +160,18 @@ export type EcosystemEntry = {
   name: string;
   /** 1-3 character monochrome mark used in the hub network and grid tiles. */
   abbr: string;
+  /**
+   * Other brand names this same platform is publicly known by — a product name where
+   * `name` is the company, or the reverse. Never rendered; `name` is the one display
+   * form, and a second rendered label is a second thing to keep true.
+   *
+   * These exist so a brand name written anywhere in the product resolves to the entry
+   * that governs it. "Claude" and "Anthropic" are one platform and one set of claims;
+   * without the mapping, prose naming the product reads as a vendor no registry entry
+   * covers, which is precisely the state this registry exists to make impossible.
+   * Globally unique across the registry, so a name can never resolve two ways.
+   */
+  aliases?: string[];
   category: EcosystemCategory;
   description: string;
   website: string;
@@ -166,6 +196,16 @@ export type EcosystemEntry = {
   logo_svg?: string;
   /** Optional link to a written integration brief on this site. */
   docs?: string;
+  /**
+   * What makes a claim above "compatible" true — a commit, a run, a published result,
+   * an executed agreement. REQUIRED by the validator on any status whose table entry
+   * sets `requiresEvidence`, and meaningless on the others, where it must be absent.
+   *
+   * This is not a link field and is deliberately not validated as a URL: the honest
+   * answer is sometimes "AgenID ran the end-to-end flow on <date>, recorded at <path>",
+   * which no URL check would accept and no reviewer should have to reword.
+   */
+  evidence?: string;
 };
 
 const REGISTRY_DIR = path.join(process.cwd(), "data", "ecosystem");
@@ -175,7 +215,7 @@ const CATEGORY_IDS = ECOSYSTEM_CATEGORIES.map((c) => c.id) as readonly string[];
 const ALLOWED_KEYS = new Set([
   "id", "name", "abbr", "category", "description", "website", "status", "integration_type",
   "verified", "partner", "last_verified", "compatibility_note", "capabilities", "featured",
-  "logo_svg", "docs",
+  "logo_svg", "docs", "evidence", "aliases",
 ]);
 
 function fail(file: string, msg: string): never {
@@ -229,6 +269,18 @@ export function validateEntry(raw: unknown, file = "<inline>"): EcosystemEntry {
     fail(file, `"partner" must be ${expected.partner} for status "${status}"`);
   }
 
+  // Evidence, read out of the same table for the same reason. A status that claims
+  // something happened must say what happened; a status that claims nothing must not
+  // carry a field that looks like proof of something.
+  if (expected.requiresEvidence) {
+    const v = o.evidence;
+    if (typeof v !== "string" || v.trim().length < 20) {
+      fail(file, `"evidence" is required for status "${status}" and must name what makes the claim true`);
+    }
+  } else if (o.evidence !== undefined) {
+    fail(file, `"evidence" is meaningless for status "${status}" — remove it or raise the status`);
+  }
+
   const last_verified = str("last_verified", DATE_RE);
   if (Number.isNaN(Date.parse(`${last_verified}T00:00:00Z`))) fail(file, `"last_verified" is not a real date`);
 
@@ -279,6 +331,28 @@ export function validateEntry(raw: unknown, file = "<inline>"): EcosystemEntry {
     entry.logo_svg = p;
   }
   if (o.docs !== undefined) entry.docs = str("docs");
+  if (o.evidence !== undefined) entry.evidence = str("evidence");
+
+  if (o.aliases !== undefined) {
+    const a = o.aliases;
+    if (!Array.isArray(a) || a.length === 0) fail(file, `"aliases" must be a non-empty array`);
+    if (a.length > 4) fail(file, `"aliases" must be at most 4 — this is a name map, not a keyword list`);
+    for (const v of a) {
+      if (typeof v !== "string" || v.trim().length < 2) fail(file, `every alias must be a real brand name`);
+      if (v === entry.name) fail(file, `"aliases" must not repeat "name"`);
+    }
+    if (new Set(a as string[]).size !== a.length) fail(file, `"aliases" contains a duplicate`);
+    entry.aliases = a as string[];
+  }
+
+  // A roadmap entry may not appear in the homepage graphic. `featured` is what promotes
+  // an entry into the cloud, and "Planned" rendered among platforms that actually work
+  // is read as one more logo — the reader does not parse the badge, they count the
+  // marks. Keeping planned entries out of the graphic is why the status is safe to
+  // define at all.
+  if (entry.featured && entry.status === "planned") {
+    fail(file, `"planned" entries must not be featured — a roadmap item does not belong in the ecosystem graphic`);
+  }
 
   return entry;
 }
@@ -302,9 +376,39 @@ export function getEcosystem(): EcosystemEntry[] {
     entries.push(entry);
   }
 
+  // A brand name must resolve to exactly one entry, or "which claims govern this
+  // platform" has two answers.
+  const names = new Map<string, string>();
+  for (const e of entries) {
+    for (const n of [e.name, ...(e.aliases ?? [])]) {
+      const key = n.toLowerCase();
+      const prior = names.get(key);
+      if (prior) fail(`${e.id}.json`, `"${n}" already resolves to "${prior}"`);
+      names.set(key, e.id);
+    }
+  }
+
   const order = (c: EcosystemCategory) => CATEGORY_IDS.indexOf(c);
   entries.sort((a, b) => order(a.category) - order(b.category) || a.name.localeCompare(b.name));
   return (cache = entries);
+}
+
+/**
+ * The registry entry that governs a brand name, or null.
+ *
+ * Matches a name, an alias, or a name that contains the term as a whole word — so
+ * "Grok" resolves to "xAI Grok" and "Azure" to "Microsoft Azure" without either needing
+ * an alias. Exported because it is the only sanctioned way to ask "does the registry
+ * cover this vendor": anything else is a second, looser name table.
+ */
+export function resolvePlatformName(term: string): EcosystemEntry | null {
+  const t = term.trim().toLowerCase();
+  if (!t) return null;
+  const all = getEcosystem();
+  const exact = all.find((e) => [e.name, ...(e.aliases ?? [])].some((n) => n.toLowerCase() === t));
+  if (exact) return exact;
+  const word = new RegExp(`(^|\\s)${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|\\s)`, "i");
+  return all.find((e) => word.test(e.name)) ?? null;
 }
 
 export function getFeatured(): EcosystemEntry[] {

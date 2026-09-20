@@ -2,6 +2,7 @@
   "id": "anthropic",
   "name": "Anthropic",
   "abbr": "An",
+  "aliases": ["Claude"],
   "category": "models",
   "description": "Claude model family and Agent SDK",
   "website": "https://www.anthropic.com",
