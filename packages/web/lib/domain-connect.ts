@@ -7,10 +7,12 @@
  * making them type it:
  *
  *   (a) AgenID holds a Cloudflare/GoDaddy API credential and writes the record itself.
- *       That is what `app/api/dns/auto-add/route.ts` implements. It means AgenID holds
- *       write access to *customers'* DNS zones — the highest-blast-radius credential a
- *       company can hold, on a product whose entire value is that it does not ask you
- *       to trust it.
+ *       That is what `app/api/dns/auto-add/route.ts` used to implement; it has since
+ *       been DELETED rather than left unconfigured, because a credential-holding write
+ *       path sitting in the tree invites a future session to "finish" it. It means
+ *       AgenID holds write access to *customers'* DNS zones — the highest-blast-radius
+ *       credential a company can hold, on a product whose entire value is that it does
+ *       not ask you to trust it.
  *
  *   (b) Domain Connect: the operator is sent to their OWN DNS provider, already signed
  *       in, sees the exact records that will be written, and authorizes them there.

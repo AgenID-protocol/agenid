@@ -31,8 +31,8 @@ Protocol v1.1.1 + errata E1/E2.
 |---|---|---|
 | `POST /api/v1/agents`, `POST /api/retell/declare` | 30 | 60s |
 | `POST /api/retell/bind` | 10 | 60s |
-| `POST /api/retell/agents`, `POST /api/dns/auto-add` | 12 | 60s |
-| `POST /api/domain/status`, `POST /api/dns/detect`, `POST /api/dns/verify`, `POST /api/verify-dns` | 40 | 60s |
+| `POST /api/retell/agents` | 12 | 60s |
+| `POST /api/domain/status`, `POST /api/verify-dns` | 40 | 60s |
 | `POST /api/v1/verify` | 240 | 60s |
 
 Limits are per client, per window, and are **abuse bounds rather than quotas** — they are set well clear of legitimate use, including the 10/min that `/verify/domain` itself polls at.
@@ -70,10 +70,8 @@ The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin 
 | GET | `/api/v1/openapi.json` | **Production** |
 | GET | `/badge/{agenid}/shield.svg` | **Production** |
 | GET | `/badge.js` | **Production** |
-| POST | `/api/verify-dns` | **Production** (duplicate of the next row) |
-| POST | `/api/dns/verify` | **Production** (duplicate of the previous row) |
-| POST | `/api/dns/detect` | **Production**, returns `manual` — no provider credential is configured |
-| POST | `/api/dns/auto-add` | Implemented, **unconfigured in production**; unreachable from the UI because `detect` gates it |
+| POST | `/api/verify-dns` | **Production** — the one standalone TXT check |
+| POST | `/api/domain/status` | **Production** — provider detection, record state and key-discovery state in one read |
 | POST | `/api/retell/declare` | **Production** |
 | POST | `/api/retell/bind` | **Production** |
 | POST | `/api/retell/agents` | **Production** |
@@ -246,13 +244,17 @@ Generated at request time from the canonical trust-presentation module, so the b
 
 ## DNS endpoints
 
-`POST /api/verify-dns` and `POST /api/dns/verify` perform a real `_agenid.<domain>` TXT lookup against a caller-supplied per-domain token, joining chunked TXT records. On a match they report `proves: "domain_control"`.
+`POST /api/verify-dns` performs a real `_agenid.<domain>` TXT lookup against a caller-supplied per-domain token, joining chunked TXT records. On a match it reports `proves: "domain_control"`.
+
+It is the **only** standalone TXT check. `POST /api/dns/verify` was a byte-for-byte copy of it and is deleted; both now share one probe in `packages/web/lib/dns-probe.ts`. The two copies had already drifted — only `/api/verify-dns` carried the domain-control disclosure — which is why the disclosure is now a shared constant rather than per-route prose.
 
 **Domain control is evidence, never a level.** These endpoints cannot return a verification level: issuing `L2_DOMAIN_VERIFIED` requires a signed assertion from a root authority key that does not exist.
 
-`POST /api/dns/detect` recommends a provider only when that provider's credential is present in the environment. In production neither is, so it returns `recommended: "manual"`. `POST /api/dns/auto-add` writes the TXT record via Cloudflare or GoDaddy and is **unconfigured in production**.
+`POST /api/domain/status` returns provider detection, one-click availability, TXT record state and the operator's `.well-known` key-document state from a **single** read, so the surface cannot display a combination of states that never coexisted. It replaced `POST /api/dns/detect`, which did its own spec-literal Domain Connect discovery with no GoDaddy fallback and therefore disagreed with this route about whether the same domain supported one-click.
 
-Errors: `invalid_domain`, `invalid_token`, `invalid_provider`, `dns_error`, `dns_write_failed`, `provider_error`, `upstream_unreachable`.
+**`POST /api/dns/auto-add` is deleted, deliberately and permanently.** It held a Cloudflare or GoDaddy API credential and wrote to the operator's zone. AgenID does not hold write access to customers' DNS zones — that is the credential this product's whole argument is against — and the architecture decision was made in favour of Domain Connect, where the operator authorizes the record at their own provider. A test forbids any source file in `packages/web` from reading a DNS provider credential or calling a provider's write API.
+
+Errors: `invalid_domain`, `invalid_token`, `invalid_json`, `dns_error`.
 
 ---
 
@@ -367,10 +369,11 @@ The envelope carries its own `agenid_envelope_version: "1.0"`.
 
 Stated rather than papered over:
 
-1. **The OpenAPI document covers 4 of the 15 deployed routes** (`GET /v1/keys/{key-ulid}` and its query form are the newest omissions). The Retell and DNS routes are absent, so the machine-readable contract understates both the real capability and the real public attack surface.
-2. **`/api/verify-dns` and `/api/dns/verify` are two routes performing one check.** One will be removed; do not build against both.
+Both gaps previously listed here are closed.
 
-Both are tracked as open queue items and will be fixed together, since the first determines what the second should say.
+**The OpenAPI document now covers every deployed route**, and the correspondence is enforced in both directions by `packages/web/test/dns-surface.test.ts`: a route handler with no documented path fails the suite, and so does a documented path with no handler. The older half of that rule — never document a route that does not exist — was always enforced by review; the newer half exists because omission is a claim too. A contract describing 4 of 13 routes told a security reviewer that two unauthenticated write paths, a credential-forwarding proxy and two outbound DNS amplifiers did not exist.
+
+**The duplicate TXT-check route is removed.** `/api/verify-dns` is the survivor.
 
 ---
 

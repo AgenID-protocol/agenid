@@ -16,14 +16,18 @@
  * route never returns one — there is no root authority key in existence, so no level
  * above L1 is issuable by anything in this system today.
  */
-import { resolveCname, resolveNs, resolveTxt } from "node:dns/promises";
 import { isValidHostname } from "@agenid/core";
+import {
+  DOMAIN_CONTROL_DISCLOSURES,
+  PROBE_TIMEOUT_MS,
+  probeProvider,
+  probeTxtRecord,
+} from "@/lib/dns-probe";
 import {
   applyUrlFor,
   fallbackSettingsHost,
   templateIsRegistered,
   usableSyncUx,
-  verificationRecord,
   type DomainConnectSettings,
 } from "@/lib/domain-connect";
 import { SITE_URL } from "@/lib/api";
@@ -35,9 +39,6 @@ export const runtime = "nodejs";
 const HEADERS = { "content-type": "application/json" };
 const json = (body: unknown, status: number, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...HEADERS, ...extra } });
-
-/** Bound every outbound probe: this route is polled, and a hung provider must not hang it. */
-const PROBE_TIMEOUT_MS = 4000;
 
 async function fetchSettings(host: string, domain: string): Promise<DomainConnectSettings | null> {
   const ctrl = new AbortController();
@@ -107,29 +108,13 @@ export async function POST(req: Request) {
     return json({ error: "invalid_token", message: "`token` must be >= 16 characters" }, 400, rlh);
   }
 
-  const record = verificationRecord(domain, token);
-
   // --- provider detection -------------------------------------------------
-  let dcHost: string | null = null;
-  try {
-    const cnames = await resolveCname(`_domainconnect.${domain}`);
-    dcHost = cnames[0] ?? null;
-  } catch {
-    // ENOTFOUND / ENODATA — provider does not support Domain Connect.
-  }
-
-  let nameservers: string[] = [];
-  try {
-    nameservers = await resolveNs(domain);
-  } catch {
-    // No NS records reachable — the domain may not exist yet.
-  }
-  const nsLower = nameservers.map((n) => n.toLowerCase());
-  const providerName = nsLower.some((n) => n.endsWith(".ns.cloudflare.com"))
-    ? "Cloudflare"
-    : nsLower.some((n) => n.endsWith(".domaincontrol.com"))
-      ? "GoDaddy"
-      : null;
+  // Shared with /api/verify-dns via lib/dns-probe. The route that used to do this
+  // separately (/api/dns/detect) did spec-literal Domain Connect discovery with no
+  // GoDaddy fallback, so the two endpoints disagreed about whether the same domain
+  // supported one-click. One probe, one answer.
+  const provider = await probeProvider(domain);
+  const { nameservers, domainConnectHost: dcHost, name: providerName } = provider;
 
   let settings = dcHost ? await fetchSettings(dcHost, domain) : null;
   if (dcHost && !settings) {
@@ -156,19 +141,16 @@ export async function POST(req: Request) {
         : null;
 
   // --- DNS record state ---------------------------------------------------
-  let txtFound = false;
-  let txtMatched = false;
-  let txtCount = 0;
-  try {
-    const records = await resolveTxt(`_agenid.${domain}`);
-    const values = records.map((chunks) => chunks.join(""));
-    txtCount = values.length;
-    txtFound = values.length > 0;
-    txtMatched = values.some((v) => v.trim() === record.value);
-  } catch {
-    // ENOTFOUND / ENODATA — not published yet. This is the normal starting state and is
-    // never an error: an absent record means "not yet", not "failed".
-  }
+  // A resolver failure is folded into "pending" here, unlike /api/verify-dns, which
+  // returns 502. That difference is deliberate and is the only thing the two surfaces
+  // do differently with the same probe result: an absent OR unreachable record means
+  // "not yet" to a status screen that will ask again in six seconds, and it is never a
+  // failure state.
+  const txt = await probeTxtRecord(domain, token);
+  const record = txt.record;
+  const txtFound = txt.found;
+  const txtMatched = txt.matched;
+  const txtCount = txt.count;
 
   const wellKnown = await probeWellKnown(domain);
 
@@ -205,11 +187,7 @@ export async function POST(req: Request) {
       },
       domain_control: txtMatched,
       proves: txtMatched ? "domain_control" : null,
-      disclosures: [
-        "Domain control is evidence, not a verification level. It does not by itself raise an agent above L1.",
-        "No verification level is issued by this endpoint under any outcome.",
-        "L2_DOMAIN_VERIFIED requires an assertion signed by the root authority key, which does not exist yet.",
-      ],
+      disclosures: DOMAIN_CONTROL_DISCLOSURES,
     },
     200,
     rlh,

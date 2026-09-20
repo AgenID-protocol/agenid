@@ -194,7 +194,7 @@ Two constraints learned the hard way, both from defects that reached the reposit
 | Supabase Postgres | Production registry store | Writes return `503 registry_unavailable` and **nothing is stored**; reads return `503` meaning *status unknown, not disproven*. Already-distributed envelopes are unaffected — they re-verify offline. |
 | Vercel | Hosting for `packages/web` | Site and API unavailable. Availability, not trust. |
 | DNS (`_agenid.<domain>` TXT) | Domain-control evidence | `dns_error`; reported as evidence, never as a level |
-| Cloudflare / GoDaddy DNS APIs | Optional TXT auto-add | **Unconfigured in production**; `/api/dns/detect` gates on credential presence so the feature is never advertised where it cannot run |
+| Cloudflare / GoDaddy DNS APIs | — | **Not used, by decision.** The credential-holding auto-add path is deleted, not unconfigured: AgenID does not hold write access to customers' DNS zones. One-click provisioning goes through Domain Connect, where the operator authorizes the record at their own provider. Test-enforced. |
 | Retell API | One read-only call with a caller-supplied key | `retell_unauthorized` / `retell_error`; key used once, never stored |
 
 **No external dependency can raise a verification level.** That is the point of listing them.

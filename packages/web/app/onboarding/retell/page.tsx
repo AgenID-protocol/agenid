@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { generateKeyPair, signAgentFleet, hexEncode, type ClientKeyPair, type AgentBinding } from "@/lib/client-crypto";
+import { verificationRecord } from "@/lib/domain-connect";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -12,13 +13,20 @@ interface RetellAgent {
   agent_name: string | null;
 }
 
+/**
+ * The provider half of POST /api/domain/status. This wizard used to call a separate
+ * /api/dns/detect, which did its own spec-literal Domain Connect discovery and so
+ * disagreed with /api/domain/status about GoDaddy-hosted domains. One endpoint now.
+ */
 interface DnsCapabilities {
+  name: string | null;
+  nameservers: string[];
   domain_connect: boolean;
   domain_connect_host: string | null;
-  cloudflare: boolean;
-  godaddy: boolean;
-  nameservers: string[];
-  recommended: "domain_connect" | "cloudflare" | "godaddy" | "manual";
+  provider_name: string | null;
+  /** Non-null only when the operator can actually complete a one-click flow. */
+  apply_url: string | null;
+  reason: "no_domain_connect" | "no_sync_ux" | "template_unregistered" | null;
 }
 
 interface BindResult {
@@ -112,7 +120,6 @@ export default function RetellOnboardingWizard() {
   const [dnsToken] = useState(() => generateDnsToken());
   const [capabilities, setCapabilities] = useState<DnsCapabilities | null>(null);
   const [detecting, setDetecting] = useState(false);
-  const [autoAdding, setAutoAdding] = useState(false);
   const [dnsVerified, setDnsVerified] = useState(false);
   const [dnsCheckCount, setDnsCheckCount] = useState(0);
 
@@ -171,20 +178,20 @@ export default function RetellOnboardingWizard() {
     setCapabilities(null);
     setError("");
     try {
-      const res = await fetch("/api/dns/detect", {
+      const res = await fetch("/api/domain/status", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ domain }),
+        body: JSON.stringify({ domain, token: dnsToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "DNS detection failed");
-      setCapabilities(data.capabilities);
+      setCapabilities(data.provider);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setDetecting(false);
     }
-  }, [domain]);
+  }, [domain, dnsToken]);
 
   const domainTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
@@ -194,33 +201,24 @@ export default function RetellOnboardingWizard() {
     return () => clearTimeout(domainTimerRef.current);
   }, [domain, step, handleDetectDns]);
 
-  const handleAutoAdd = useCallback(
-    async (provider: "cloudflare" | "godaddy") => {
-      setAutoAdding(true);
-      setError("");
-      try {
-        const res = await fetch("/api/dns/auto-add", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ domain, token: dnsToken, provider }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Auto-add failed");
-        setTimeout(() => handleVerifyDns(), 3000);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setAutoAdding(false);
-      }
-    },
-    [domain, dnsToken],
-  );
-
+  /**
+   * There is deliberately no auto-add handler here any more.
+   *
+   * It posted to /api/dns/auto-add, which held a Cloudflare or GoDaddy API credential
+   * and wrote to the operator's DNS zone on their behalf. That route is deleted: a
+   * trust vendor holding zone-edit access across its customer base is the exact thing
+   * this product exists to argue against, and the architecture decision was made
+   * against it in 1806e54 when /verify/domain shipped Domain Connect instead. Under
+   * Domain Connect the operator authorizes the record at their own provider and AgenID
+   * holds no credential at all. The one-click path for this wizard is `apply_url` from
+   * /api/domain/status, which is null until the service template is registered.
+   */
   const handleVerifyDns = useCallback(async () => {
     setLoading(true);
     setError("");
     setDnsCheckCount((c) => c + 1);
     try {
-      const res = await fetch("/api/dns/verify", {
+      const res = await fetch("/api/verify-dns", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ domain, token: dnsToken }),
@@ -230,7 +228,7 @@ export default function RetellOnboardingWizard() {
         setDnsVerified(true);
         setStep(3);
       } else if (data.found && !data.matched) {
-        setError(`TXT record found at ${data.host} but value does not match. Ensure the record contains: agenid-site-verification=${dnsToken}`);
+        setError(`TXT record found at ${data.host} but value does not match. Ensure the record contains: ${verificationRecord(domain, dnsToken).value}`);
       } else {
         setError(`No TXT record found at _agenid.${domain}. DNS propagation can take up to 5 minutes.`);
       }
@@ -238,7 +236,6 @@ export default function RetellOnboardingWizard() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
-      setAutoAdding(false);
     }
   }, [domain, dnsToken]);
 
@@ -408,31 +405,35 @@ export default function RetellOnboardingWizard() {
 
               {capabilities && !detecting && (
                 <div className="space-y-3">
-                  {(capabilities.recommended === "cloudflare" || capabilities.recommended === "godaddy") && (
-                    <button
-                      onClick={() => handleAutoAdd(capabilities.recommended as "cloudflare" | "godaddy")}
-                      disabled={autoAdding}
+                  {/*
+                    The one-click button renders only when the operator can actually
+                    complete the flow at their own provider. `apply_url` is non-null
+                    only once AgenID's Domain Connect service template is registered
+                    with providers; until then this is deliberately absent rather than
+                    a link that 404s on someone else's dashboard, where we cannot fix
+                    it or even see it.
+                  */}
+                  {capabilities.apply_url && (
+                    <a
+                      href={capabilities.apply_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="btn btn-primary w-full"
                     >
-                      {autoAdding ? (
-                        <><Spinner /> Adding DNS Record via {capabilities.recommended === "cloudflare" ? "Cloudflare" : "GoDaddy"}...</>
-                      ) : (
-                        `1-Click Auto-Add DNS Record (${capabilities.recommended === "cloudflare" ? "Cloudflare" : "GoDaddy"})`
-                      )}
-                    </button>
+                      Add the record at {capabilities.provider_name ?? "your DNS provider"}
+                    </a>
                   )}
 
                   <div className="text-xs text-muted space-y-1">
                     <div>Nameservers: {capabilities.nameservers.slice(0, 2).join(", ") || "unknown"}</div>
                     <div className="flex gap-2 flex-wrap">
-                      {capabilities.cloudflare && <span className="pill pill-ok">Cloudflare</span>}
-                      {capabilities.godaddy && <span className="pill pill-ok">GoDaddy</span>}
-                      {capabilities.domain_connect && (
-                        <span className="pill" title="Detected on this domain. AgenID has no Domain Connect implementation — add the record manually.">
-                          Domain Connect detected &middot; manual setup
+                      {capabilities.name && <span className="pill pill-ok">{capabilities.name}</span>}
+                      {capabilities.domain_connect && !capabilities.apply_url && (
+                        <span className="pill" title="Your provider supports Domain Connect. AgenID's service template is not registered with providers yet, so add the record manually for now.">
+                          Domain Connect detected &middot; manual setup for now
                         </span>
                       )}
-                      {!capabilities.cloudflare && !capabilities.godaddy && !capabilities.domain_connect && (
+                      {!capabilities.name && !capabilities.domain_connect && (
                         <span className="pill">Manual setup required</span>
                       )}
                     </div>
@@ -445,11 +446,12 @@ export default function RetellOnboardingWizard() {
                   <span>Record Type: <strong className="text-paper">TXT</strong></span>
                   <span>Host: <strong className="text-paper">_agenid</strong></span>
                 </div>
+                {/* One builder, shared with the server and with /verify/domain. */}
                 <div className="text-mint break-all pt-1 select-all cursor-text">
-                  agenid-site-verification={dnsToken}
+                  {verificationRecord(domain, dnsToken).value}
                 </div>
                 <button
-                  onClick={() => navigator.clipboard.writeText(`agenid-site-verification=${dnsToken}`)}
+                  onClick={() => navigator.clipboard.writeText(verificationRecord(domain, dnsToken).value)}
                   className="text-muted hover:text-paper transition text-[10px] uppercase tracking-wider"
                 >
                   Copy to clipboard

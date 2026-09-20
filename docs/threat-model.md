@@ -33,7 +33,7 @@ Deliberately **not** assets: user accounts (none exist), payment data (none), PI
 
 ## Attack surfaces
 
-Public and unauthenticated: `POST /api/v1/agents`, `/api/retell/bind`, `/api/retell/declare`, `/api/retell/agents`, `/api/v1/verify`, `/api/verify-dns`, `/api/dns/verify`, `/api/dns/detect`, `/api/dns/auto-add`, `/api/resolve/{agenid}`, `/a/{agenid}`, both badges, `/api/v1/openapi.json`. Eight of these send `access-control-allow-origin: *` on their responses and are cross-origin callable from any browser — verified live, and listed in [api.md](api.md#cors). The DNS routes and `/api/retell/agents` are same-origin only.
+Public and unauthenticated: `POST /api/v1/agents`, `/api/retell/bind`, `/api/retell/declare`, `/api/retell/agents`, `/api/v1/verify`, `/api/verify-dns`, `/api/domain/status`, `/api/resolve/{agenid}`, `/a/{agenid}`, `/v1/keys/{key-ulid}` and its query form, both badges, `/api/v1/openapi.json`. This list is now the same list the OpenAPI document publishes, enforced in both directions by `packages/web/test/dns-surface.test.ts` — an endpoint missing from the contract is an endpoint a reviewer concludes does not exist. Eight of these send `access-control-allow-origin: *` on their responses and are cross-origin callable from any browser — verified live, and listed in [api.md](api.md#cors). The DNS routes and `/api/retell/agents` are same-origin only.
 
 Also in scope: the browser signer (`lib/client-crypto.ts`), the Supabase service-role credential in the Vercel environment, the CI pipeline and repository, the `agenid.com` DNS zone, and the eight partner integration briefs as documentation that could mislead.
 

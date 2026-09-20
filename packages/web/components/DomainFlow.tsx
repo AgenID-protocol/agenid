@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { verificationRecord } from "@/lib/domain-connect";
 
 // ---------------------------------------------------------------------------
 // Response shape (mirrors app/api/domain/status/route.ts)
@@ -296,6 +297,12 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
 
   const verified = status?.domain_control ?? false;
   const record = status?.records[0];
+  /**
+   * What the records table displays. Prefer the server's copy; before the first
+   * response lands, fall back to the one authoritative builder rather than to
+   * hand-written literals. See the table below for why that distinction matters.
+   */
+  const shownRecord = record ?? verificationRecord(domain, token);
   const applyUrl = status?.provider.apply_url ?? null;
   const reason = status?.provider.reason ?? null;
 
@@ -432,23 +439,30 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
               </tr>
             </thead>
             <tbody>
+              {/*
+                Before the first response lands, every cell falls back to the SAME
+                builder the server uses — never to a hand-written copy of the record.
+                Each field here used to be its own literal ("TXT", `_agenid.${domain}`,
+                the verification string, 300). A fallback that quietly disagrees with
+                the source of truth is worse than no fallback: the operator copies a
+                record AgenID no longer asks for, publishes it, and the flow waits
+                forever for something it told them to create.
+              */}
               <tr className="border-b border-line/60 align-top">
-                <td className="py-3.5 pr-4 font-mono text-xs">{record?.type ?? "TXT"}</td>
+                <td className="py-3.5 pr-4 font-mono text-xs">{shownRecord.type}</td>
                 <td className="py-3.5 pr-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs break-all">{record?.name ?? `_agenid.${domain}`}</span>
-                    <CopyButton value={record?.name ?? `_agenid.${domain}`} label="record name" />
+                    <span className="font-mono text-xs break-all">{shownRecord.name}</span>
+                    <CopyButton value={shownRecord.name} label="record name" />
                   </div>
                 </td>
                 <td className="py-3.5 pr-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs break-all">
-                      {record?.value ?? `agenid-site-verification=${token}`}
-                    </span>
-                    <CopyButton value={record?.value ?? `agenid-site-verification=${token}`} label="record value" />
+                    <span className="font-mono text-xs break-all">{shownRecord.value}</span>
+                    <CopyButton value={shownRecord.value} label="record value" />
                   </div>
                 </td>
-                <td className="py-3.5 pr-4 font-mono text-xs text-muted">300</td>
+                <td className="py-3.5 pr-4 font-mono text-xs text-muted">{shownRecord.ttl}</td>
                 <td className="py-3.5">
                   <StatusPill status={record?.status ?? "pending"} />
                 </td>

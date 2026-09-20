@@ -159,7 +159,11 @@ const CLAIMS = [
   ["POST", "/v1/agents/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ/assertions", 404, "assertion write path is NOT deployed"],
   ["POST", "/api/v1/agents", 400, "registration validates and rejects an empty body"],
   ["POST", "/api/v1/verify", 400, "stateless verify rejects an empty body"],
-  ["POST", "/api/dns/verify", 400, "dns verify rejects an empty body"],
+  ["POST", "/api/verify-dns", 400, "the one TXT-check route rejects an empty body"],
+  ["POST", "/api/domain/status", 400, "domain status rejects an empty body"],
+  ["POST", "/api/dns/verify", 404, "the duplicate TXT-check route is gone, not merely undocumented"],
+  ["POST", "/api/dns/detect", 404, "provider detection is folded into /api/domain/status"],
+  ["POST", "/api/dns/auto-add", 404, "AgenID holds no DNS write credential — this route is deleted, not unconfigured"],
   ["POST", "/api/retell/declare", 400, "retell declare rejects an empty body"],
 ];
 

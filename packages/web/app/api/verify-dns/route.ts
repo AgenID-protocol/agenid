@@ -1,5 +1,5 @@
 /**
- * POST /api/verify-dns — real DNS TXT lookup for `_agenid.<domain>`.
+ * POST /api/verify-dns — the one standalone `_agenid.<domain>` TXT check.
  *
  * Proves DOMAIN CONTROL and nothing more. Domain control is evidence an authority
  * would weigh when issuing a VerificationAssertion; it is not itself a verification
@@ -9,9 +9,14 @@
  * constant. The replaced stub emitted a single hardcoded token
  * ("agenid-site-verification=aivh_7f9b8c2d1e9a3b5c7d8e") identical for every user and
  * every domain, which would have verified nothing for anyone.
+ *
+ * This route no longer performs the check itself. `POST /api/dns/verify` was a
+ * byte-for-byte copy of the handler that used to live here, and the two had already
+ * drifted — only this one carried the domain-control disclosure. Both now delegate to
+ * one probe, and that route is gone. See `lib/dns-probe.ts`.
  */
-import { resolveTxt } from "node:dns/promises";
 import { isValidHostname } from "@agenid/core";
+import { DOMAIN_CONTROL_DISCLOSURES, probeTxtRecord } from "@/lib/dns-probe";
 import { POLICIES, checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -20,12 +25,8 @@ export const runtime = "nodejs";
 const HEADERS = { "content-type": "application/json" };
 const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: HEADERS });
 
-const PREFIX = "agenid-site-verification=";
-
 export async function POST(req: Request) {
-  /**
-   * Outbound DNS against a caller-supplied hostname. (This route and /api/dns/verify are\n   * the same check behind two addresses \u2014 see the duplicate-surface cleanup item; both\n   * are bounded until one of them is removed.)
-   */
+  /** Outbound DNS against a caller-supplied hostname — an amplifier, same class as /api/domain/status. */
   const rl = await checkRateLimit(req, POLICIES.probe);
   if (!rl.allowed) return tooManyRequests(rl);
 
@@ -47,36 +48,30 @@ export async function POST(req: Request) {
     );
   }
 
-  const host = `_agenid.${domain}`;
-  let records: string[][];
-  try {
-    records = await resolveTxt(host);
-  } catch (e) {
-    const code = (e as NodeJS.ErrnoException).code;
-    if (code === "ENOTFOUND" || code === "ENODATA") {
-      return json({ ok: false, domain, host, found: false, reason: "no_txt_record" }, 200);
-    }
-    return json({ error: "dns_error", message: e instanceof Error ? e.message : String(e), code: code ?? null }, 502);
+  const probe = await probeTxtRecord(domain, token);
+
+  // A resolver failure that is not simple absence is a 502 here, deliberately: a caller
+  // asking this route a direct question deserves to know the answer is unknown rather
+  // than be told "no record". /api/domain/status makes the opposite call, because a
+  // polled status surface renders "pending" and will ask again in six seconds.
+  if (probe.error) {
+    return json({ error: "dns_error", message: probe.error.message, code: probe.error.code }, 502);
   }
 
-  // A TXT record can be chunked into multiple strings; join each record before matching.
-  const values = records.map((chunks) => chunks.join(""));
-  const expected = `${PREFIX}${token}`;
-  const matched = values.some((v) => v.trim() === expected);
+  if (!probe.found) {
+    return json({ ok: false, domain, host: probe.host, found: false, reason: "no_txt_record" }, 200);
+  }
 
   return json(
     {
-      ok: matched,
+      ok: probe.matched,
       domain,
-      host,
-      found: values.length > 0,
-      matched,
-      record_count: values.length,
-      proves: matched ? "domain_control" : null,
-      disclosures: [
-        "Domain control is evidence, not a verification level. It does not by itself raise an agent above DECLARED.",
-        "No verification level is issued by this endpoint under any outcome.",
-      ],
+      host: probe.host,
+      found: true,
+      matched: probe.matched,
+      record_count: probe.count,
+      proves: probe.matched ? "domain_control" : null,
+      disclosures: DOMAIN_CONTROL_DISCLOSURES,
     },
     200,
   );
