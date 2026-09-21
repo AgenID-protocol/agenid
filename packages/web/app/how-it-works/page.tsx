@@ -3,10 +3,25 @@ import Link from "next/link";
 import { groupedCatalogue, ISSUANCE_CEILING, NOT_BUILT } from "@/lib/scenarios";
 
 export const metadata: Metadata = {
-  title: "How It Works — Scenarios",
+  title: "How AI Agent Identity Verification Works: 9 Scenarios",
   description:
-    "Nine illustrations of one handshake: an agent makes a claim, a counterparty refuses to act on the claim alone, and specific claims get independently checked. Each one also plays without AgenID.",
+    "See how businesses and other AI agents verify an agent's identity in nine real-world scenarios, from booking a dentist to B2B procurement and agent delegation.",
+  keywords: [
+    "how AI agent verification works",
+    "AI agent identity examples",
+    "AI agent use cases",
+    "agent-to-agent verification",
+    "agentic commerce identity",
+  ],
   alternates: { canonical: "/how-it-works" },
+  openGraph: {
+    title: "How AI Agent Identity Verification Works",
+    description:
+      "Nine real-world scenarios showing how a business or another agent verifies which AI agent it is dealing with.",
+    url: "/how-it-works",
+    siteName: "AgenID",
+    type: "website",
+  },
 };
 
 export default function HowItWorksPage() {
@@ -21,10 +36,10 @@ export default function HowItWorksPage() {
         / How it works
       </div>
       <h1 className="text-3xl font-bold tracking-tight text-balance">
-        An agent saying its AgenID is not the same thing as proving it.
+        How AI agent identity verification works
       </h1>
       <p className="mt-5 max-w-2xl text-[15px] leading-7 text-muted text-pretty">
-        Nine scenarios, one visual language: the same identity object, the same verification handshake, the same
+        An agent saying its AgenID is not the same thing as proving it. Nine scenarios, one visual language: the same identity object, the same verification handshake, the same
         point at which a counterparty stops and asks for proof. Every one of them also plays{" "}
         <span className="text-paper">without</span> a portable identity layer, because that comparison is the
         argument.

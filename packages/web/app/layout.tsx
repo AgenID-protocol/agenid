@@ -3,6 +3,7 @@ import Image from "next/image";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { SITE_URL } from "@/lib/api";
 
 const TITLE = "AgenID — AI Agents Need an Identity";
 const DESCRIPTION =
@@ -22,7 +23,9 @@ export const metadata: Metadata = {
     "Ed25519",
     "RFC 8785 JCS",
   ],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://agenid.com"),
+  // Same origin as the sitemap and every JSON-LD block (lib/api SITE_URL). The apex
+  // 308-redirects to www, so a canonical on the apex points search engines at a redirect.
+  metadataBase: new URL(SITE_URL),
   icons: { icon: "/agenid-mark.png" },
   openGraph: { title: TITLE, description: DESCRIPTION, url: "/", siteName: "AgenID", type: "website" },
   twitter: { card: "summary", title: TITLE, description: DESCRIPTION },

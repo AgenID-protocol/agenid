@@ -26,6 +26,8 @@ export {
 } from "./types";
 export * from "./timeline";
 export { SCENARIOS } from "./data";
+export { SCENARIO_SEO, seoFor } from "./seo";
+export type { ScenarioSeo, SeoFaq, SeoSection } from "./seo";
 
 export interface CatalogueEntry {
   readonly slug: string;
