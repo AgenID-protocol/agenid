@@ -92,5 +92,13 @@ begin
 end;
 $$;
 
-revoke all on function rate_limit_hit(text, integer, integer, timestamptz) from anon, authenticated;
-revoke all on function rate_limit_sweep(timestamptz) from anon, authenticated;
+-- EXECUTE must be revoked from PUBLIC, not only from anon/authenticated. Postgres grants
+-- EXECUTE on every new function to PUBLIC, and both Supabase roles inherit through it,
+-- so revoking from the two roles alone removes nothing. As first applied (Sept 18), this
+-- file revoked only from anon/authenticated and both SECURITY DEFINER functions stayed
+-- callable at /rest/v1/rpc/* by anyone holding the publishable key. Corrected here so a
+-- fresh environment never reproduces the hole; 0004 corrects the already-applied database.
+revoke all on function rate_limit_hit(text, integer, integer, timestamptz) from public, anon, authenticated;
+revoke all on function rate_limit_sweep(timestamptz) from public, anon, authenticated;
+grant execute on function rate_limit_hit(text, integer, integer, timestamptz) to service_role;
+grant execute on function rate_limit_sweep(timestamptz) to service_role;
