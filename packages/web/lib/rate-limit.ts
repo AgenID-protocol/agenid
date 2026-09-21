@@ -194,10 +194,41 @@ export interface RateLimitDecision {
 
 type RpcRow = { allowed: boolean; hits: number; reset_at: string };
 
+/**
+ * Housekeeping for `rate_limit_counters`.
+ *
+ * 0003_rate_limit.sql says the sweep is "called opportunistically from the application
+ * instead (lib/rate-limit.ts)" — and until Sept 20 nothing called it. There are no
+ * scheduled jobs in this project and pg_cron is deliberately not assumed, so the table
+ * grew without bound on exactly the traffic a rate limiter exists to absorb.
+ *
+ * Now: roughly one durable hit in SWEEP_ONE_IN deletes windows older than
+ * SWEEP_RETENTION_MS. The retention is a day against windows of at most a minute, so a
+ * sweep can never delete a window still being counted. It is awaited (an unawaited
+ * promise in a serverless function may simply never run) and it can never fail the
+ * request: an error is logged and dropped.
+ */
+export const SWEEP_ONE_IN = 200;
+export const SWEEP_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+type RpcClient = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }> };
+
+export async function sweepExpired(supabase: RpcClient, nowMs: number): Promise<void> {
+  try {
+    const { error } = await supabase.rpc("rate_limit_sweep", {
+      p_older_than: new Date(nowMs - SWEEP_RETENTION_MS).toISOString(),
+    });
+    if (error) console.error("rate limit sweep failed", { error: error.message });
+  } catch (e) {
+    console.error("rate limit sweep failed", { error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
 async function durableHit(
   bucket: string,
   policy: RateLimitPolicy,
   nowIso: string,
+  sweep: boolean,
 ): Promise<{ allowed: boolean; hits: number; resetSeconds: number } | null> {
   // Imported lazily so that a deployment without Supabase configured — or a test that
   // never touches it — does not construct a client just to rate limit.
@@ -210,6 +241,7 @@ async function durableHit(
     p_now: nowIso,
   });
   if (error) throw new Error(error.message);
+  if (sweep) await sweepExpired(supabase, Date.parse(nowIso));
   const row = (Array.isArray(data) ? data[0] : data) as RpcRow | undefined;
   if (!row) throw new Error("rate_limit_hit returned no row");
   const resetSeconds = Math.max(0, Math.ceil((Date.parse(row.reset_at) - Date.parse(nowIso)) / 1000));
@@ -225,6 +257,8 @@ export interface CheckOptions {
   now?: string;
   /** Overrides the derived client key. For tests and for keying on something else. */
   subject?: string;
+  /** Test seam for the housekeeping sample. Defaults to a 1-in-SWEEP_ONE_IN draw. */
+  sweep?: boolean;
 }
 
 export async function checkRateLimit(
@@ -250,7 +284,8 @@ export async function checkRateLimit(
   }
 
   try {
-    const d = await durableHit(bucket, policy, nowIso);
+    const sweep = opts.sweep ?? Math.random() < 1 / SWEEP_ONE_IN;
+    const d = await durableHit(bucket, policy, nowIso, sweep);
     if (!d) throw new Error("no decision");
     return {
       allowed: d.allowed,

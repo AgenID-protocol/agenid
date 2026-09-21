@@ -55,7 +55,19 @@ export async function POST(req: Request) {
   // than be told "no record". /api/domain/status makes the opposite call, because a
   // polled status surface renders "pending" and will ask again in six seconds.
   if (probe.error) {
-    return json({ error: "dns_error", message: probe.error.message, code: probe.error.code }, 502);
+    // Fixed text, never the resolver's own message: Node's DNS errors interpolate the
+    // queried name (`queryTxt ESERVFAIL _agenid.<caller input>`), and this route does not
+    // echo caller input back — the same policy as the key route. The code alone
+    // (ESERVFAIL, ETIMEOUT, …) is a fixed vocabulary and is all a caller needs.
+    const code = typeof probe.error.code === "string" && /^E[A-Z]+$/.test(probe.error.code) ? probe.error.code : null;
+    return json(
+      {
+        error: "dns_error",
+        message: "The DNS lookup failed before an answer was returned. The record's state is unknown, not absent — try again.",
+        code,
+      },
+      502,
+    );
   }
 
   if (!probe.found) {

@@ -171,6 +171,16 @@ export function applyUrlFor(
 }
 
 /**
+ * Where the operator publishes their own key document — the operator half of two-path
+ * key discovery. Lives here, not in lib/key-discovery.ts, because this module has zero
+ * imports and is safe in client components: DomainFlow must show the same URL the
+ * server probes before the first response lands, derived from the same function.
+ */
+export function keyDocumentUrl(domain: string): string {
+  return `https://${domain}/.well-known/agenid/keys.json`;
+}
+
+/**
  * The exact record AgenID asks for. One record, not three — stating a requirement we do
  * not have would be padding a checklist to look more substantial than the protocol is.
  */

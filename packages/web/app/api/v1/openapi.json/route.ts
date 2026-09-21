@@ -649,8 +649,20 @@ function buildSpec(origin: string) {
               description: "The OPERATOR half of two-path key discovery. Optional, and its absence leaves a verifier with one source instead of two.",
               properties: {
                 url: { type: "string", format: "uri" },
-                status: { type: "string", enum: ["pending", "verified"] },
+                status: {
+                  type: "string",
+                  enum: ["absent", "invalid", "published", "unreachable"],
+                  description:
+                    "published: a 2xx application/json body that parses as a strict KeysDocument naming this domain as controller_domain. It is NOT compared against the registry's copy — a verifier does that — so no state here is 'verified'. invalid: reachable but not a usable key document (see reason). absent: 404/410. unreachable: network error, timeout or 5xx.",
+                },
+                reason: {
+                  type: "string",
+                  nullable: true,
+                  description:
+                    "Why the state is not 'published': not_json, malformed_json, schema_invalid, controller_domain_mismatch, too_large, or http_<status>.",
+                },
                 http_status: { type: "integer", nullable: true },
+                key_count: { type: "integer", nullable: true },
                 note: { type: "string" },
               },
             },

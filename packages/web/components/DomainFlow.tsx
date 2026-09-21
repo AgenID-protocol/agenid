@@ -14,13 +14,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { verificationRecord } from "@/lib/domain-connect";
+import { keyDocumentUrl, verificationRecord } from "@/lib/domain-connect";
 
 // ---------------------------------------------------------------------------
 // Response shape (mirrors app/api/domain/status/route.ts)
 // ---------------------------------------------------------------------------
 
 type RecordStatus = "pending" | "verified";
+/** Mirrors lib/key-discovery.ts. Deliberately has no "verified" — see that file. */
+type KeyDocState = "absent" | "invalid" | "published" | "unreachable";
 
 interface DomainStatus {
   ok: true;
@@ -44,7 +46,14 @@ interface DomainStatus {
     observed_count: number;
     other_records_present: boolean;
   }[];
-  key_discovery: { url: string; status: RecordStatus; http_status: number | null; note: string };
+  key_discovery: {
+    url: string;
+    status: KeyDocState;
+    reason: string | null;
+    http_status: number | null;
+    key_count: number | null;
+    note: string;
+  };
   domain_control: boolean;
   disclosures: string[];
 }
@@ -59,6 +68,40 @@ function StatusPill({ status }: { status: RecordStatus }) {
   ) : (
     <span className="pill pill-warn">Pending</span>
   );
+}
+
+/**
+ * The key document's state. "Published" renders NEUTRAL, not mint: it means a
+ * well-formed document is served, not that anything was verified against the registry,
+ * and emerald is reserved for truth. Nothing here is ever red — an operator who has not
+ * published yet has not failed anything.
+ */
+const KEY_DOC_LABEL: Record<KeyDocState, string> = {
+  published: "Published",
+  absent: "Not published",
+  invalid: "Not a key document",
+  unreachable: "Unreachable",
+};
+
+function KeyDocPill({ state }: { state: KeyDocState }) {
+  return state === "published" ? (
+    <span className="pill">{KEY_DOC_LABEL[state]}</span>
+  ) : (
+    <span className="pill pill-warn">{KEY_DOC_LABEL[state]}</span>
+  );
+}
+
+/** Plain-language explanation for a document that was reached but is not usable. */
+function keyDocReasonText(reason: string | null): string | null {
+  if (!reason) return null;
+  if (reason === "not_json")
+    return "Your server answered with a web page, not a JSON key document. Many hosts serve the homepage for any unknown path — make sure this exact path serves the file as application/json.";
+  if (reason === "malformed_json") return "The file is served as JSON but does not parse.";
+  if (reason === "schema_invalid") return "The file is JSON but is not a valid AgenID key document.";
+  if (reason === "controller_domain_mismatch") return "The key document names a different domain as its controller.";
+  if (reason === "too_large") return "The file is larger than any key document should be.";
+  if (reason.startsWith("http_")) return `Your server answered with HTTP ${reason.slice(5)}.`;
+  return null;
 }
 
 function Spinner({ className = "" }: { className?: string }) {
@@ -485,16 +528,25 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
       <div className="card p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold tracking-tight">Key document (optional)</h2>
-          <StatusPill status={status?.key_discovery.status ?? "pending"} />
+          <KeyDocPill state={status?.key_discovery.status ?? "absent"} />
         </div>
         <p className="mt-2 text-sm text-muted">
           Publish your operator key document at{" "}
           <span className="font-mono text-xs break-all text-paper">
-            {status?.key_discovery.url ?? `https://${domain}/.well-known/agenid/keys.json`}
+            {status?.key_discovery.url ?? keyDocumentUrl(domain)}
           </span>
           . A verifier can then compare the registry&apos;s copy of your key against your own — which is what makes the
           registry non-authoritative rather than something you have to trust.
         </p>
+        {keyDocReasonText(status?.key_discovery.reason ?? null) && (
+          <p className="mt-3 text-xs leading-5 text-amber">{keyDocReasonText(status?.key_discovery.reason ?? null)}</p>
+        )}
+        {status?.key_discovery.status === "published" && (
+          <p className="mt-3 text-xs leading-5 text-muted">
+            A well-formed key document naming this domain is published. This page does not compare it with the
+            registry&apos;s copy — a verifier does that, and the two must match.
+          </p>
+        )}
       </div>
 
       {/* The ceiling, stated. */}

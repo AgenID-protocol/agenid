@@ -39,7 +39,7 @@ Capabilities that exist in code. Implemented is not the same as deployed, and ne
 | Site, `/issue`, resolver, badges, and the deployed API routes | `@agenid/web` |
 | Browser Ed25519 signer with an independent JCS implementation | `packages/web/lib/client-crypto.ts` |
 | Assertion write path (`POST /v1/agents/:id/assertions`) | `@agenid/api` — **not deployed** |
-| Domain-control evidence — `POST /api/verify-dns` (real `_agenid.<domain>` TXT lookup) and `POST /api/domain/status` (provider detection, Domain Connect, `.well-known` state) | `packages/web`. **No DNS write path exists:** `/api/dns/auto-add` is deleted, not unconfigured, and AgenID holds no provider credential |
+| Domain-control evidence — `POST /api/verify-dns` (real `_agenid.<domain>` TXT lookup) and `POST /api/domain/status` (provider detection, Domain Connect, and the operator's `.well-known` key document — reported `published` only when it strictly parses as a `KeysDocument` for that domain, never merely because the server answered 200) | `packages/web`. **No DNS write path exists:** `/api/dns/auto-add` is deleted, not unconfigured, and AgenID holds no provider credential |
 | Ecosystem registry and validator — 25 platforms, one reviewable JSON file each | `packages/web/data/ecosystem/`, `lib/ecosystem.ts` |
 
 ## Production verified

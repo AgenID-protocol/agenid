@@ -31,6 +31,7 @@ import {
   type DomainConnectSettings,
 } from "@/lib/domain-connect";
 import { SITE_URL } from "@/lib/api";
+import { probeKeyDiscovery } from "@/lib/key-discovery";
 import { POLICIES, checkRateLimit, rateLimitHeaders, tooManyRequests } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -52,25 +53,6 @@ async function fetchSettings(host: string, domain: string): Promise<DomainConnec
     return (await res.json()) as DomainConnectSettings;
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/**
- * Probe the operator's own copy of their key document — the operator half of two-path key
- * discovery. The registry half is `GET /v1/keys/<key-ulid>`, served by this deployment; a
- * verifier fetches both and requires they agree.
- */
-async function probeWellKnown(domain: string): Promise<{ present: boolean; url: string; status: number | null }> {
-  const url = `https://${domain}/.well-known/agenid/keys.json`;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal, headers: { accept: "application/json" } });
-    return { present: res.ok, url, status: res.status };
-  } catch {
-    return { present: false, url, status: null };
   } finally {
     clearTimeout(timer);
   }
@@ -152,7 +134,9 @@ export async function POST(req: Request) {
   const txtMatched = txt.matched;
   const txtCount = txt.count;
 
-  const wellKnown = await probeWellKnown(domain);
+  // Operator half of two-path key discovery. A 200 is not a key document — see
+  // lib/key-discovery.ts for why "published" requires a strict KeysDocument parse.
+  const keyDoc = await probeKeyDiscovery(domain, { timeoutMs: PROBE_TIMEOUT_MS });
 
   return json(
     {
@@ -180,10 +164,16 @@ export async function POST(req: Request) {
         },
       ],
       key_discovery: {
-        url: wellKnown.url,
-        status: wellKnown.present ? "verified" : "pending",
-        http_status: wellKnown.status,
-        note: "Optional. Publishing your key document here lets a verifier compare the registry's copy against your own.",
+        url: keyDoc.url,
+        /**
+         * absent | invalid | published | unreachable. Never "verified": this probe checks
+         * that a well-formed key document is served, not that it matches the registry.
+         */
+        status: keyDoc.state,
+        reason: keyDoc.reason,
+        http_status: keyDoc.http_status,
+        key_count: keyDoc.key_count,
+        note: "Optional. Publishing your key document here lets a verifier compare the registry's copy against your own. \"published\" means a well-formed key document naming this domain is served here; this endpoint does not compare it against the registry — a verifier does.",
       },
       domain_control: txtMatched,
       proves: txtMatched ? "domain_control" : null,
