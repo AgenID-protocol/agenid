@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata, webApplicationJsonLd } from "@/lib/seo";
 import Link from "next/link";
 import { IssueWizard } from "@/components/IssueWizard";
 import { SITE_URL } from "@/lib/api";
 
-export const metadata: Metadata = {
-  title: "Give Your Agent an Identity",
+export const metadata: Metadata = pageMetadata({
+  title: "Give Your AI Agent a Verifiable Identity",
   description:
-    "Generate an Ed25519 keypair in your browser, sign an operator manifest, and get a permanent, resolvable agenid:<ULID> with a public Verification Card. No account, no private key upload.",
-  alternates: { canonical: "/issue" },
-};
+    "Generate an Ed25519 key in your browser, sign an operator manifest, and get a permanent agenid:<ULID> with a public Verification Card. No account, no key upload.",
+  path: "/issue",
+});
 
 const STEPS = [
   { n: "01", t: "Describe the agent", d: "Who operates it, what it does, which channels it runs on." },
@@ -19,6 +20,20 @@ const STEPS = [
 export default function IssuePage() {
   return (
     <main className="mx-auto max-w-3xl px-5 py-16">
+      {/* eslint-disable-next-line react/no-danger */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            webApplicationJsonLd({
+              name: "AgenID Issuance",
+              path: "/issue",
+              description: String(metadata.description),
+              siteUrl: SITE_URL,
+            }),
+          ),
+        }}
+      />
       <div className="text-center">
         <div className="mb-3 font-mono text-[11px] text-muted">GIVE YOUR AGENT AN IDENTITY</div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">One agent. One minute. No account.</h1>

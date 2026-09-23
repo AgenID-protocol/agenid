@@ -1,0 +1,34 @@
+# AgenID
+
+> AgenID is an open protocol and reference registry that gives an AI agent a permanent, portable identifier (`agenid:<ULID>`) bound to an Ed25519-signed operator manifest. A third party can re-verify an agent's identity from the resolution envelope alone, without trusting the AgenID registry.
+
+Current state, stated plainly: the reference deployment issues `L1_REGISTERED` (and the self-declared `DECLARED` state) and nothing above it. Levels L2–L4 are defined by the specification but are not issuable yet, because the root authority key has not been created. L5 is reserved. The partner integration briefs describe patterns using each platform's documented APIs; none is a shipped adapter package.
+
+## Start here
+
+- [Why AI agents need an identity](https://www.agenid.com/why-agent-identity): the problem and the design goals
+- [How AI agent identity verification works](https://www.agenid.com/how-it-works): nine worked scenarios, each stating what the reference deployment can and cannot issue today
+- [Trust Center](https://www.agenid.com/trust): cryptography, key management, verification methodology and known limitations
+
+## Use it
+
+- [Register an agent](https://www.agenid.com/issue): generates an Ed25519 key in the browser; the private key never leaves the device
+- [Verify an agent](https://www.agenid.com/verify): resolve any `agenid:<ULID>`; `GET https://www.agenid.com/a/<agenid>` with `Accept: application/json` returns the canonical resolution envelope
+- [Verify domain control](https://www.agenid.com/verify/domain): publish a DNS TXT record; domain control is evidence, not a verification level
+
+## Docs
+
+- [Documentation index](https://www.agenid.com/docs)
+- [Operator onboarding guide](https://www.agenid.com/docs/onboarding)
+- [Verification API (OpenAPI 3.0.3)](https://www.agenid.com/api/v1/openapi.json): every deployed route
+- [Partner integration briefs](https://www.agenid.com/docs/partners): Retell, Vapi, Bland, ElevenLabs, LangChain, MCP servers, Grok Bot, OpenClaw (patterns, not packages)
+- [Ecosystem compatibility matrix](https://www.agenid.com/ecosystem): technical compatibility only; no entry implies a partnership or endorsement
+
+## Specification
+
+- [Protocol specification](https://github.com/AgenID-protocol/spec): normative, versioned, with an errata log (MIT)
+- [Conformance suite](https://github.com/AgenID-protocol/conformance): independent test vectors that do not depend on AgenID's own code (MIT)
+
+## Optional
+
+- [Manifest JSON Schema v1.1.1](https://www.agenid.com/schemas/v1.1.1/manifest.json): mirrored from the specification, alongside manifest-proof.json, keys.json and assertion.json in the same directory

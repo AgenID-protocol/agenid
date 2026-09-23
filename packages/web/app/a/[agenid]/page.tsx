@@ -3,6 +3,7 @@ import { JsonInspector } from "@/components/JsonInspector";
 import { SearchBar } from "@/components/SearchBar";
 import { fetchEnvelope, SITE_URL, type Envelope } from "@/lib/api";
 import { presentEnvelopeTrust, presentTrustLevel } from "@/lib/trust-presentation";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +12,31 @@ type Params = { params: Promise<{ agenid: string }> };
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { agenid } = await params;
   const id = decodeURIComponent(agenid);
-  const { envelope } = await fetchEnvelope(id);
-  const name = envelope?.manifest.identity.name;
-  return {
-    title: name ? `${name} · ${id}` : id,
-    description: envelope ? `${name} — operated by ${envelope.manifest.ownership.operator}. Verification: ${levelLabel(envelope.verification.level)}.` : "AgenID resolver",
-    alternates: { canonical: `/a/${agenid}` },
-  };
+  const { status, envelope } = await fetchEnvelope(id);
+  if (!envelope && status >= 500) {
+    // A registry outage says nothing about the identity, so it must not deindex a real
+    // card either: no robots directive, no claim.
+    return { title: id, description: "The AgenID registry could not be reached for this identifier." };
+  }
+  if (!envelope) {
+    // Any string resolves to this route, so without this every typo, probe and made-up
+    // identifier was an indexable 31-word page with a self-canonical — an unbounded thin
+    // URL space. The page itself still returns 200 and renders the neutral card (an
+    // unregistered identifier is not evidence of anything, spec §10); only search
+    // indexing is withheld. `follow` stays on so the card's links still count.
+    return {
+      title: `${id} — not registered`,
+      description: "No agent with this identifier is registered in the AgenID registry.",
+      robots: { index: false, follow: true },
+    };
+  }
+  const name = envelope.manifest.identity.name;
+  // Level text comes from the canonical trust-presentation module, never the raw field.
+  return pageMetadata({
+    title: `${name} · ${id}`,
+    description: `Verification Card for ${name}, operated by ${envelope.manifest.ownership.operator}. Verification: ${levelLabel(envelope.verification.level)}. Re-verify it yourself.`,
+    path: `/a/${agenid}`,
+  });
 }
 
 /**

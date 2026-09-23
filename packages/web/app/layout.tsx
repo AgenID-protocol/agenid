@@ -4,10 +4,11 @@ import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/api";
+import { HOME_DESCRIPTION, HOME_TITLE } from "@/lib/seo";
 
-const TITLE = "AgenID — AI Agents Need an Identity";
-const DESCRIPTION =
-  "AgenID gives every AI agent a permanent, portable identity that people, businesses, and other AI agents can independently verify. Open protocol · cryptographically verifiable · platform independent.";
+// Shared with the homepage (app/page.tsx) via lib/seo.ts so the two cannot drift.
+const TITLE = HOME_TITLE;
+const DESCRIPTION = HOME_DESCRIPTION;
 
 export const metadata: Metadata = {
   title: { default: TITLE, template: "%s · AgenID" },
@@ -26,9 +27,22 @@ export const metadata: Metadata = {
   // Same origin as the sitemap and every JSON-LD block (lib/api SITE_URL). The apex
   // 308-redirects to www, so a canonical on the apex points search engines at a redirect.
   metadataBase: new URL(SITE_URL),
-  icons: { icon: "/agenid-mark.png" },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: "/", siteName: "AgenID", type: "website" },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+  // Icons come from the file conventions (app/favicon.ico, app/icon.png, app/apple-icon.png).
+  // The old `icons: { icon: "/agenid-mark.png" }` served a 359 KB PNG as the favicon and
+  // left /favicon.ico a 404.
+  //
+  // No `url` here, on purpose: Next merges this object into every child page that does not
+  // define its own openGraph, so `url: "/"` made twenty pages claim to be the homepage.
+  // Pages set their own via lib/seo.ts pageMetadata(); anything that does not simply omits
+  // og:url rather than pointing it somewhere wrong.
+  openGraph: { title: TITLE, description: DESCRIPTION, siteName: "AgenID", type: "website", locale: "en_US" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  // Search-engine ownership tokens. Read from the environment so no token is committed;
+  // an unset variable renders nothing rather than an empty meta tag.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } } : {}),
+  },
 };
 
 /** The sealed square — Brand Guide §01. Never recolored, never swapped. Unused directly

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { groupedCatalogue, ISSUANCE_CEILING, NOT_BUILT } from "@/lib/scenarios";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "How AI Agent Identity Verification Works: 9 Scenarios",
   description:
     "See how businesses and other AI agents verify an agent's identity in nine real-world scenarios, from booking a dentist to B2B procurement and agent delegation.",
@@ -13,16 +14,9 @@ export const metadata: Metadata = {
     "agent-to-agent verification",
     "agentic commerce identity",
   ],
-  alternates: { canonical: "/how-it-works" },
-  openGraph: {
-    title: "How AI Agent Identity Verification Works",
-    description:
-      "Nine real-world scenarios showing how a business or another agent verifies which AI agent it is dealing with.",
-    url: "/how-it-works",
-    siteName: "AgenID",
-    type: "website",
-  },
-};
+  path: "/how-it-works",
+  socialTitle: "How AI Agent Identity Verification Works",
+});
 
 export default function HowItWorksPage() {
   const groups = groupedCatalogue();

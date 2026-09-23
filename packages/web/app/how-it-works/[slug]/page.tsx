@@ -13,6 +13,8 @@ import {
   seoFor,
 } from "@/lib/scenarios";
 import { SITE_URL } from "@/lib/api";
+import { getPartnerDoc, SCENARIO_BRIEFS } from "@/lib/partners";
+import { pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
   return scenarioSlugs().map((slug) => ({ slug }));
@@ -25,15 +27,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const seo = seoFor(slug);
   const title = seo?.title ?? entry.title;
   const description = seo?.description ?? entry.summary;
-  const url = `/how-it-works/${entry.slug}`;
-  return {
+  return pageMetadata({
     title,
     description,
-    keywords: seo ? [...seo.keywords] : undefined,
-    alternates: { canonical: url },
-    openGraph: { title, description, url, siteName: "AgenID", type: "article" },
-    twitter: { card: "summary", title, description },
-  };
+    path: `/how-it-works/${entry.slug}`,
+    type: "article",
+    ownImage: true,
+    ...(seo ? { keywords: seo.keywords } : {}),
+  });
 }
 
 /**
@@ -87,6 +88,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ slug:
   const proves = scenario?.proves ?? TODAY_VS_PROVES;
   const next = nextEntry(slug);
   const related = (seo?.related ?? []).map((s) => findEntry(s)).filter((e) => e !== undefined);
+  const briefs = (SCENARIO_BRIEFS[slug] ?? []).map((s) => getPartnerDoc(s)).filter((d) => d !== null);
   const jsonLd = jsonLdFor(entry.slug, seo?.h1 ?? entry.title, seo?.description ?? entry.summary, seo?.faqs ?? []);
 
   return (
@@ -188,6 +190,27 @@ export default async function ScenarioPage({ params }: { params: Promise<{ slug:
               </Link>
             ))}
           </div>
+        </section>
+      )}
+
+      {briefs.length > 0 && (
+        <section className="mt-14" aria-labelledby="briefs">
+          <h2 id="briefs" className="text-[22px] font-semibold leading-tight tracking-tight">
+            Integration patterns for this scenario
+          </h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted text-pretty">
+            How the identity travels through platforms agents in this scenario commonly run on. Each brief is a pattern
+            using the platform&rsquo;s documented APIs, not a shipped adapter package.
+          </p>
+          <ul className="mt-4 grid gap-2 text-[14px] sm:grid-cols-2">
+            {briefs.map((b) => (
+              <li key={b.slug}>
+                <Link href={`/docs/partners/${b.slug}`} className="text-paper underline underline-offset-2 hover:no-underline">
+                  {b.title.replace(/^Attaching AgenID Identity to /, "")}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

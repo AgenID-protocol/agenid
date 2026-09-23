@@ -8,12 +8,60 @@ import { buildCloudClusters, getEcosystem } from "@/lib/ecosystem";
 
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/api";
+import { HOME_DESCRIPTION, HOME_TITLE, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "AgenID — AI Agents Need an Identity",
-  description:
-    "AgenID gives every AI agent a permanent, portable identity that people, businesses, and other AI agents can independently verify. Open protocol · cryptographically verifiable · platform independent.",
-  alternates: { canonical: "/" },
+export const metadata: Metadata = pageMetadata({
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
+  path: "/",
+  absoluteTitle: true,
+});
+
+/**
+ * Organization + WebSite + SoftwareApplication in one graph. `sameAs` lists only the
+ * public GitHub organization — the one external profile AgenID actually operates. No
+ * logo URL beyond our own mark, no founding date, no address: nothing here is asserted
+ * that the site does not itself show.
+ */
+const HOME_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "AgenID",
+      url: SITE_URL,
+      logo: `${SITE_URL}/agenid-mark.png`,
+      sameAs: ["https://github.com/AgenID-protocol"],
+      parentOrganization: { "@type": "Organization", name: "AI Venture Holdings LLC" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: "AgenID",
+      url: SITE_URL,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      inLanguage: "en",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "AgenID",
+      applicationCategory: "SecurityApplication",
+      operatingSystem: "Any",
+      url: SITE_URL,
+      description: HOME_DESCRIPTION,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      about: {
+        "@type": "DefinedTermSet",
+        name: "AgenID Identifiers",
+        hasDefinedTerm: {
+          "@type": "DefinedTerm",
+          name: "agenid:<ULID>",
+          description: "A permanent, portable identifier for an AI agent, bound to a signed operator manifest.",
+        },
+      },
+    },
+  ],
 };
 
 const PILLARS = [
@@ -81,25 +129,7 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            name: "AgenID",
-            applicationCategory: "SecurityApplication",
-            operatingSystem: "Any",
-            url: SITE_URL,
-            description: metadata.description,
-            about: {
-              "@type": "DefinedTermSet",
-              name: "AgenID Identifiers",
-              hasDefinedTerm: {
-                "@type": "DefinedTerm",
-                name: "agenid:<ULID>",
-                description:
-                  "A permanent, portable identifier for an AI agent, bound to a signed operator manifest.",
-              },
-            },
-          }),
+          __html: JSON.stringify(HOME_JSON_LD),
         }}
       />
 

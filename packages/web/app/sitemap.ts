@@ -9,19 +9,26 @@ import { SITE_URL } from "@/lib/api";
  * see the project queue), so there is no way to enumerate real registered identities
  * without fabricating a list. Add that section once such an API exists.
  */
+/*
+ * No `lastModified`. Every entry used to carry `new Date()` — the build time — so all 27
+ * URLs claimed to change on every deploy. Search engines learn to ignore a lastmod that
+ * is always "now", and it cannot be replaced with a git date here: Vercel builds from a
+ * shallow clone, so `git log` would report the oldest commit it happens to have. An
+ * absent lastmod is honest; a wrong one is not.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   const entries: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${SITE_URL}/issue`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE_URL}/verify`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE_URL}/verify/domain`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${SITE_URL}/ecosystem`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/trust`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE_URL}/why-agent-identity`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/how-it-works`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/docs/partners`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE_URL}/docs/onboarding`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${SITE_URL}/issue`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/verify`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/verify/domain`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/ecosystem`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/trust`, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/why-agent-identity`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/how-it-works`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/docs`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/docs/partners`, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/docs/onboarding`, changeFrequency: "monthly", priority: 0.8 },
   ];
 
   // Every scenario is a static, self-contained page with its own metadata. Unlike the
@@ -30,7 +37,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const slug of scenarioSlugs()) {
     entries.push({
       url: `${SITE_URL}/how-it-works/${slug}`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     });
@@ -39,7 +45,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const slug of getPartnerSlugs()) {
     entries.push({
       url: `${SITE_URL}/docs/partners/${slug}`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     });

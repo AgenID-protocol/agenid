@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { EcosystemMatrix, type MatrixEntry } from "@/components/ecosystem/EcosystemMatrix";
 import { IdentityFlow } from "@/components/ecosystem/IdentityFlow";
 import { SITE_URL } from "@/lib/api";
 import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, getEcosystem, readLogoSvg } from "@/lib/ecosystem";
 
-export const metadata: Metadata = {
-  title: "The Agent Ecosystem — Compatibility Matrix",
+export const metadata: Metadata = pageMetadata({
+  title: "AI Agent Ecosystem Compatibility Matrix",
   description:
-    "Voice platforms, model providers, infrastructure, agent frameworks, enterprise identity systems, and the payment and telephony rails an agent acts through — every surface an agenid:<ULID> identity can be carried across. Technical compatibility only: every entry states exactly what was reviewed.",
-  alternates: { canonical: "/ecosystem" },
-};
+    "The voice platforms, models, frameworks and identity systems an agenid:<ULID> can travel across. Technical compatibility only; each entry states what was reviewed.",
+  path: "/ecosystem",
+});
 
 /** Spelled from the registry so the heading cannot drift from the cards below it. */
 const STATUS_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six"] as const;
@@ -19,6 +20,7 @@ const STATUS_COUNT = STATUS_WORDS[Object.keys(ECOSYSTEM_STATUSES).length] ?? Obj
 export default function EcosystemPage() {
   const all = getEcosystem();
   const labelOf = (id: string) => ECOSYSTEM_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+  const documented = all.filter((e) => typeof e.docs === "string" && e.docs.startsWith("/docs/partners/"));
 
   const entries: MatrixEntry[] = all.map((e) => ({
     id: e.id,
@@ -134,6 +136,28 @@ export default function EcosystemPage() {
             {all.length} platforms across {ECOSYSTEM_CATEGORIES.length} layers.
           </h2>
           <EcosystemMatrix entries={entries} categories={ECOSYSTEM_CATEGORIES.map((c) => ({ ...c }))} />
+
+          {/* Server-rendered on purpose. The matrix is a client component whose docs links
+              only exist in the browser after a tab is selected, so crawlers saw none of the
+              eight briefs from this page. Built from the same registry `docs` field, so it
+              lists exactly the entries that have one and cannot drift from the matrix. */}
+          {documented.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-base font-semibold">Documented integration patterns</h3>
+              <p className="mt-2 max-w-3xl text-sm text-muted">
+                Patterns using each platform&rsquo;s own documented APIs, not shipped adapter packages.
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                {documented.map((e) => (
+                  <li key={e.id}>
+                    <Link href={e.docs!} className="text-paper underline underline-offset-2 hover:no-underline">
+                      {e.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="card mt-10 p-6">
             <h3 className="text-base font-semibold">Building on a platform that isn&rsquo;t listed?</h3>

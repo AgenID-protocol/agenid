@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { DomainFlow } from "@/components/DomainFlow";
 
-export const metadata: Metadata = {
-  title: "Verify a Domain",
+export const metadata: Metadata = pageMetadata({
+  title: "Verify Domain Control for AI Agents",
   description:
-    "Publish one TXT record to prove you control a domain, so AI agents registered under it can be attributed to you. Domain control is evidence an authority weighs — not a verification level.",
-  alternates: { canonical: "/verify/domain" },
-};
+    "Publish one DNS TXT record to prove you control a domain, so AI agents registered under it can be attributed to you. Domain control is evidence, not a level.",
+  path: "/verify/domain",
+});
 
 export default function VerifyDomainPage() {
   return (

@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
+import { pageMetadata, webApplicationJsonLd } from "@/lib/seo";
+import { SITE_URL } from "@/lib/api";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SearchBar } from "@/components/SearchBar";
 import { isValidAgentId } from "@agenid/core";
 
-export const metadata: Metadata = {
-  title: "Verify an Agent",
+export const metadata: Metadata = pageMetadata({
+  title: "Verify an AI Agent's Identity",
   description:
-    "Resolve any agenid:<ULID> against the live AgenID registry. See what's declared, what's actually been verified, and by whom — separated, never collapsed into one generic \"trusted\" badge.",
-  alternates: { canonical: "/verify" },
-};
+    "Resolve any agenid:<ULID> against the live registry: what the operator declared, what was independently verified, and by whom. Never one blended badge.",
+  path: "/verify",
+});
 
 const DISTINCTIONS = [
   { k: "Identity", v: "The permanent agenid:<ULID> itself — not a platform-internal account ID." },
@@ -30,6 +32,20 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-16">
+      {/* eslint-disable-next-line react/no-danger */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            webApplicationJsonLd({
+              name: "AgenID Resolver",
+              path: "/verify",
+              description: String(metadata.description),
+              siteUrl: SITE_URL,
+            }),
+          ),
+        }}
+      />
       <div className="text-center">
         <div className="mb-3 font-mono text-[11px] text-muted">VERIFY AN AGENT</div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Who is this AI agent?</h1>

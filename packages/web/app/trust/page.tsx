@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { TwoPathDiagram } from "@/components/Diagrams";
 
-export const metadata: Metadata = {
-  title: "Trust Center",
+export const metadata: Metadata = pageMetadata({
+  title: "Trust Center: Security, Keys & Verification Methodology",
   description:
-    "Protocol, cryptography, key management, verification methodology, and open-source status for AgenID — including what is not yet complete, disclosed transparently rather than marketed over.",
-  alternates: { canonical: "/trust" },
-};
+    "AgenID's protocol, cryptography, key management and verification methodology, including what is not complete yet, disclosed plainly rather than marketed over.",
+  path: "/trust",
+});
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (

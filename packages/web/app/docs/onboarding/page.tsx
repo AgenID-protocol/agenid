@@ -4,17 +4,22 @@ import { notFound } from "next/navigation";
 import { getOnboardingDoc } from "@/lib/onboarding";
 import { DocCodeCopy } from "@/components/DocCodeCopy";
 import { SITE_URL } from "@/lib/api";
+import { pageMetadata } from "@/lib/seo";
 
+// "…and request independent verification" was dropped from this description: the
+// assertion write path is not deployed and the root authority key does not exist, so a
+// search snippet promising it described a step nobody can take today.
 const DESCRIPTION =
-  "How to register an AI agent with the AgenID registry: generate an Ed25519 keypair, build and sign a manifest, register it, embed the verification badge, and request independent verification.";
+  "How to register an AI agent with AgenID: generate an Ed25519 keypair, sign an operator manifest, register it, and embed the live verification badge.";
 
 export function generateMetadata(): Metadata {
   const doc = getOnboardingDoc();
-  return {
+  return pageMetadata({
     title: doc?.title ?? "Operator Onboarding Guide",
     description: DESCRIPTION,
-    alternates: { canonical: "/docs/onboarding" },
-  };
+    path: "/docs/onboarding",
+    type: "article",
+  });
 }
 
 export default function OnboardingPage() {

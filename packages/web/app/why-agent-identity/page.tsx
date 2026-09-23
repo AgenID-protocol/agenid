@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Why Agent Identity?",
+export const metadata: Metadata = pageMetadata({
+  title: "Why AI Agents Need an Identity",
   description:
-    "AI agents are becoming participants — they communicate, access APIs and systems, run workflows, and act on behalf of organizations. Identity becomes infrastructure once that's true.",
-  alternates: { canonical: "/why-agent-identity" },
-};
+    "AI agents now call, book, buy and act for organizations. Why a portable, independently verifiable identity becomes infrastructure once that is true.",
+  path: "/why-agent-identity",
+  type: "article",
+});
 
 export default function WhyAgentIdentityPage() {
   return (

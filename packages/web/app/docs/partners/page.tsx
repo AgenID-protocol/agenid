@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { getAllPartnerDocs } from "@/lib/partners";
 import { SITE_URL } from "@/lib/api";
 
-export const metadata: Metadata = {
-  title: "Partner Integration Briefs",
+export const metadata: Metadata = pageMetadata({
+  title: "AI Agent Platform Integration Briefs",
   description:
-    "How to attach a verifiable agenid:<ULID> identity to an agent built on Retell, Vapi, ElevenLabs, Bland, LangChain/LangGraph, MCP servers, Grok Bot, or OpenClaw — using each platform's existing, documented APIs plus @agenid/core.",
-  alternates: { canonical: "/docs/partners" },
-};
+    "Patterns for carrying a verifiable agenid:<ULID> through Retell, Vapi, ElevenLabs, Bland, LangChain, MCP servers, Grok Bot and OpenClaw. Patterns, not packages.",
+  path: "/docs/partners",
+});
 
 export default function PartnersIndexPage() {
   const docs = getAllPartnerDocs();
