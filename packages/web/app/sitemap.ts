@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getPartnerSlugs } from "@/lib/partners";
 import { scenarioSlugs } from "@/lib/scenarios";
 import { SITE_URL } from "@/lib/api";
+import { contentRoutes } from "@/lib/content";
 
 /**
  * Static + partner-doc routes only. `/a/<agenid>` resolver pages are deliberately
@@ -29,7 +30,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/docs`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/docs/partners`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/docs/onboarding`, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/badge`, changeFrequency: "monthly", priority: 0.6 },
   ];
+
+  // The long-form library (glossary, guides, comparisons, use cases, blog, report). Static
+  // data, so listing it fabricates nothing.
+  for (const path of contentRoutes()) {
+    const hub = !path.slice(1).includes("/");
+    entries.push({ url: `${SITE_URL}${path}`, changeFrequency: hub ? "weekly" : "monthly", priority: hub ? 0.7 : 0.6 });
+  }
 
   // Every scenario is a static, self-contained page with its own metadata. Unlike the
   // resolver routes below, these enumerate from data rather than from the registry, so

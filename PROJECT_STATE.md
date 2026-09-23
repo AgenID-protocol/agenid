@@ -41,6 +41,7 @@ Capabilities that exist in code. Implemented is not the same as deployed, and ne
 | Assertion write path (`POST /v1/agents/:id/assertions`) | `@agenid/api` — **not deployed** |
 | Domain-control evidence — `POST /api/verify-dns` (real `_agenid.<domain>` TXT lookup) and `POST /api/domain/status` (provider detection, Domain Connect, and the operator's `.well-known` key document — reported `published` only when it strictly parses as a `KeysDocument` for that domain, never merely because the server answered 200) | `packages/web`. **No DNS write path exists:** `/api/dns/auto-add` is deleted, not unconfigured, and AgenID holds no provider credential |
 | Ecosystem registry and validator — 25 platforms, one reviewable JSON file each | `packages/web/data/ecosystem/`, `lib/ecosystem.ts` |
+| Long-form content library — 34-term glossary, 4 pillar guides, 6 sourced comparisons, voice-agent use-case hub, `/why-agent-identity` hub, research report, release-notes blog + RSS, `/badge` embed docs, and 17 `/how-it-works` scenarios (up from 9). One renderer that states the L1 issuance ceiling on every page; guarded by `test/content.test.ts` | `packages/web/lib/content/`, `components/content/`, `app/{glossary,learn,compare,use-cases,blog,state-of-agent-identity,badge}` |
 
 ## Production verified
 
@@ -191,6 +192,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 | Date | Change |
 |---|---|
+| 2026-09-23 | **Content library (SEO strategic investments S1–S8)** — glossary, guides, comparisons (every third-party claim cited), research report (every figure cited), blog, use-case hubs, badge docs, eight new scenarios; an IETF-style Internet-Draft of v1.1.1 at `docs/draft-morgan-agenid-agent-identity-00.md` (not submitted) |
 | 2026-09-15 | **Key discovery decided from the raw request target** — a twice-encoded key ULID resolved `200` in production while the identical code returned `400` locally, because the guard was built on a framework-decoded path parameter and Vercel decodes the path once before Next decodes the segment again. Also: Fastify framework errors stopped reflecting the caller's request target; `/v1/keys` became read-only on both frameworks and authority key publication moved to `POST /v1/authority/keys`; the cross-registry parity test was rebuilt on raw-target fixtures after it was found comparing two different requests |
 | 2026-09-15 | **Trust-state presentation centralized and made fail-closed** — both badges and the Verification Card had an `else -> emerald VERIFIED` default, so an unrecognized level rendered as verified |
 | 2026-09-15 | Documentation architecture audit — five core documents brought to standard; six fabricated claims in the previous API reference found and corrected by live verification |

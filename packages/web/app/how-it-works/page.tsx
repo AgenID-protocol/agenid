@@ -5,9 +5,9 @@ import { groupedCatalogue, ISSUANCE_CEILING, NOT_BUILT } from "@/lib/scenarios";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = pageMetadata({
-  title: "How AI Agent Identity Verification Works: 9 Scenarios",
+  title: "How AI Agent Identity Verification Works: 17 Scenarios",
   description:
-    "See how businesses and other AI agents verify an agent's identity in nine real-world scenarios, from booking a dentist to B2B procurement and agent delegation.",
+    "See how businesses and other AI agents verify an agent's identity in 17 scenarios, from booking a dentist to insurance claims, B2B procurement and delegation.",
   keywords: [
     "how AI agent verification works",
     "AI agent identity examples",
@@ -30,7 +30,7 @@ export default function HowItWorksPage() {
         How AI agent identity verification works
       </h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-paper-dim text-pretty">
-        An agent saying its AgenID is not the same thing as proving it. Nine scenarios, one visual language: the same identity object, the same verification handshake, the same
+        An agent saying its AgenID is not the same thing as proving it. Seventeen scenarios, one visual language: the same identity object, the same verification handshake, the same
         point at which a counterparty stops and asks for proof. Every one of them also plays{" "}
         <span className="text-paper">without</span> a portable identity layer, because that comparison is the
         argument.
@@ -94,6 +94,7 @@ export default function HowItWorksPage() {
         reader who came looking for insurance should find out it is missing, not assume
         the protocol does not reach it.
       */}
+      {NOT_BUILT.length > 0 && (
       <div className="mt-14 rounded-2xl border border-line bg-paper/[0.012] p-5">
         <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Same system, not built yet</div>
         <p className="mt-3 text-sm leading-relaxed text-muted text-pretty">
@@ -101,6 +102,7 @@ export default function HowItWorksPage() {
           they are simply not drawn.
         </p>
       </div>
+      )}
     </div>
     </main>
   );

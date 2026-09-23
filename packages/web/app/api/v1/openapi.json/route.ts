@@ -184,6 +184,17 @@ function buildSpec(origin: string) {
           responses: { "200": { description: "The badge script.", content: { "application/javascript": { schema: { type: "string" } } } } },
         },
       },
+      "/blog/feed.xml": {
+        get: {
+          operationId: "getBlogFeed",
+          summary: "Blog RSS feed",
+          description:
+            "RSS 2.0 feed of the release-notes blog at /blog, generated at build time from the same data as the pages. " +
+            "Read-only, static, no parameters.",
+          tags: ["Site"],
+          responses: { "200": { description: "The feed.", content: { "application/rss+xml": { schema: { type: "string" } } } } },
+        },
+      },
       "/a/{agenid}": {
         get: {
           operationId: "getVerificationCard",

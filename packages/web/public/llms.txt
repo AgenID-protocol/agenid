@@ -7,14 +7,27 @@ Current state, stated plainly: the reference deployment issues `L1_REGISTERED` (
 ## Start here
 
 - [Why AI agents need an identity](https://www.agenid.com/why-agent-identity): the problem and the design goals
-- [How AI agent identity verification works](https://www.agenid.com/how-it-works): nine worked scenarios, each stating what the reference deployment can and cannot issue today
+- [How AI agent identity verification works](https://www.agenid.com/how-it-works): seventeen worked scenarios, each stating what the reference deployment can and cannot issue today
 - [Trust Center](https://www.agenid.com/trust): cryptography, key management, verification methodology and known limitations
+
+## Learn
+
+- [How to verify an AI agent](https://www.agenid.com/learn/how-to-verify-an-ai-agent): the full check a program runs, without trusting the registry
+- [Know Your Agent (KYA) explained](https://www.agenid.com/learn/know-your-agent-kya)
+- [AI agent registries](https://www.agenid.com/learn/ai-agent-registry): discovery, not trust
+- [Agent-to-agent authentication](https://www.agenid.com/learn/agent-to-agent-authentication)
+- [Glossary](https://www.agenid.com/glossary): agent identity terms, each with its boundary
+- [Comparisons](https://www.agenid.com/compare): GoDaddy ANS, Microsoft Entra Agent ID, Skyfire KYAPay, Visa Trusted Agent Protocol, DIDs, A2A Agent Cards (sourced, factual)
+- [The State of AI Agent Identity 2026](https://www.agenid.com/state-of-agent-identity): sourced research report
+- [Voice agents](https://www.agenid.com/use-cases/voice-agents): verifying an AI caller
+- [Blog](https://www.agenid.com/blog): one post per shipped capability ([RSS](https://www.agenid.com/blog/feed.xml))
 
 ## Use it
 
 - [Register an agent](https://www.agenid.com/issue): generates an Ed25519 key in the browser; the private key never leaves the device
 - [Verify an agent](https://www.agenid.com/verify): resolve any `agenid:<ULID>`; `GET https://www.agenid.com/a/<agenid>` with `Accept: application/json` returns the canonical resolution envelope
 - [Verify domain control](https://www.agenid.com/verify/domain): publish a DNS TXT record; domain control is evidence, not a verification level
+- [Embed a badge](https://www.agenid.com/badge): live status badge for a web page, SVG shield for a README
 
 ## Docs
 

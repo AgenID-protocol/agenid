@@ -11,7 +11,7 @@ const COLUMNS: Col[] = [
     links: [
       { href: "/verify", label: "Verify an Agent" },
       { href: "/#identity", label: "Agent Identity" },
-      { href: "/#badges", label: "Badges" },
+      { href: "/badge", label: "Badges" },
       { href: "/api/v1/openapi.json", label: "Verification API", external: true },
     ],
   },
@@ -31,6 +31,17 @@ const COLUMNS: Col[] = [
       { href: "/ecosystem", label: "Overview" },
       { href: "/docs/partners", label: "Integration Briefs" },
       { href: "https://github.com/AgenID-protocol/conformance", label: "Conformance Suite", external: true },
+    ],
+  },
+  {
+    title: "Learn",
+    links: [
+      { href: "/learn", label: "Guides" },
+      { href: "/glossary", label: "Glossary" },
+      { href: "/compare", label: "Comparisons" },
+      { href: "/use-cases", label: "Use Cases" },
+      { href: "/state-of-agent-identity", label: "Research Report" },
+      { href: "/blog", label: "Blog" },
     ],
   },
   {

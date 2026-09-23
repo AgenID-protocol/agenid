@@ -1,7 +1,7 @@
 /**
  * The scenario library.
  *
- * Nine illustrations of one handshake: an agent makes a claim, a counterparty refuses
+ * Seventeen illustrations of one handshake: an agent makes a claim, a counterparty refuses
  * to act on the claim alone, the claim becomes a proof, and specific — scoped — claims
  * get checked. Every scenario also plays without AgenID, which is the comparison the
  * whole set exists to make.
@@ -23,6 +23,7 @@
 
 import type { Scenario } from "./types";
 import { EXAMPLE_AGENID } from "./types";
+import { NEW_SCENARIOS } from "./more";
 
 const HERO: Scenario = {
   slug: "why-identity",
@@ -697,6 +698,17 @@ const DELEGATION: Scenario = {
  * a handshake, so it has its own component and its own entry in ./index.ts. Forcing it
  * into this shape would mean adding a variant nothing else uses.
  */
-export const SCENARIOS: readonly Scenario[] = [HERO, DENTIST, TIRES, TRAVEL, LOGISTICS, PROCUREMENT, BANK, DELEGATION];
+export const SCENARIOS: readonly Scenario[] = [
+  HERO,
+  DENTIST,
+  TIRES,
+  TRAVEL,
+  LOGISTICS,
+  PROCUREMENT,
+  BANK,
+  DELEGATION,
+  // The eight sketched and originally unbuilt (see ./more.ts), in their own numbering order.
+  ...NEW_SCENARIOS,
+];
 
 export { EXAMPLE_AGENID };

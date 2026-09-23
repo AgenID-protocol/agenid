@@ -67,6 +67,14 @@ export const SCENARIO_BRIEFS: Record<string, readonly string[]> = {
   "financial-transaction": ["mcp-server-integration", "langchain-integration"],
   "agent-delegation": ["langchain-integration", "mcp-server-integration", "openclaw-integration"],
   "today-vs-agentic": ["grok-bot-integration", "openclaw-integration"],
+  "insurance-claim": ["mcp-server-integration", "langchain-integration"],
+  "real-estate": ["langchain-integration", "mcp-server-integration"],
+  "legal-services": ["mcp-server-integration", "langchain-integration"],
+  recruiting: ["langchain-integration", "openclaw-integration"],
+  "government-services": ["mcp-server-integration", "langchain-integration"],
+  "home-services": ["vapi-integration", "retell-ai-integration"],
+  "sales-outreach": ["retell-ai-integration", "vapi-integration", "bland-ai-integration", "elevenlabs-integration"],
+  "personal-admin": ["elevenlabs-integration", "grok-bot-integration"],
 };
 
 export type PartnerDoc = { slug: string; title: string; description: string; category: string; html: string };

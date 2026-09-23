@@ -18,6 +18,8 @@
  * described as the model, and the page renders ISSUANCE_CEILING beside it.
  */
 
+import { NEW_SCENARIO_SEO } from "./more";
+
 export interface SeoSection {
   readonly heading: string;
   readonly body: readonly string[];
@@ -50,7 +52,7 @@ const LEVELS_TODAY =
 const IDENTITY_NOT_PERMISSION =
   "No. AgenID answers which agent is acting and who declared it. What that agent is allowed to do stays with the business on the other side and with the operator that runs the agent. Protocol v1.1.1 defines no signed authorization object.";
 
-export const SCENARIO_SEO: Readonly<Record<string, ScenarioSeo>> = {
+const BASE_SEO: Readonly<Record<string, ScenarioSeo>> = {
   "why-identity": {
     title: "AI Agent Identity Verification: Claim vs. Proof",
     description:
@@ -414,6 +416,9 @@ export const SCENARIO_SEO: Readonly<Record<string, ScenarioSeo>> = {
     related: ["travel", "b2b-procurement", "why-identity"],
   },
 };
+
+/** Every scenario's landing copy: the original nine plus the eight in ./more.ts. */
+export const SCENARIO_SEO: Readonly<Record<string, ScenarioSeo>> = { ...BASE_SEO, ...NEW_SCENARIO_SEO };
 
 /** SEO content for a catalogue slug, if it has any. */
 export function seoFor(slug: string): ScenarioSeo | undefined {

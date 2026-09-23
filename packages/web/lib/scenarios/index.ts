@@ -105,17 +105,9 @@ export function nextEntry(slug: string): CatalogueEntry | undefined {
 /**
  * The scenarios this set does NOT include.
  *
- * Named rather than omitted: the prototype covered nine of a sketched sixteen, and a
+ * Empty since the eight remaining scenarios shipped (lib/scenarios/more.ts). Kept, and still
+ * rendered when non-empty, so a future gap is named rather than omitted. Originally: the prototype covered nine of a sketched sixteen, and a
  * reader who came looking for insurance or recruiting should find out that it is
  * missing, not that it does not exist.
  */
-export const NOT_BUILT = [
-  "Insurance (04)",
-  "Real estate (05)",
-  "Legal services (06)",
-  "Recruiting (07)",
-  "Government services (10)",
-  "Home services (12)",
-  "Sales (13)",
-  "Personal administration (14)",
-];
+export const NOT_BUILT: readonly string[] = [];

@@ -218,8 +218,8 @@ describe("scenarios — catalogue integrity", () => {
     expect(CATALOGUE.filter((e) => e.kind === "custom").map((e) => e.slug)).toEqual(["today-vs-agentic"]);
   });
 
-  it("the set is the nine that were built", () => {
-    expect(CATALOGUE).toHaveLength(9);
+  it("the set is the seventeen that were built — the original nine plus the eight in more.ts", () => {
+    expect(CATALOGUE).toHaveLength(17);
   });
 
   it("nextEntry wraps rather than dead-ending", () => {

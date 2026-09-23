@@ -1,64 +1,66 @@
 import type { Metadata } from "next";
-import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { ContentArticle } from "@/components/content/ContentArticle";
+import { COMPARISONS, GUIDES, WHY_HUB } from "@/lib/content";
+import { articleNode, faqPage, graph } from "@/lib/content/jsonld";
+import { pageMetadata } from "@/lib/seo";
 
+/**
+ * The pillar hub. Its copy lives in lib/content/hubs.ts with the rest of the long-form
+ * library so the same guards apply; this route adds the hub's link grid. The original
+ * page's substance — the five directions, "a claim about incentives and architecture,
+ * not a claim about law", and what AgenID adds — is preserved in that copy.
+ */
 export const metadata: Metadata = pageMetadata({
   title: "Why AI Agents Need an Identity",
   description:
     "AI agents now call, book, buy and act for organizations. Why a portable, independently verifiable identity becomes infrastructure once that is true.",
   path: "/why-agent-identity",
   type: "article",
+  keywords: WHY_HUB.keywords,
 });
 
 export default function WhyAgentIdentityPage() {
+  const path = "/why-agent-identity";
+  const crumbs = [
+    { label: "Why agent identity" },
+  ];
   return (
-    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
-      <div className="max-w-3xl">
-      <Breadcrumbs items={[{ label: "Why agent identity?" }]} className="mb-6" />
-      <h1 className="display !text-4xl md:!text-5xl">AI agents are becoming participants.</h1>
-
-      <div className="mt-8 space-y-5 leading-7 text-paper-dim">
-        <p>
-          An AI agent today can communicate directly with people, call APIs, act inside internal systems, run
-          multi-step workflows, talk to customers, and act on behalf of a company. None of that requires a human in
-          the loop for every step. As more of it happens without one, a simple question starts to matter more than it
-          used to: <span className="text-paper">who, exactly, is this agent — and who answers for it?</span>
-        </p>
-        <p>
-          A session token or an API key answers that question for exactly as long as the session lasts. It says
-          nothing about whether the agent making a request today is the same one that made a similar request last
-          week, whether it moved to a different platform in between, or who is accountable if it acts outside its
-          stated purpose. That gap doesn&rsquo;t show up while agents are experimental. It shows up the moment an
-          agent is trusted with something that matters — a payment, an escalation, a commitment made on someone
-          else&rsquo;s behalf.
-        </p>
-        <p>Identity becomes infrastructure once an agent can act like this in each of these directions:</p>
-        <ul className="list-disc space-y-2 pl-5">
-          <li><span className="font-mono text-paper">Human → Agent</span> — a person needs to know who they&rsquo;re actually talking to.</li>
-          <li><span className="font-mono text-paper">Agent → Agent</span> — one agent needs to check who it&rsquo;s transacting with before it does.</li>
-          <li><span className="font-mono text-paper">Agent → API</span> — a system needs to know which agent is calling it, independent of the credential it presents.</li>
-          <li><span className="font-mono text-paper">Agent → Business</span> — an organization needs a durable record of what its agents claimed and what was actually checked.</li>
-          <li><span className="font-mono text-paper">Agent → Transaction</span> — anything with real consequences needs a party behind it that outlives the session.</li>
-        </ul>
-        <p>
-          This is a claim about incentives and architecture, not a claim about law. AgenID does not assert that any
-          specific regulation requires an identity layer like this — where a rule or standard is relevant, it should
-          be cited by name and clearly separated from AgenID&rsquo;s own interpretation, not blended into it.
-        </p>
-        <p>
-          What AgenID adds is narrow and specific: a permanent identifier, bound to a signed operator manifest, that
-          survives a platform change; a way to separate what an operator declares from what an independent party has
-          actually checked; and a machine-readable resolution so another program — or another agent — can verify that
-          distinction itself, without taking AgenID&rsquo;s word for it.
-        </p>
-      </div>
-
-      <div className="mt-12 flex flex-wrap gap-3">
-        <Link href="/verify" className="btn btn-primary">Verify an Agent</Link>
-        <Link href="/issue" className="btn btn-ghost">Give Your Agent an Identity</Link>
-      </div>
-    </div>
-    </main>
+    <ContentArticle
+      page={WHY_HUB}
+      crumbs={crumbs}
+      kicker="Start here"
+      jsonLd={graph(articleNode(WHY_HUB, path, "Article"), faqPage(WHY_HUB))}
+    >
+      <section className="mt-14" aria-labelledby="go-deeper">
+        <h2 id="go-deeper" className="text-2xl font-semibold leading-tight tracking-tight">
+          Go deeper
+        </h2>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {GUIDES.map((g) => (
+            <Link key={g.slug} href={`/learn/${g.slug}`} className="card block p-4 transition card-hover">
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Guide</div>
+              <div className="mt-1.5 text-sm font-medium leading-snug tracking-tight">{g.h1}</div>
+            </Link>
+          ))}
+          <Link href="/use-cases/voice-agents" className="card block p-4 transition card-hover">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Use case</div>
+            <div className="mt-1.5 text-sm font-medium leading-snug tracking-tight">Voice agents calling businesses</div>
+          </Link>
+          <Link href="/glossary" className="card block p-4 transition card-hover">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Reference</div>
+            <div className="mt-1.5 text-sm font-medium leading-snug tracking-tight">Glossary of agent identity terms</div>
+          </Link>
+          <Link href="/compare" className="card block p-4 transition card-hover">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Comparisons</div>
+            <div className="mt-1.5 text-sm font-medium leading-snug tracking-tight">AgenID and {COMPARISONS.length} other approaches</div>
+          </Link>
+          <Link href="/how-it-works" className="card block p-4 transition card-hover">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Scenarios</div>
+            <div className="mt-1.5 text-sm font-medium leading-snug tracking-tight">The same handshake, with and without AgenID</div>
+          </Link>
+        </div>
+      </section>
+    </ContentArticle>
   );
 }
