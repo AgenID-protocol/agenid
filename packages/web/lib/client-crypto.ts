@@ -279,3 +279,37 @@ export async function signAgentFleet(
   }
   return results;
 }
+
+
+// ---------------------------------------------------------------------------
+// Directory consent (registry feature, not a protocol object)
+// ---------------------------------------------------------------------------
+
+/** Must equal DIRECTORY_CONSENT_TYPE in lib/directory.ts (test-pinned). */
+const DIRECTORY_CONSENT_TYPE = "agenid.directory.consent.v1";
+
+/**
+ * Sign a directory listing consent with the agent's operator key, in the browser.
+ * Same construction as every other signature here: RFC 8785 canonical bytes of the
+ * payload without `signature`, pure Ed25519. Only the returned object is ever sent.
+ */
+export function signDirectoryConsent(
+  keyPair: ClientKeyPair,
+  agentId: string,
+  keyId: string,
+  listed: boolean,
+  now: Date = new Date(),
+): { type: string; agent_id: string; key_id: string; listed: boolean; created_at: string; signature: string } {
+  const payload = { type: DIRECTORY_CONSENT_TYPE, agent_id: agentId, key_id: keyId, listed, created_at: now.toISOString() };
+  const signature = ed25519.sign(canonicalizeToBytes(payload), keyPair.privateKey);
+  return { ...payload, signature: b64uEncode(signature) };
+}
+
+/** Rebuild a key pair from the 32-byte seed in the key file /issue offers for download. */
+export function keyPairFromPrivateHex(hex: string): ClientKeyPair {
+  if (!/^[0-9a-f]{64}$/i.test(hex)) throw new Error("private key must be 64 hex characters");
+  const privateKey = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) privateKey[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  const publicKey = ed25519.getPublicKey(privateKey);
+  return { privateKey, publicKey, publicKeyHex: hexEncode(publicKey), publicKeyB64u: b64uEncode(publicKey) };
+}

@@ -251,11 +251,16 @@ describe("T-4 — no public surface claims a capability this deployment does not
     expect(pre![1], "the terminal must wrap long commands").toMatch(/whitespace-pre-wrap/);
   });
 
-  it("describes the absent agent directory as absent, not as pending", () => {
+  it("describes the agent directory as it is deployed: opt-in only, not endorsement", () => {
+    // The directory used to be absent and the page said so. It now exists (2026-09-23,
+    // /agents) and is opt-in: registration alone lists nothing. The page must say exactly
+    // that — neither the old "no directory" (now false) nor anything implying every
+    // registered agent is enumerable.
     const trust = read(TRUST);
-    expect(trust, "'…no directory yet' reads as a roadmap for something nobody is building").not.toMatch(
-      /directory of registered[\s\S]{0,60}\byet\b/i,
-    );
-    expect(trust).toMatch(/publishes no directory of registered agents/i);
+    expect(trust, "'…no directory yet' reads as a roadmap").not.toMatch(/directory of registered[\s\S]{0,60}\byet\b/i);
+    expect(trust, "stale: the directory now exists").not.toMatch(/publishes no directory of registered agents/i);
+    expect(trust).toMatch(/Registration lists an agent nowhere/);
+    expect(trust).toMatch(/opted in by signing a listing consent/);
+    expect(trust).toMatch(/not an endorsement and changes no verification level/);
   });
 });

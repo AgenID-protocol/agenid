@@ -470,7 +470,7 @@ export const GUIDES: readonly ContentPage[] = [
           "A2A Agent Cards. The [Agent2Agent specification](https://a2a-protocol.org/latest/specification/) has each agent publish a self-describing Agent Card, typically at `/.well-known/agent-card.json` on its own domain. Cards may be signed with JWS over RFC 8785 canonical JSON. This is decentralized discovery with no central registry required. See [agent card](/glossary/agent-card) and the [A2A comparison](/compare/a2a-agent-cards).",
           "NANDA Index and AgentFacts. MIT's Project NANDA describes a lean index that resolves to [AgentFacts](https://www.media.mit.edu/publications/beyond-dns-unlocking-the-internet-of-ai-agents-via-the-nanda-index-and-verified-agentfacts/), cryptographically verifiable metadata about an agent's capabilities and endpoints, with privacy-preserving discovery across organizations.",
           "Enterprise directories. Identity providers extend existing workforce directories to agents, which suits agents that act inside one organization's boundary. The arXiv survey above includes Microsoft Entra Agent ID as an example; see the [Entra Agent ID comparison](/compare/microsoft-entra-agent-id).",
-          "AgenID. A resolver for operator-signed agent identities with a non-authoritative registry, as described above. It provides resolution of a known identifier, not a browsable directory: there is no agent directory or capability search on agenid.com.",
+          "AgenID. A resolver for operator-signed agent identities with a non-authoritative registry, as described above. Its primary function is resolution of a known identifier. It also publishes an opt-in [agent directory](/agents) listing only agents whose operators signed a listing consent with the agent's own key; a listing is not an endorsement and changes no level, and there is no capability search.",
         ],
       },
       {
@@ -504,7 +504,7 @@ export const GUIDES: readonly ContentPage[] = [
       },
       {
         q: "Is the AgenID registry a directory of agents?",
-        a: "No. It resolves an identifier you already have into a signed, re-verifiable record. There is no browsable agent directory or capability search on agenid.com.",
+        a: "Not by default. It resolves an identifier you already have into a signed, re-verifiable record, and registration alone lists an agent nowhere. Operators can opt in to the [agent directory](/agents) by signing a listing consent with the agent's operator key; being listed is not an endorsement, changes no verification level, and can be withdrawn the same way. There is no capability search.",
       },
       {
         q: "Do I have to trust the AgenID registry?",

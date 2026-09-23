@@ -23,6 +23,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { generateKeyPair, signAgent, hexEncode, type ClientKeyPair, type SignedAgent } from "@/lib/client-crypto";
 import { presentTrustLevel } from "@/lib/trust-presentation";
+import { ListInDirectory } from "@/components/DirectoryConsent";
 
 /** What issuance produces, resolved through the one module that decides how it looks. */
 const L1 = presentTrustLevel("L1_REGISTERED");
@@ -438,6 +439,11 @@ function Result({
         <Copyable label="HTML embed" value={badgeSnippet} lines={2} />
         <Copyable label="Markdown (README)" value={markdown} lines={2} />
         <Copyable label="Verify from a terminal" value={curl} lines={2} />
+      </div>
+
+      {/* Opt-in, and only on a click: registration never lists an agent by itself. */}
+      <div className="card mt-6 p-6 sm:p-8">
+        <ListInDirectory agentId={agentId} keyId={keyId} keyPair={keyPair} />
       </div>
 
       <div className="card mt-6 p-6 sm:p-8">

@@ -184,7 +184,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 - **Root compromise would be unbounded and retroactive** (limitation 2). This is the single largest unresolved architectural risk, and it is why custody is a callable audit-logged KMS key rather than air-gapped hardware.
 - **Domain or GitHub org compromise defeats the trust root entirely** (limitation 4), independent of key storage. The hardening checklist is a prerequisite of the ceremony, not an adjacent chore.
-- **Unbounded registration volume** (limitation 5) is a cost and availability risk today, and a spam risk the moment a public directory exists.
+- **Unbounded registration volume** (limitation 5) is a cost and availability risk today, and — since the opt-in directory shipped (2026-09-23) — a directory-spam risk: anyone who registers can list their own agent. Bounded by the registration and consent rate limits and by the rule that only the agent's own operator key can list it; there is no moderation or review of listings.
 - **Two implementations of registration validation** (limitation 6) can drift. They are tested for equivalence; the test is the only thing preventing divergence.
 - **Fabricated verification claims have reached this repository repeatedly** — seven instances, one of which shipped to production for a day inside a commit whose headline change was a genuine security improvement. The controls are now tests rather than review conventions, but the class is live.
 
@@ -192,6 +192,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 | Date | Change |
 |---|---|
+| 2026-09-23 | **Opt-in agent directory (S9)** — `/agents` and `/api/v1/directory`; operator-signed, replay-bounded listing consent; migration `0005` applied; registration alone lists nothing |
 | 2026-09-23 | **Content library (SEO strategic investments S1–S8)** — glossary, guides, comparisons (every third-party claim cited), research report (every figure cited), blog, use-case hubs, badge docs, eight new scenarios; an IETF-style Internet-Draft of v1.1.1 at `docs/draft-morgan-agenid-agent-identity-00.md` (not submitted) |
 | 2026-09-15 | **Key discovery decided from the raw request target** — a twice-encoded key ULID resolved `200` in production while the identical code returned `400` locally, because the guard was built on a framework-decoded path parameter and Vercel decodes the path once before Next decodes the segment again. Also: Fastify framework errors stopped reflecting the caller's request target; `/v1/keys` became read-only on both frameworks and authority key publication moved to `POST /v1/authority/keys`; the cross-registry parity test was rebuilt on raw-target fixtures after it was found comparing two different requests |
 | 2026-09-15 | **Trust-state presentation centralized and made fail-closed** — both badges and the Verification Card had an `else -> emerald VERIFIED` default, so an unrecognized level rendered as verified |

@@ -29,7 +29,7 @@ Protocol v1.1.1 + errata E1/E2.
 
 | Surface | Limit | Window |
 |---|---|---|
-| `POST /api/v1/agents`, `POST /api/retell/declare` | 30 | 60s |
+| `POST /api/v1/agents`, `POST /api/retell/declare`, `POST /api/v1/directory` | 30 | 60s |
 | `POST /api/retell/bind` | 10 | 60s |
 | `POST /api/retell/agents` | 12 | 60s |
 | `POST /api/domain/status`, `POST /api/verify-dns` | 40 | 60s |
@@ -51,9 +51,9 @@ Three properties worth stating because they are the ones that usually go wrong:
 
 ## CORS
 
-**Verified by live request.** These nine send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
+**Verified by live request.** These eleven send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
 
-`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key_ulid}`
+`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key_ulid}` · `GET /api/v1/directory` · `POST /api/v1/directory`
 
 The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin only.
 
@@ -77,6 +77,9 @@ The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin 
 | POST | `/api/retell/agents` | **Production** |
 | GET | `/v1/keys/{key_ulid}` | **Production** |
 | GET | `/v1/keys?key_id={percent-encoded logical id}` | **Production** — returns the identical document |
+| GET | `/api/v1/directory` | **Production** — opt-in listed agents only |
+| POST | `/api/v1/directory` | **Production** — operator-signed listing consent |
+| GET | `/blog/feed.xml` | **Production** — RSS for `/blog` |
 | POST | `/v1/agents/{id}/assertions` | **Not deployed** — 404. No root key exists to sign with. |
 | GET | `/.well-known/agenid/authorities.json` | **Not published** — 404, correctly |
 
@@ -323,6 +326,36 @@ Error bodies never quote the caller's input back — including the ones the HTTP
 
 **Known limitation.** A malformed percent-escape (`/v1/keys/%ZZ`, `/v1/keys/%`) makes Next's own parameter decoding throw *before* the route handler runs, so a self-hosted `next start` answers it with an opaque `500`. It cannot be fixed inside a route handler. It does not reach production: Vercel's edge refuses those targets with its own plain `400 Bad Request` before Next sees them — verified by sending the raw target directly, since curl will not transmit it.
 
+## /api/v1/directory — opt-in agent directory
+
+A **registry feature of this deployment, not a protocol object**: spec v1.1.1 defines no directory. Registration lists an agent nowhere. An agent appears at [`/agents`](https://www.agenid.com/agents), in `GET /api/v1/directory` and in `/sitemap.xml` only after its operator signs a listing consent, and disappears when the operator signs one with `listed: false`.
+
+**Consent object** (`POST` body; unknown members are refused):
+
+```json
+{
+  "type": "agenid.directory.consent.v1",
+  "agent_id": "agenid:<ULID>",
+  "key_id": "agenid:key:<ULID>",
+  "listed": true,
+  "created_at": "2026-09-23T12:00:00.000Z",
+  "signature": "<base64url Ed25519>"
+}
+```
+
+`signature` is pure Ed25519 over the RFC 8785 canonical bytes of the object without `signature` — the same construction as a ManifestProof — made with the operator key named by the agent's ManifestProof (`key_id` must equal it, the key must be `role: operator`, `controller` the agent, `status: active`). `created_at` must be within **five minutes** of the registry clock and **strictly newer** than the last consent recorded for the agent, so a captured consent can be neither replayed later nor replayed after the operator delists. The signed consent is stored verbatim and can be re-verified by anyone with read access.
+
+| Status | Error | Meaning |
+|---|---|---|
+| 200 | — | Recorded. Body: `agent_id`, `listed`, `updated_at`, `links`, `disclosures` |
+| 400 | `invalid_json`, `invalid_consent`, `consent_expired` | Malformed, or outside the five-minute window |
+| 403 | `key_not_operator`, `key_not_active`, `signature_invalid` | Not signed by this agent's active operator key |
+| 404 | `agent_not_found` | No agent under this identifier |
+| 409 | `agent_not_active`, `consent_superseded` | Not ACTIVE, or a newer consent is already recorded |
+| 503 | `registry_unavailable` | Nothing was changed |
+
+`GET` returns at most 200 listed, `ACTIVE` agents (`agent_id`, `name`, `operator`, `operator_domain`, `listed_at`, `card`) and the disclosures. **A listing carries no verification level** and is not an endorsement; read each agent's level from `/a/{agenid}`. Storage: `directory_listings` (migration `0005`), RLS enabled, public read limited to listed rows, no write policies.
+
 ## Not deployed
 
 **`POST /v1/agents/{id}/assertions`** — exists in `@agenid/api`, gated by `AGENID_AUTHORITY_TOKEN`, no deployed route, and no root authority key to sign an assertion with.
@@ -365,7 +398,7 @@ The envelope carries its own `agenid_envelope_version: "1.0"`.
 
 ## OpenAPI
 
-[`/api/v1/openapi.json`](https://www.agenid.com/api/v1/openapi.json) — **OpenAPI 3.0.3** (not 3.1). Verified live: it documents **all 15 deployed paths** — `/api/v1/agents`, `/api/resolve/{agenid}`, `/a/{agenid}`, `/api/v1/verify`, `/api/v1/openapi.json`, `/badge/{agenid}/shield.svg`, `/badge.js`, `/blog/feed.xml`, `/v1/keys/{key_ulid}`, `/v1/keys`, `/api/verify-dns`, `/api/domain/status`, `/api/retell/declare`, `/api/retell/bind`, `/api/retell/agents` — eight component schemas (`RegisterRequest`, `RegisterResponse`, `VerifyRequest`, `VerifyResponse`, `ResolutionEnvelope`, `DomainControlResult`, `DomainStatus`, `Error`), and one server (`https://www.agenid.com`). Its request and response shapes match the implementation and this document.
+[`/api/v1/openapi.json`](https://www.agenid.com/api/v1/openapi.json) — **OpenAPI 3.0.3** (not 3.1). Verified live: it documents **all 16 deployed paths** — `/api/v1/agents`, `/api/v1/directory`, `/api/resolve/{agenid}`, `/a/{agenid}`, `/api/v1/verify`, `/api/v1/openapi.json`, `/badge/{agenid}/shield.svg`, `/badge.js`, `/blog/feed.xml`, `/v1/keys/{key_ulid}`, `/v1/keys`, `/api/verify-dns`, `/api/domain/status`, `/api/retell/declare`, `/api/retell/bind`, `/api/retell/agents` — eight component schemas (`RegisterRequest`, `RegisterResponse`, `VerifyRequest`, `VerifyResponse`, `ResolutionEnvelope`, `DomainControlResult`, `DomainStatus`, `Error`), and one server (`https://www.agenid.com`). Its request and response shapes match the implementation and this document.
 
 Coverage is enforced in both directions by `packages/web/test/dns-surface.test.ts` — a route handler with no documented path fails the suite, and so does a documented path with no handler — and `scripts/check-docs.mjs` re-asserts it against the live document.
 

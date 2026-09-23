@@ -14,6 +14,7 @@ const GROUPS: NavGroup[] = [
     links: [
       { href: "/issue", label: "Get an AgenID", note: "Sign and register in your browser" },
       { href: "/verify", label: "Verify an Agent", note: "Resolve any agenid:<ULID>" },
+      { href: "/agents", label: "Agent Directory", note: "Opt-in list of registered agents" },
       { href: "/#identity", label: "Agent Identity", note: "What agenid:<ULID> actually is" },
       { href: "/#badges", label: "Agent Badges", note: "Embed live verification status" },
       { href: "/docs/partners/mcp-server-integration", label: "Agent-to-Agent (MCP)", note: "Let an agent verify another agent" },

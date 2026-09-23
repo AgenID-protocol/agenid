@@ -71,7 +71,7 @@ const DEAD_HOSTS = /agenid\.org|agenid\.ai|api\.agenid\.com|github\.com\/AgenID-
 
 const STATIC_ROUTES = [
   "/", "/issue", "/verify", "/verify/domain", "/trust", "/ecosystem", "/why-agent-identity", "/how-it-works",
-  "/docs", "/docs/onboarding", "/docs/partners", "/badge",
+  "/docs", "/docs/onboarding", "/docs/partners", "/badge", "/agents",
 ];
 const KNOWN = new Set<string>([
   ...STATIC_ROUTES,
@@ -100,9 +100,9 @@ describe("content library — coverage", () => {
     }
   });
 
-  it("every content route, every scenario and /badge is in the sitemap", () => {
-    const urls = new Set(sitemap().map((e) => new URL(e.url).pathname.replace(/\/$/, "") || "/"));
-    for (const r of [...contentRoutes(), "/badge", ...scenarioSlugs().map((s) => `/how-it-works/${s}`)]) {
+  it("every content route, every scenario and /badge is in the sitemap", async () => {
+    const urls = new Set((await sitemap()).map((e) => new URL(e.url).pathname.replace(/\/$/, "") || "/"));
+    for (const r of [...contentRoutes(), "/badge", "/agents", ...scenarioSlugs().map((s) => `/how-it-works/${s}`)]) {
       expect(urls.has(r), r).toBe(true);
     }
   });

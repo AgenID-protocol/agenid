@@ -10,6 +10,7 @@ const COLUMNS: Col[] = [
     title: "Product",
     links: [
       { href: "/verify", label: "Verify an Agent" },
+      { href: "/agents", label: "Agent Directory" },
       { href: "/#identity", label: "Agent Identity" },
       { href: "/badge", label: "Badges" },
       { href: "/api/v1/openapi.json", label: "Verification API", external: true },

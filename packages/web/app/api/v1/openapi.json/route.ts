@@ -184,6 +184,42 @@ function buildSpec(origin: string) {
           responses: { "200": { description: "The badge script.", content: { "application/javascript": { schema: { type: "string" } } } } },
         },
       },
+      "/api/v1/directory": {
+        get: {
+          operationId: "listDirectory",
+          summary: "List opted-in agents",
+          description:
+            "The public agent directory: registered agents whose operators signed a listing consent, most recent " +
+            "first, at most 200. Registration alone lists nothing. A listing is not an endorsement and carries no " +
+            "verification level; read each agent's level from /a/{agenid}.",
+          tags: ["Directory"],
+          responses: {
+            "200": { description: "Listed agents and the directory disclosures.", content: { "application/json": { schema: { type: "object" } } } },
+            "503": { description: "The directory could not be read. Status unknown, not empty.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+        post: {
+          operationId: "setDirectoryConsent",
+          summary: "List or delist an agent (operator-signed consent)",
+          description:
+            "Body: `{type: \"agenid.directory.consent.v1\", agent_id, key_id, listed, created_at, signature}`. " +
+            "`signature` is pure Ed25519 over the RFC 8785 canonical bytes of the object without `signature`, made with " +
+            "the operator key named by the agent's ManifestProof. `created_at` must be within five minutes of the " +
+            "registry clock and newer than the last consent recorded for the agent. Unknown members are refused. " +
+            "Rate limited like registration.",
+          tags: ["Directory"],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+          responses: {
+            "200": { description: "Consent recorded.", content: { "application/json": { schema: { type: "object" } } } },
+            "400": { description: "Malformed consent, or created_at outside the window.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "403": { description: "Not signed by this agent's active operator key.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "404": { description: "No agent is registered under this identifier.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "409": { description: "Agent not ACTIVE, or a newer consent is already recorded.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "429": { description: "Rate limited." },
+            "503": { description: "Registry unavailable; nothing was changed.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
       "/blog/feed.xml": {
         get: {
           operationId: "getBlogFeed",

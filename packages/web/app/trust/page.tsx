@@ -201,9 +201,11 @@ export default function TrustPage() {
           — that is what makes independent verification possible.
           {/* "does not publish a directory … yet" reads as a shipping roadmap, which is a
               claim about a thing nobody has built. State the deployed behaviour instead. */}{" "}
-          AgenID publishes no directory of registered agents. Resolution is by identifier only: there is no browse,
-          search, enumeration or listing endpoint on this deployment, and no such endpoint is deployed anywhere. If
-          that ever changes it will be a disclosed change on this page, not a silent one.
+          Registration lists an agent nowhere: by default an agent is found only by its identifier. The{" "}
+          <a href="/agents" className="underline">agent directory</a> lists only agents whose operators opted in by
+          signing a listing consent with the agent&rsquo;s own operator key, and an operator can withdraw it the same
+          way. A listing is not an endorsement and changes no verification level. There is no search or enumeration of
+          unlisted agents on this deployment. This changed on 2026-09-23 and is disclosed here rather than silently.
         </p>
       </Section>
     </div>
