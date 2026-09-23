@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Step = { cmd: string; out: string[] };
 
@@ -36,8 +36,30 @@ const STEPS: Step[] = [
 export function Terminal() {
   const [lines, setLines] = useState<{ t: "cmd" | "out"; s: string }[]>([]);
   const [typing, setTyping] = useState("");
+  const [started, setStarted] = useState(false);
+  const [done, setDone] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Types once, the first time the panel is on screen — not on page load, where it used to
+  // finish before anyone scrolled to it. No observer support: start immediately.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setStarted(true);
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setStarted(true);
+        io.disconnect();
+      }
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
+    if (!started) return;
     let cancelled = false;
     const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     (async () => {
@@ -58,19 +80,22 @@ export function Terminal() {
         }
         await sleep(500);
       }
+      if (!cancelled) setDone(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [started]);
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex items-center gap-1.5 border-b border-line px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-red/70" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber/70" />
-        <span className="h-2.5 w-2.5 rounded-full bg-mint/70" />
-        <span className="ml-3 font-mono text-[11px] text-muted">agenid — zsh</span>
+    <div ref={rootRef} className="card overflow-hidden">
+      {/* Window chrome in neutral. The usual red/amber/green traffic lights put two trust
+          colours and a banned one on a panel that carries no trust state. */}
+      <div className="flex items-center gap-2 border-b border-line px-4 py-3" aria-hidden>
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="ml-3 font-mono text-xs text-muted">agenid — zsh</span>
       </div>
       {/*
         FOUND BY A RENDERED-BROWSER PASS, NOT BY A TEST. The demo's commands used to be
@@ -82,17 +107,17 @@ export function Terminal() {
         is the fix, not shorter commands: a command trimmed to fit this card at this
         breakpoint is one viewport away from clipping again.
       */}
-      <pre className="min-h-[220px] overflow-x-auto whitespace-pre-wrap break-words p-4 font-mono text-[12.5px] leading-relaxed text-paper/90" aria-live="polite">
+      <pre className="min-h-[220px] overflow-x-auto whitespace-pre-wrap break-words p-4 font-mono text-xs leading-relaxed text-paper-dim" aria-live="polite">
         {lines.map((l, i) => (
           <div key={i} className={l.t === "cmd" ? "text-paper" : "text-muted"}>
-            {l.t === "cmd" ? <span className="text-mint">$ </span> : "  "}
+            {l.t === "cmd" ? <span className="text-muted">$ </span> : "  "}
             {l.s}
           </div>
         ))}
         <div>
-          <span className="text-mint">$ </span>
+          <span className="text-muted">$ </span>
           {typing}
-          <span className="caret">▍</span>
+          {!done && <span className="caret">▍</span>}
         </div>
       </pre>
     </div>

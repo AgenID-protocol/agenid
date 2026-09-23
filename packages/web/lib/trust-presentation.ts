@@ -316,3 +316,29 @@ export function presentEnvelopeTrust(env: {
   if (env.proof_check?.ok !== true) return PROOF_INVALID_TRUST;
   return presentTrustLevel(env.verification?.level);
 }
+
+/**
+ * Surface treatment for a card presenting a REAL agent's state, keyed on the tone this
+ * module already decided. The verified glow lives here, and only here, so no component can
+ * apply it on its own: a card glows because `presentEnvelopeTrust` returned `verified`,
+ * never because a page chose to. It is unreachable on this deployment until a real
+ * VerificationAssertion exists — which is correct. Illustrations never use it.
+ */
+export const TRUST_SURFACE: Readonly<Record<TrustTone, string>> = frozen({
+  verified: "border-mint/40 shadow-[0_0_0_1px_rgba(16,185,129,0.18),0_24px_64px_-24px_rgba(16,185,129,0.35)]",
+  declared: "border-amber/30",
+  neutral: "border-line",
+  alert: "border-red/50",
+});
+
+/**
+ * A glyph for every tone, so trust state never rests on colour alone (WCAG 1.4.1): amber
+ * and emerald have similar luminance, and a colour-vision-deficient reader cannot tell
+ * the two small dots apart. Rendered aria-hidden beside a text label.
+ */
+export const TRUST_GLYPH: Readonly<Record<TrustTone, string>> = frozen({
+  verified: "✓",
+  declared: "○",
+  neutral: "–",
+  alert: "✗",
+});

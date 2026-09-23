@@ -18,12 +18,121 @@
   --color-mint-deep: #0b2e22;
   --color-amber: #f59e0b;
   --color-red: #ef4444;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Design pass (2026-09-23). line-strong is the boundary colour for anything a person
+   * interacts with: `line` on `ink` is 1.21:1, below WCAG 1.4.11's 3:1, so it stays for
+   * decorative dividers only. line-strong is 3.14:1 on ink-3 and 3.34:1 on ink-2.
+   * paper-dim replaces paper/80 and paper/90 on prose, because alpha text changes contrast
+   * on every surface it lands on. ink-4 is the raised layer (popovers, menus). */
+  --color-line-strong: #5b6a84;
+  --color-paper-dim: #cbd5e1;
+  --color-ink-4: #1b2436;
+  /* Geist Sans / Geist Mono via next/font (app/layout.tsx), with the system stack as the
+   * fallback while they load. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 html { color-scheme: dark; }
 body { background: var(--color-ink); color: var(--color-paper); }
+
+/*
+ * WCAG 2.4.7. The browser default was a 1px `auto` outline in slate, close to invisible
+ * on ink. Paper, not mint: emerald is reserved for verified state, and a focus ring is
+ * not a trust signal. Paper on ink is 18.3:1.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 2px;
+}
+
+/* Windows High Contrast / forced colours: chips and badges that are only a background
+ * tint disappear, so give them a real border in the system text colour. */
+@media (forced-colors: active) {
+  .pill, .chip, .card { border: 1px solid CanvasText; }
+}
+
+/*
+ * One reveal primitive. VISIBLE BY DEFAULT: content is hidden only when JS is running
+ * (html.js, set before paint in app/layout.tsx) AND the reader has not asked for reduced
+ * motion. Anything that never gets observed — a full-page capture, print, a crawler — gets
+ * the finished page, never an empty one.
+ */
+.reveal {
+  transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1), transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.js .reveal:not([data-revealed]) { opacity: 0; transform: translateY(12px); }
+}
+
+/* Section eyebrow. Sans, not mono: mono on this site means "a machine said this". */
+.eyebrow { @apply mb-3 font-sans text-xs font-medium uppercase tracking-[0.08em] text-muted; }
+
+/* Type hierarchy. One H2 size for every section title (it used to be 24px everywhere,
+ * the same as the card titles beneath it). */
+.section-title { @apply text-3xl font-semibold leading-tight tracking-[-0.025em] text-balance md:text-4xl; }
+.display { @apply text-4xl font-semibold leading-[1.05] tracking-[-0.035em] text-balance sm:text-5xl md:text-6xl; }
+.subhead { @apply text-2xl font-semibold tracking-tight; }
+
+/* Form controls: every interactive boundary is line-strong (WCAG 1.4.11). */
+.field {
+  @apply w-full rounded-lg border border-line-strong bg-ink-3 px-4 py-3 text-sm text-paper placeholder:text-muted focus:border-paper focus:outline-none;
+}
+
+/* Hero atmosphere: the grid fades out from the centre, plus a paper-tinted (never mint)
+ * top glow. Emerald atmosphere would make the whole page read as "verified". */
+.hero-atmos { position: relative; isolation: isolate; }
+.hero-atmos::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 35%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 35%, #000 40%, transparent 100%);
+}
+.hero-atmos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(600px 280px at 50% 0%, rgba(248, 250, 252, 0.05), transparent 70%);
+}
+
+/* Popover / dropdown entrance. Exit is instant (unmount); 160ms in, never longer. */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+.pop-in { transform-origin: top left; animation: pop-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Hero carousel progress fill: runs linearly across one scene's duration. */
+@keyframes scene-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.scene-progress { transform-origin: left; animation: scene-progress var(--scene-ms, 5000ms) linear both; }
+
+/* A check that draws itself once a real event completes (/issue step cards). */
+@keyframes check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+.check-draw { stroke-dasharray: 24; animation: check-draw 320ms cubic-bezier(0.65, 0, 0.35, 1) both; }
+
+/* Resolver: result card entry and the level chip "setting" once data arrives. */
+@keyframes result-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.result-in { animation: result-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes chip-set { from { transform: scale(0.96); } to { transform: none; } }
+.chip-set { animation: chip-set 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes dot-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+.dot-pulse > span { animation: dot-pulse 900ms ease-in-out infinite; }
+.dot-pulse > span:nth-child(2) { animation-delay: 150ms; }
+.dot-pulse > span:nth-child(3) { animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pop-in, .scene-progress, .check-draw, .result-in, .chip-set, .dot-pulse > span { animation: none !important; }
+  .check-draw { stroke-dashoffset: 0; }
+  .reveal { transition: none; }
+}
 
 .grid-bg {
   background-image:
@@ -31,15 +140,27 @@ body { background: var(--color-ink); color: var(--color-paper); }
     linear-gradient(to bottom, rgba(255,255,255,0.035) 1px, transparent 1px);
   background-size: 64px 64px;
 }
-.pill { @apply inline-flex items-center gap-2 rounded-md border border-line bg-ink-2 px-3 py-1.5 font-mono text-xs text-muted; }
+.pill { @apply inline-flex items-center gap-2 rounded-md border border-line bg-ink-2 px-3 py-2 font-sans text-xs font-medium text-muted; }
+/* Protocol-state chips (verification levels table, ladder). Shape carries meaning, not
+ * colour: solid = issued, outline = defined, dashed = reserved / not issued. None of them
+ * uses mint or amber — they describe the protocol, not an agent. */
+.chip { @apply inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs font-medium; }
+.chip-issued { @apply border-line-strong bg-paper/[0.06] text-paper; }
+.chip-defined { @apply border-line-strong text-paper-dim; }
+.chip-not-issued { @apply border-dashed border-line-strong text-muted; }
+.chip-reserved { @apply border-dashed border-line italic text-muted; }
 .pill-ok { @apply border-mint/40 bg-mint-deep/60 text-mint; }
 .pill-warn { @apply border-amber/40 bg-amber/10 text-amber; }
 .pill-bad { @apply border-red/40 bg-red/10 text-red; }
-.card { @apply rounded-2xl border border-line bg-ink-2 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset,0_20px_60px_-30px_rgba(0,0,0,0.8)]; }
-.btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition; }
+.card { @apply rounded-xl border border-line bg-ink-2 shadow-[inset_0_1px_0_rgba(248,250,252,0.04),0_1px_2px_rgba(0,0,0,0.4)]; }
+.card-hover { @apply transition duration-150 hover:-translate-y-px hover:border-line-strong; }
+/* Three button sizes and no others: sm (nav only), md (default, 44px touch target), lg (hero). */
+.btn { @apply inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.98]; }
+.btn-sm { @apply h-9 px-4 text-sm; }
+.btn-lg { @apply h-12 px-6 text-base; }
 .btn-primary { @apply bg-mint text-ink hover:bg-mint/90; }
-.btn-ghost { @apply border border-line text-paper hover:border-muted; }
-.kbd { @apply rounded border border-line bg-ink-3 px-1.5 py-0.5 font-mono text-[11px] text-muted; }
+.btn-ghost { @apply border border-line-strong text-paper hover:bg-paper/[0.03] hover:border-paper-dim; }
+.kbd { @apply rounded border border-line bg-ink-3 px-2 py-1 font-mono text-xs text-muted; }
 @media (prefers-reduced-motion: reduce) { .caret { animation: none !important; } }
 @keyframes blink { 50% { opacity: 0; } }
 .caret { animation: blink 1s step-end infinite; }
@@ -48,11 +169,11 @@ body { background: var(--color-ink); color: var(--color-paper); }
  * under reduced motion — the component itself skips applying the class in that case,
  * and this query is a belt-and-suspenders backstop. */
 @keyframes storyfade {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-\[storyfade_0\.5s_ease\] { animation: none !important; }
+  [class*="storyfade"] { animation: none !important; }
 }
 
 /*
@@ -62,29 +183,29 @@ body { background: var(--color-ink); color: var(--color-paper); }
  * actual verified/active state, never for prose chrome — links stay text +
  * underline, exactly like the resolver card and landing page.
  */
-.prose-agenid { @apply max-w-none text-[15px] leading-7 text-paper/90; }
+.prose-agenid { @apply max-w-none text-base leading-7 text-paper-dim; }
 .prose-agenid h1 { @apply mt-0 mb-4 text-2xl font-bold tracking-tight text-paper; }
 .prose-agenid h2 { @apply mt-10 mb-3 text-lg font-semibold tracking-tight text-paper scroll-mt-20; }
 .prose-agenid p { @apply my-4; }
-.prose-agenid ul { @apply my-4 list-disc space-y-1.5 pl-5; }
+.prose-agenid ul { @apply my-4 list-disc space-y-2 pl-5; }
 .prose-agenid li { @apply pl-1; }
 .prose-agenid hr { @apply my-8 border-line; }
 .prose-agenid strong { @apply font-semibold text-paper; }
 .prose-agenid a { @apply text-paper underline underline-offset-2 hover:no-underline; }
-.prose-agenid code { @apply rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[13px] text-muted; }
+.prose-agenid code { @apply rounded bg-ink-3 px-2 py-1 font-mono text-sm text-muted; }
 .prose-agenid pre {
-  @apply relative my-5 overflow-x-auto rounded-xl border border-line bg-ink-3 p-4 pt-8 font-mono text-[13px] leading-6 text-paper/90;
+  @apply relative my-5 overflow-x-auto rounded-xl border border-line bg-ink-3 p-4 pt-8 font-mono text-sm leading-6 text-paper-dim;
 }
 .prose-agenid pre code { @apply bg-transparent p-0 text-inherit; }
 /* Lightweight language label instead of a full tokenizing highlighter — see
  * lib/markdown.ts's own note on staying dependency-free for eight static docs. */
 .prose-agenid pre[data-lang]::before {
   content: attr(data-lang);
-  @apply absolute left-4 top-2.5 font-mono text-[10px] uppercase tracking-wider text-muted;
+  @apply absolute left-4 top-3 font-mono text-xs uppercase tracking-wider text-muted;
 }
 /* Copy button injected by components/DocCodeCopy.tsx onto rendered markdown code fences. */
 .doc-code-copy-btn {
-  @apply absolute right-3 top-2.5 rounded border border-line bg-ink-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted transition hover:text-paper;
+  @apply absolute right-3 top-3 rounded border border-line bg-ink-2 px-2 py-1 font-mono text-xs uppercase tracking-wider text-muted transition hover:text-paper;
 }
 
 /*
@@ -154,7 +275,15 @@ body { background: var(--color-ink); color: var(--color-paper); }
 .cloud-node {
   transform-box: fill-box;
   transform-origin: center;
-  animation: cloud-node-in 420ms cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+/* Design pass: the entrance used to run on page load, so it had finished long before a
+ * reader scrolled to the graphic — and a capture taken mid-stagger showed spokes with no
+ * nodes. It now runs when the hub is first on screen (data-revealed, set by
+ * EcosystemHub), and nodes are hidden beforehand only when script and motion are both on.
+ * No script, no observer, print, or reduced motion: the finished graphic. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .cloud-host:not([data-revealed]) .cloud-node { opacity: 0; }
+  .cloud-host[data-revealed] .cloud-node { animation: cloud-node-in 420ms cubic-bezier(0.22, 0.7, 0.2, 1) both; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cloud-node { animation: none; opacity: 1; transform: none; }

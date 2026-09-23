@@ -39,9 +39,51 @@ type Issued = {
   disclosures: string[];
 };
 
-const FIELD =
-  "w-full rounded-lg border border-line bg-ink-3 px-3 py-2.5 text-sm text-paper placeholder:text-muted/60 focus:border-mint/60 focus:outline-none";
-const LABEL = "block font-mono text-[11px] uppercase tracking-wider text-muted";
+/** `.field` (globals.css): line-strong boundary for WCAG 1.4.11, paper focus, never mint. */
+const FIELD = "field";
+const LABEL = "block text-xs font-medium uppercase tracking-[0.08em] text-muted";
+
+/**
+ * The three steps, driven by what has actually happened — never by a timer. A timer here
+ * would be theatrical progress on a cryptographic operation. `stage` advances only when
+ * the key pair exists and the manifest is signed locally (2), and when the registry has
+ * answered 201 (3).
+ */
+const STEPS = [
+  { n: "01", t: "Describe the agent", d: "Who operates it, what it does, which channels it runs on." },
+  { n: "02", t: "Your browser signs it", d: "An Ed25519 key is generated in this tab and signs the manifest locally." },
+  { n: "03", t: "Register the public parts", d: "Only the manifest, the signature, and the public key are sent." },
+];
+
+export function IssueSteps({ stage }: { stage: 0 | 1 | 2 | 3 }) {
+  return (
+    <ol className="mt-10 grid grid-cols-3 gap-2 sm:gap-3" aria-label="Progress">
+      {STEPS.map((s, i) => {
+        // i done once stage has passed it; active while stage sits on it.
+        const state = stage > i ? "done" : stage === i ? "active" : "idle";
+        return (
+          <li
+            key={s.n}
+            data-state={state}
+            aria-current={state === "active" ? "step" : undefined}
+            className={`card p-3 transition-colors duration-200 sm:p-4 ${state === "active" ? "!border-line-strong" : ""}`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted">{s.n}</span>
+              {state === "done" && (
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-label="done" role="img" className="text-paper">
+                  <path className="check-draw" d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <div className="mt-2 text-sm font-semibold">{s.t}</div>
+            <p className="mt-1 hidden text-sm text-paper-dim sm:block">{s.d}</p>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 function Copyable({ label, value, lines = 3 }: { label: string; value: string; lines?: number }) {
   const [copied, setCopied] = useState(false);
@@ -55,22 +97,24 @@ function Copyable({ label, value, lines = 3 }: { label: string; value: string; l
             navigator.clipboard?.writeText(value).then(
               () => {
                 setCopied(true);
-                setTimeout(() => setCopied(false), 1600);
+                setTimeout(() => setCopied(false), 1200);
               },
               () => setCopied(false),
             );
           }}
-          className="font-mono text-[11px] text-muted underline hover:text-paper"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-line-strong px-3 text-xs font-medium text-paper-dim transition-colors hover:text-paper"
         >
-          {copied ? "copied" : "copy"}
+          <span aria-hidden>{copied ? "✓" : "⧉"}</span>
+          {copied ? "Copied" : "Copy"}
         </button>
+        <span className="sr-only" aria-live="polite">{copied ? `${label} copied to clipboard` : ""}</span>
       </div>
       <textarea
         readOnly
         rows={lines}
         value={value}
         onFocus={(e) => e.currentTarget.select()}
-        className="mt-1.5 w-full resize-y rounded-lg border border-line bg-ink-3 p-3 font-mono text-[11px] leading-relaxed text-paper focus:border-mint/60 focus:outline-none"
+        className="field mt-2 resize-y !p-3 font-mono !text-xs leading-relaxed"
       />
     </div>
   );
@@ -97,6 +141,7 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<Issued | null>(null);
   const [keyTaken, setKeyTaken] = useState(false);
+  const [stage, setStage] = useState<0 | 1 | 2 | 3>(0);
 
   function toggleChannel(c: Channel) {
     setChannels((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -112,6 +157,7 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
     }
 
     setBusy(true);
+    setStage(1);
     try {
       // 1. Keys are born here, in this tab, and stay here.
       const keyPair = generateKeyPair();
@@ -126,6 +172,8 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
         channels,
         ...(contact.trim() ? { contact: contact.trim() } : {}),
       });
+
+      setStage(2);
 
       // 3. Only public material crosses the wire.
       const res = await fetch("/api/v1/agents", {
@@ -142,9 +190,11 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
       if (!res.ok) {
         const issues = Array.isArray(body.issues) ? ` (${body.issues.length} schema issue(s))` : "";
         setError(`${String(body.message ?? body.error ?? "registration failed")}${issues}`);
+        setStage(0);
         return;
       }
 
+      setStage(3);
       setIssued({
         agentId: String(body.agent_id),
         keyId: signed.keyId,
@@ -155,68 +205,78 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "registration failed");
+      setStage(0);
     } finally {
       setBusy(false);
     }
   }
 
   if (issued) {
-    return <Result issued={issued} siteUrl={siteUrl} keyTaken={keyTaken} onKeyTaken={() => setKeyTaken(true)} />;
+    return (
+      <>
+        <IssueSteps stage={3} />
+        <Result issued={issued} siteUrl={siteUrl} keyTaken={keyTaken} onKeyTaken={() => setKeyTaken(true)} />
+      </>
+    );
   }
 
   return (
+    <>
+    <IssueSteps stage={stage} />
     <form onSubmit={onSubmit} className="card mt-10 p-6 sm:p-8">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className={LABEL} htmlFor="agent-name">Agent name</label>
           <input
-            id="agent-name" className={`${FIELD} mt-1.5`} required maxLength={200}
+            id="agent-name" className={`${FIELD} mt-2`} required maxLength={200}
             value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Sunny — Front Desk Scheduler"
+            placeholder="e.g. Sunny — Front Desk Scheduler"
           />
         </div>
 
         <div>
           <label className={LABEL} htmlFor="operator">Operator</label>
           <input
-            id="operator" className={`${FIELD} mt-1.5`} required maxLength={300}
+            id="operator" className={`${FIELD} mt-2`} required maxLength={300}
             value={operator} onChange={(e) => setOperator(e.target.value)}
-            placeholder="Acme Health, Inc."
+            placeholder="e.g. Acme Health, Inc."
           />
-          <p className="mt-1.5 text-xs text-muted">Who is accountable for this agent.</p>
+          <p className="mt-2 text-xs text-muted">Who is accountable for this agent.</p>
         </div>
 
         <div>
           <label className={LABEL} htmlFor="domain">Operator domain</label>
           <input
-            id="domain" className={`${FIELD} mt-1.5 font-mono`} required
+            id="domain" className={`${FIELD} mt-2 font-mono`} required
             value={domain} onChange={(e) => setDomain(e.target.value)}
-            placeholder="acmehealth.com" inputMode="url" autoCapitalize="none" spellCheck={false}
+            placeholder="e.g. acmehealth.com" inputMode="url" autoCapitalize="none" spellCheck={false}
           />
-          <p className="mt-1.5 text-xs text-muted">Declared now. Proving you control it is a separate, later step.</p>
+          <p className="mt-2 text-xs text-muted">Declared now. Proving you control it is a separate, later step.</p>
         </div>
 
         <div className="sm:col-span-2">
           <label className={LABEL} htmlFor="purpose">What it does</label>
           <input
-            id="purpose" className={`${FIELD} mt-1.5`} required maxLength={500}
+            id="purpose" className={`${FIELD} mt-2`} required maxLength={500}
             value={purpose} onChange={(e) => setPurpose(e.target.value)}
-            placeholder="Books and reschedules patient appointments."
+            placeholder="e.g. Books and reschedules patient appointments."
           />
         </div>
 
         <div className="sm:col-span-2">
-          <span className={LABEL}>Channels</span>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <span className={LABEL} id="channels-label">Channels</span>
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-labelledby="channels-label">
             {CHANNELS.map((c) => {
               const on = channels.includes(c);
               return (
                 <button
                   key={c} type="button" onClick={() => toggleChannel(c)} aria-pressed={on}
-                  className={`rounded-md border px-3 py-1.5 font-mono text-xs transition ${
-                    on ? "border-mint/50 bg-mint-deep/60 text-mint" : "border-line bg-ink-3 text-muted hover:border-muted"
+                  // Selection is not a trust state, so it is paper, not mint.
+                  className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 font-mono text-xs transition-colors ${
+                    on ? "border-paper bg-paper/[0.08] text-paper" : "border-line-strong bg-ink-3 text-muted hover:text-paper"
                   }`}
                 >
+                  {on && <span aria-hidden>✓</span>}
                   {c}
                 </button>
               );
@@ -225,12 +285,12 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
         </div>
 
         <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2">
-          <label className="flex items-start gap-2.5 rounded-lg border border-line bg-ink-3 p-3 text-sm">
-            <input type="checkbox" checked={discloses} onChange={(e) => setDiscloses(e.target.checked)} className="mt-0.5 accent-[var(--color-mint)]" />
+          <label className="flex items-start gap-3 rounded-lg border border-line-strong bg-ink-3 p-3 text-sm">
+            <input type="checkbox" checked={discloses} onChange={(e) => setDiscloses(e.target.checked)} className="mt-1 accent-[var(--color-mint)]" />
             <span>Discloses it is AI to the person<span className="block text-xs text-muted">disclosure.discloses_to_user</span></span>
           </label>
-          <label className="flex items-start gap-2.5 rounded-lg border border-line bg-ink-3 p-3 text-sm">
-            <input type="checkbox" checked={escalation} onChange={(e) => setEscalation(e.target.checked)} className="mt-0.5 accent-[var(--color-mint)]" />
+          <label className="flex items-start gap-3 rounded-lg border border-line-strong bg-ink-3 p-3 text-sm">
+            <input type="checkbox" checked={escalation} onChange={(e) => setEscalation(e.target.checked)} className="mt-1 accent-[var(--color-mint)]" />
             <span>Can hand off to a human<span className="block text-xs text-muted">disclosure.human_escalation</span></span>
           </label>
         </div>
@@ -238,14 +298,14 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
         <div className="sm:col-span-2">
           <label className={LABEL} htmlFor="contact">Contact email <span className="normal-case tracking-normal">(optional)</span></label>
           <input
-            id="contact" type="email" className={`${FIELD} mt-1.5`}
-            value={contact} onChange={(e) => setContact(e.target.value)} placeholder="ops@acmehealth.com"
+            id="contact" type="email" className={`${FIELD} mt-2`}
+            value={contact} onChange={(e) => setContact(e.target.value)} placeholder="e.g. ops@acmehealth.com"
           />
         </div>
       </div>
 
       {error && (
-        <div role="alert" className="mt-6 rounded-lg border border-red/40 bg-red/10 p-4 text-sm text-paper">
+        <div role="alert" className="mt-6 rounded-lg border border-line-strong bg-ink-3 p-4 text-sm text-paper">
           {error}
         </div>
       )}
@@ -259,6 +319,7 @@ export function IssueWizard({ siteUrl }: { siteUrl: string }) {
         </p>
       </div>
     </form>
+    </>
   );
 }
 
@@ -310,7 +371,7 @@ function Result({
             independently verified state. */}
         <div className={`pill ${L1.verified ? "pill-ok" : L1.tone === "declared" ? "pill-warn" : ""}`}>{L1.level ?? L1.badgeLabel}</div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight">{String((signed.manifest.identity as Record<string, unknown>).name)} has an identity.</h2>
-        <p className="mt-3 font-mono text-sm break-all text-mint">{agentId}</p>
+        <p className="mt-3 font-mono text-sm break-all text-paper">{agentId}</p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href={`/a/${agentId}`} className="btn btn-primary">Open the Verification Card</Link>
           <a href={`/api/resolve/${agentId}`} className="btn btn-ghost">View the JSON envelope</a>
@@ -319,8 +380,10 @@ function Result({
 
       {/* The private key panel comes before everything else, because it is the only
           thing on this page that cannot be recovered by reloading. */}
-      <div className={`card mt-6 p-6 sm:p-8 ${keyTaken ? "" : "border-amber/50"}`}>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-amber">Save your private key now</div>
+      <div className={`card mt-6 p-6 sm:p-8 ${keyTaken ? "" : "!border-paper-dim"}`}>
+        {/* Paper, not amber: amber means a self-declared L1 on this site, and this is an
+            instruction, not a trust state. */}
+        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-paper">Save your private key now</div>
         <p className="mt-3 text-sm text-muted">
           This key is how you prove you still control this agent — to re-sign an updated manifest, to rotate keys, or
           to claim a higher verification level later. It was generated in this browser tab.{" "}
@@ -329,20 +392,45 @@ function Result({
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-4">
           <button type="button" onClick={downloadKey} className="btn btn-primary">Download key file</button>
-          {keyTaken && <span className="font-mono text-xs text-mint">saved ✓</span>}
+          {keyTaken && <span className="text-xs text-paper-dim" role="status">Saved ✓</span>}
         </div>
         <details className="mt-5">
-          <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-wider text-muted">Show the raw key instead</summary>
+          <summary className="cursor-pointer text-xs font-medium uppercase tracking-[0.08em] text-muted">Show the raw key instead</summary>
           <div className="mt-3">
             <Copyable label="Ed25519 private key (hex, 32-byte seed)" value={privateKeyHex} lines={2} />
           </div>
         </details>
       </div>
 
+      {/* Where this agent is, what is next, and exactly where the ceiling is. Step 3 is
+          labelled honestly: it cannot be completed on this deployment until the root
+          authority key exists. No trust colour on the rail — it is a path, not a state. */}
+      <nav aria-label="Next steps for this agent" className="card mt-6 p-6 sm:p-8">
+        <div className="eyebrow">What happens next</div>
+        <ol className="grid gap-3 md:grid-cols-3">
+          <li className="rounded-lg border border-line-strong p-4" aria-current="step">
+            <div className="text-xs text-muted">① Done</div>
+            <div className="mt-1 text-sm font-semibold text-paper">Registered · L1 <span aria-hidden>✓</span></div>
+            <p className="mt-1 text-sm text-paper-dim">Resolvable now. Self-declared by you; not a third-party check.</p>
+          </li>
+          <li className="rounded-lg border border-line-strong p-4">
+            <div className="text-xs text-muted">② Next</div>
+            <div className="mt-1 text-sm font-semibold text-paper">Prove domain control</div>
+            <p className="mt-1 text-sm text-paper-dim">Publish one DNS record at your provider. It records evidence; it does not raise the level.</p>
+            <Link href={`/verify/domain?domain=${encodeURIComponent(String((signed.manifest.ownership as Record<string, unknown>)?.operator_domain ?? ""))}`} className="btn btn-ghost btn-sm mt-3">Prove domain control</Link>
+          </li>
+          <li className="rounded-lg border border-dashed border-line-strong p-4">
+            <div className="text-xs text-muted">③ Pending</div>
+            <div className="mt-1 text-sm font-semibold text-paper-dim">L2 · Domain Verified</div>
+            <p className="mt-1 text-sm text-muted">Not issuable yet: it needs an assertion signed by the root authority key, which has not been generated.</p>
+          </li>
+        </ol>
+      </nav>
+
       <div className="card mt-6 grid gap-6 p-6 sm:p-8">
         <div>
           <h3 className="text-lg font-semibold">Show it</h3>
-          <p className="mt-1.5 text-sm text-muted">
+          <p className="mt-2 text-sm text-muted">
             The badge resolves live against the registry every time it renders — it reads current status, it does not
             cache a picture of it.
           </p>
@@ -356,8 +444,8 @@ function Result({
         <h3 className="text-lg font-semibold">What L1 does and does not mean</h3>
         <ul className="mt-4 space-y-3 text-sm text-muted">
           {issued.disclosures.map((d) => (
-            <li key={d} className="flex gap-2.5">
-              <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted" />
+            <li key={d} className="flex gap-3">
+              <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-muted" />
               <span>{d}</span>
             </li>
           ))}

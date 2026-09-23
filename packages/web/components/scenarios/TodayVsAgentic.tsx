@@ -93,7 +93,7 @@ export function TodayVsAgentic() {
       </div>
       <div
         aria-live="polite"
-        className="mt-3 min-h-[14px] font-mono text-[10px] uppercase tracking-[0.22em] text-muted"
+        className="mt-3 min-h-[14px] font-mono text-xs uppercase tracking-[0.22em] text-muted"
       >
         {labelAt(LABELS, t.step)}
       </div>
@@ -120,10 +120,10 @@ export function TodayVsAgentic() {
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-amber/40 font-mono text-base text-amber">
             ?
           </div>
-          <p className="mt-4 text-[27px] font-medium leading-snug tracking-tight text-balance">
+          <p className="mt-4 text-3xl font-medium leading-snug tracking-tight text-balance">
             Who identifies the agents?
           </p>
-          <p className="mx-auto mt-3 max-w-md text-[13.5px] leading-relaxed text-muted text-pretty">
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted text-pretty">
             Not the platform they happen to be on. Not the sentence they say about themselves.
           </p>
         </div>
@@ -132,9 +132,9 @@ export function TodayVsAgentic() {
       {!without && (
         <Reveal at={9} step={t.step} reduced={t.reducedMotion} className="mt-4">
           <div className="overflow-hidden rounded-2xl border border-mint/25 bg-ink-2">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-paper/[0.015] px-5 py-3.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-mint">AgenID</span>
-              <span className="break-all font-mono text-[12.5px] text-mint">{EXAMPLE_AGENID}</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-paper/[0.015] px-5 py-4">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-mint">AgenID</span>
+              <span className="break-all font-mono text-xs text-mint">{EXAMPLE_AGENID}</span>
             </div>
             {ANSWER_ROWS.map((r, i) => (
               <div
@@ -143,14 +143,14 @@ export function TodayVsAgentic() {
                   i === 0 ? "" : "border-t border-line"
                 }`}
               >
-                <span className="text-[13.5px] leading-snug text-paper/80">{r.label}</span>
-                <span className={`whitespace-nowrap font-mono text-[11.5px] tracking-[0.09em] ${toneText(r.tone)}`}>
+                <span className="text-sm leading-snug text-paper-dim">{r.label}</span>
+                <span className={`whitespace-nowrap font-mono text-xs tracking-[0.09em] ${toneText(r.tone)}`}>
                   {r.value}
                 </span>
               </div>
             ))}
             <div className="border-t border-line px-5 py-4">
-              <p className="font-mono text-[11.5px] leading-relaxed text-muted text-pretty">
+              <p className="font-mono text-xs leading-relaxed text-muted text-pretty">
                 Checkable by a person, a program, an auditor, or another agent — without trusting AgenID&rsquo;s own
                 database.
               </p>
@@ -158,10 +158,10 @@ export function TodayVsAgentic() {
           </div>
 
           <div className="mt-10 text-center">
-            <p className="text-[25px] font-medium leading-snug tracking-tight text-balance">
+            <p className="text-2xl font-medium leading-snug tracking-tight text-balance">
               Before you trust an AI agent, resolve its AgenID.
             </p>
-            <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.26em] text-mint">
+            <div className="mt-4 font-mono text-xs uppercase tracking-[0.26em] text-mint">
               Trust the proof. Not the platform.
             </div>
           </div>
@@ -207,14 +207,14 @@ function Column({
             <Reveal at={n.step} step={step} reduced={reduced}>
               <div className="rounded-xl border border-line bg-ink-3 px-4 py-3">
                 <Eyebrow>{n.role}</Eyebrow>
-                <div className="mt-1 text-[15px] font-medium leading-tight">{n.name}</div>
-                {n.meta && <div className="mt-1 text-[12px] text-muted">{n.meta}</div>}
+                <div className="mt-1 text-base font-medium leading-tight">{n.name}</div>
+                {n.meta && <div className="mt-1 text-xs text-muted">{n.meta}</div>}
               </div>
             </Reveal>
           </div>
         ))}
       </div>
-      <p className="mt-4 text-[12.5px] leading-relaxed text-muted text-pretty">{note}</p>
+      <p className="mt-4 text-xs leading-relaxed text-muted text-pretty">{note}</p>
     </div>
   );
 }
@@ -225,7 +225,7 @@ function Mode({ active, onClick, children }: { active: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`whitespace-nowrap rounded-md border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+      className={`whitespace-nowrap rounded-md border px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] transition ${
         active ? "border-mint/50 bg-mint-deep/50 text-mint" : "border-line text-muted hover:border-muted"
       }`}
     >
@@ -239,7 +239,7 @@ function Small({ onClick, children }: { onClick: () => void; children: React.Rea
     <button
       type="button"
       onClick={onClick}
-      className="min-w-[74px] rounded-md border border-line px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition hover:border-mint hover:text-mint"
+      className="min-w-[74px] rounded-md border border-line px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-muted transition hover:border-mint hover:text-mint"
     >
       {children}
     </button>

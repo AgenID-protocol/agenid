@@ -3,6 +3,7 @@ import { pageMetadata, webApplicationJsonLd } from "@/lib/seo";
 import Link from "next/link";
 import { IssueWizard } from "@/components/IssueWizard";
 import { SITE_URL } from "@/lib/api";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = pageMetadata({
   title: "Give Your AI Agent a Verifiable Identity",
@@ -11,15 +12,11 @@ export const metadata: Metadata = pageMetadata({
   path: "/issue",
 });
 
-const STEPS = [
-  { n: "01", t: "Describe the agent", d: "Who operates it, what it does, which channels it runs on." },
-  { n: "02", t: "Your browser signs it", d: "An Ed25519 key is generated in this tab and signs the manifest locally." },
-  { n: "03", t: "Register the public parts", d: "Only the manifest, the signature, and the public key are sent." },
-];
 
 export default function IssuePage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
+    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl">
       {/* eslint-disable-next-line react/no-danger */}
       <script
         type="application/ld+json"
@@ -35,27 +32,20 @@ export default function IssuePage() {
         }}
       />
       <div className="text-center">
-        <div className="mb-3 font-mono text-[11px] text-muted">GIVE YOUR AGENT AN IDENTITY</div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">One agent. One minute. No account.</h1>
-        <p className="mx-auto mt-4 max-w-xl text-muted">
+        <Breadcrumbs items={[{ label: "Give your agent an identity" }]} className="mb-6" center />
+        <div className="eyebrow">Give your agent an identity</div>
+        <h1 className="display !text-4xl sm:!text-5xl">One agent. One minute. No account.</h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-paper-dim">
           Your agent gets a permanent identifier, a public Verification Card anyone can resolve, and a badge you can
           embed. You keep the only copy of the signing key.
         </p>
       </div>
 
-      <ol className="mt-10 grid gap-3 sm:grid-cols-3">
-        {STEPS.map((s) => (
-          <li key={s.n} className="card p-4">
-            <div className="font-mono text-[11px] text-mint">{s.n}</div>
-            <div className="mt-1.5 text-sm font-semibold">{s.t}</div>
-            <p className="mt-1 text-xs text-muted">{s.d}</p>
-          </li>
-        ))}
-      </ol>
+      {/* The three steps now live inside the wizard, driven by real events. */}
 
       <IssueWizard siteUrl={SITE_URL} />
 
-      <div className="mt-10 rounded-lg border border-line bg-ink-2 p-5 text-sm text-muted">
+      <div className="mt-10 rounded-lg border border-line bg-ink-2 p-5 text-sm leading-6 text-paper-dim">
         <span className="font-semibold text-paper">What you get is L1_REGISTERED.</span> It means this agent is
         registered here and its operator self-declaration verifies — not that AgenID checked the operator, the domain,
         or the organization. Levels above L1 require an authority-signed assertion, and the root authority key ceremony
@@ -70,6 +60,7 @@ export default function IssuePage() {
         </Link>
         .
       </p>
+    </div>
     </main>
   );
 }

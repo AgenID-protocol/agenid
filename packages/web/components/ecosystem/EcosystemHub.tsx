@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * The ecosystem cloud: AgenID at the centre, the platforms it composes with clustered
@@ -118,6 +118,29 @@ function layout(clusters: CloudCluster[]) {
 
 export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  // Start the node entrance when the hub is first on screen (see `.cloud-host` in
+  // globals.css). Without observer support, reveal immediately.
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      el.dataset.revealed = "";
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          el.dataset.revealed = "";
+          io.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -10% 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const placed = useMemo(() => layout(clusters), [clusters]);
   const all = useMemo(() => clusters.flatMap((c) => c.nodes), [clusters]);
   const active = all.find((n) => n.id === activeId) ?? null;
@@ -126,7 +149,7 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
   let order = 0; // stable entrance order, cluster by cluster
 
   return (
-    <div>
+    <div ref={hostRef} className="cloud-host">
       {/* ---------- clustered cloud (md and up) ---------- */}
       <div className="hidden md:block">
         <svg
@@ -168,14 +191,14 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
             x={CX}
             y={CY - 8}
             textAnchor="middle"
-            className="fill-paper font-mono text-[16px] font-semibold tracking-[0.16em]"
+            className="fill-paper font-mono text-base font-semibold tracking-[0.16em]"
           >
             AGENID
           </text>
-          <text x={CX} y={CY + 12} textAnchor="middle" className="fill-muted font-mono text-[10px] tracking-[0.08em]">
+          <text x={CX} y={CY + 12} textAnchor="middle" className="fill-muted font-mono text-xs tracking-[0.08em]">
             identity · provenance
           </text>
-          <text x={CX} y={CY + 27} textAnchor="middle" className="fill-muted font-mono text-[10px] tracking-[0.08em]">
+          <text x={CX} y={CY + 27} textAnchor="middle" className="fill-muted font-mono text-xs tracking-[0.08em]">
             verification layer
           </text>
 
@@ -191,7 +214,7 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
                 x={cluster.lx}
                 y={cluster.ly - (lines.length - 1) * 6}
                 textAnchor="middle"
-                className="fill-muted font-mono text-[10px] uppercase tracking-[0.2em]"
+                className="fill-muted font-mono text-xs uppercase tracking-[0.2em]"
               >
                 {lines.map((line, i) => (
                   <tspan key={line} x={cluster.lx} dy={i === 0 ? 0 : 13}>
@@ -230,7 +253,7 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
                     x={n.x}
                     y={n.y + 4}
                     textAnchor="middle"
-                    className={`${on ? "fill-paper" : "fill-muted"} pointer-events-none font-mono text-[12px] font-semibold transition-colors`}
+                    className={`${on ? "fill-paper" : "fill-muted"} pointer-events-none font-mono text-xs font-semibold transition-colors`}
                   >
                     {n.abbr}
                   </text>
@@ -252,12 +275,12 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
       {/* ---------- category strips (below md) ---------- */}
       <div className="md:hidden">
         <div className="card mb-5 px-4 py-4 text-center">
-          <div className="font-mono text-[14px] font-semibold tracking-[0.16em] text-paper">AGENID</div>
-          <div className="mt-1 font-mono text-[10px] text-muted">identity · provenance · verification layer</div>
+          <div className="font-mono text-sm font-semibold tracking-[0.16em] text-paper">AGENID</div>
+          <div className="mt-1 font-mono text-xs text-muted">identity · provenance · verification layer</div>
         </div>
         {clusters.map((cluster) => (
           <div key={cluster.id} className="mb-5">
-            <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted">{cluster.label}</div>
+            <div className="mb-2 font-mono text-xs uppercase tracking-wider text-muted">{cluster.label}</div>
             <div className="-mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1">
               {cluster.nodes.map((n) => (
                 <button
@@ -266,7 +289,7 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
                   onClick={() => setActiveId((cur) => (cur === n.id ? null : n.id))}
                   aria-pressed={activeId === n.id}
                   aria-label={`${n.name} — ${cluster.label}, ${n.statusLabel}`}
-                  className={`flex snap-start items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2.5 text-xs transition ${
+                  className={`flex snap-start items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-3 text-xs transition ${
                     activeId === n.id ? "border-muted text-paper" : "border-line text-muted"
                   }`}
                 >
@@ -285,19 +308,19 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
           <div>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="text-base font-semibold">{active.name}</h3>
-              <span className="pill !py-0.5 !text-[10px]">{active.statusLabel}</span>
+              <span className="pill !py-1 !text-xs">{active.statusLabel}</span>
             </div>
-            <div className="mt-1 font-mono text-[11px] text-muted">
+            <div className="mt-1 font-mono text-xs text-muted">
               {activeCluster?.label} · {active.integration_type}
             </div>
 
             <p className="mt-3 text-sm leading-relaxed text-muted">{active.compatibility_note}</p>
 
             <div className="mt-4">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">What this covers</div>
+              <div className="font-mono text-xs uppercase tracking-wider text-muted">What this covers</div>
               <ul className="mt-2 space-y-1">
                 {active.capabilities.map((c) => (
-                  <li key={c} className="flex gap-2 text-[13px] leading-relaxed text-paper/80">
+                  <li key={c} className="flex gap-2 text-sm leading-relaxed text-paper-dim">
                     <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-muted" />
                     {c}
                   </li>
@@ -312,12 +335,12 @@ export function EcosystemHub({ clusters }: { clusters: CloudCluster[] }) {
             */}
             <dl className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
               <div>
-                <dt className="font-mono text-[10px] uppercase tracking-wider text-muted">{active.statusLabel}</dt>
-                <dd className="mt-1 text-[12.5px] leading-relaxed text-muted">{active.statusDefinition}</dd>
+                <dt className="font-mono text-xs uppercase tracking-wider text-muted">{active.statusLabel}</dt>
+                <dd className="mt-1 text-xs leading-relaxed text-muted">{active.statusDefinition}</dd>
               </div>
               <div>
-                <dt className="font-mono text-[10px] uppercase tracking-wider text-muted">{active.relationshipLabel}</dt>
-                <dd className="mt-1 text-[12.5px] leading-relaxed text-muted">{active.relationshipDefinition}</dd>
+                <dt className="font-mono text-xs uppercase tracking-wider text-muted">{active.relationshipLabel}</dt>
+                <dd className="mt-1 text-xs leading-relaxed text-muted">{active.relationshipDefinition}</dd>
               </div>
             </dl>
 

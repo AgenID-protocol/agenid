@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = pageMetadata({
   title: "Why AI Agents Need an Identity",
@@ -12,13 +13,12 @@ export const metadata: Metadata = pageMetadata({
 
 export default function WhyAgentIdentityPage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
-      <div className="mb-2 font-mono text-[11px] text-muted">
-        <Link href="/" className="hover:text-paper">AgenID</Link> / Why Agent Identity?
-      </div>
-      <h1 className="text-3xl font-bold tracking-tight">AI agents are becoming participants.</h1>
+    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
+      <div className="max-w-3xl">
+      <Breadcrumbs items={[{ label: "Why agent identity?" }]} className="mb-6" />
+      <h1 className="display !text-4xl md:!text-5xl">AI agents are becoming participants.</h1>
 
-      <div className="mt-8 space-y-5 text-muted">
+      <div className="mt-8 space-y-5 leading-7 text-paper-dim">
         <p>
           An AI agent today can communicate directly with people, call APIs, act inside internal systems, run
           multi-step workflows, talk to customers, and act on behalf of a company. None of that requires a human in
@@ -34,7 +34,7 @@ export default function WhyAgentIdentityPage() {
           else&rsquo;s behalf.
         </p>
         <p>Identity becomes infrastructure once an agent can act like this in each of these directions:</p>
-        <ul className="list-disc space-y-1.5 pl-5">
+        <ul className="list-disc space-y-2 pl-5">
           <li><span className="font-mono text-paper">Human → Agent</span> — a person needs to know who they&rsquo;re actually talking to.</li>
           <li><span className="font-mono text-paper">Agent → Agent</span> — one agent needs to check who it&rsquo;s transacting with before it does.</li>
           <li><span className="font-mono text-paper">Agent → API</span> — a system needs to know which agent is calling it, independent of the credential it presents.</li>
@@ -58,6 +58,7 @@ export default function WhyAgentIdentityPage() {
         <Link href="/verify" className="btn btn-primary">Verify an Agent</Link>
         <Link href="/issue" className="btn btn-ghost">Give Your Agent an Identity</Link>
       </div>
+    </div>
     </main>
   );
 }

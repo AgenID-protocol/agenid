@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { DomainFlow } from "@/components/DomainFlow";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = pageMetadata({
   title: "Verify Domain Control for AI Agents",
@@ -12,13 +13,9 @@ export const metadata: Metadata = pageMetadata({
 
 export default function VerifyDomainPage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-14">
-      <div className="mb-8 font-mono text-[11px] text-muted">
-        <Link href="/verify" className="underline hover:no-underline">
-          Verify
-        </Link>{" "}
-        / DOMAIN
-      </div>
+    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl">
+      <Breadcrumbs items={[{ label: "Verify an agent", href: "/verify" }, { label: "Prove domain control" }]} className="mb-8" />
       <DomainFlow />
       <p className="mt-10 text-center text-xs text-muted">
         Registering an agent takes about a minute and does not require a domain.{" "}
@@ -26,6 +23,7 @@ export default function VerifyDomainPage() {
           Register an agent →
         </Link>
       </p>
+    </div>
     </main>
   );
 }

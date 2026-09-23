@@ -130,7 +130,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
           // no-op rather than an error state.
         }
       }}
-      className="shrink-0 rounded border border-line px-2 py-1 font-mono text-[11px] text-muted transition hover:border-muted hover:text-paper"
+      className="shrink-0 rounded border border-line px-2 py-1 font-mono text-xs text-muted transition hover:border-muted hover:text-paper"
     >
       {copied ? "Copied" : "Copy"}
     </button>
@@ -152,7 +152,7 @@ function TimelineNode({ state, label, sub }: { state: NodeState; label: string; 
         : "border-line bg-ink-3 text-muted/50";
 
   return (
-    <div className="relative z-10 flex flex-col items-center gap-2.5">
+    <div className="relative z-10 flex flex-col items-center gap-3">
       <div className={`relative grid h-11 w-11 place-items-center rounded-xl border ${ring}`}>
         {state === "active" && (
           <span className="motion-safe:animate-ping absolute inset-0 rounded-xl border border-amber/40" aria-hidden="true" />
@@ -171,7 +171,7 @@ function TimelineNode({ state, label, sub }: { state: NodeState; label: string; 
       </div>
       <div className="text-center">
         <div
-          className={`rounded-md px-2 py-1 font-mono text-[11px] ${
+          className={`rounded-md px-2 py-1 font-mono text-xs ${
             state === "done"
               ? "bg-mint-deep/60 text-mint"
               : state === "active"
@@ -181,7 +181,7 @@ function TimelineNode({ state, label, sub }: { state: NodeState; label: string; 
         >
           {label}
         </div>
-        {sub && <div className="mt-1 font-mono text-[10px] text-muted/70">{sub}</div>}
+        {sub && <div className="mt-1 font-mono text-xs text-muted/70">{sub}</div>}
       </div>
     </div>
   );
@@ -257,7 +257,7 @@ function AddDomain({ onSubmit }: { onSubmit: (domain: string) => void }) {
         </div>
       </div>
 
-      <label htmlFor="domain" className="mt-8 block font-mono text-[11px] uppercase tracking-wider text-muted">
+      <label htmlFor="domain" className="mt-8 block font-mono text-xs uppercase tracking-wider text-muted">
         Domain
       </label>
       <div className="mt-2 flex flex-col gap-3 sm:flex-row">
@@ -266,17 +266,17 @@ function AddDomain({ onSubmit }: { onSubmit: (domain: string) => void }) {
           name="domain"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="acme.com"
+          placeholder="e.g. acme.com"
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          className="w-full rounded-lg border border-line bg-ink-3 px-3.5 py-2.5 font-mono text-sm text-paper outline-none placeholder:text-muted/50 focus:border-muted"
+          className="field font-mono"
         />
         <button type="submit" className="btn btn-primary shrink-0">
           Continue
         </button>
       </div>
-      {error && <p className="mt-2 text-sm text-amber">{error}</p>}
+      {error && <p className="mt-2 text-sm text-paper-dim" role="alert">{error}</p>}
 
       <p className="mt-6 border-t border-line pt-5 text-xs leading-5 text-muted">
         Domain control is <span className="text-paper">evidence</span>, not a verification level. It is what an
@@ -366,7 +366,7 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
               </svg>
             </div>
             <div>
-              <div className="font-mono text-[11px] uppercase tracking-wider text-muted">Domain</div>
+              <div className="font-mono text-xs uppercase tracking-wider text-muted">Domain</div>
               <h1 className="text-2xl font-bold tracking-tight">{domain}</h1>
             </div>
           </div>
@@ -377,26 +377,26 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
 
         <dl className="mt-8 grid gap-6 sm:grid-cols-3">
           <div>
-            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted">Status</dt>
+            <dt className="font-mono text-xs uppercase tracking-wider text-muted">Status</dt>
             <dd className="mt-2">
               {verified ? <span className="pill pill-ok">Control confirmed</span> : <span className="pill pill-warn">Pending</span>}
             </dd>
           </div>
           <div>
-            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted">DNS provider</dt>
+            <dt className="font-mono text-xs uppercase tracking-wider text-muted">DNS provider</dt>
             <dd className="mt-2 text-sm">
               {status?.provider.provider_name ?? (status ? "Not detected" : "Detecting…")}
             </dd>
           </div>
           <div>
-            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted">Proves</dt>
+            <dt className="font-mono text-xs uppercase tracking-wider text-muted">Proves</dt>
             <dd className="mt-2 text-sm">{verified ? "Domain control" : "—"}</dd>
           </div>
         </dl>
 
         {/* Events */}
         <div className="mt-8">
-          <div className="font-mono text-[11px] uppercase tracking-wider text-muted">Domain events</div>
+          <div className="font-mono text-xs uppercase tracking-wider text-muted">Domain events</div>
           <div
             className={`mt-3 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
               verified ? "border-mint/40 bg-mint-deep/40 text-mint" : "border-amber/40 bg-amber/5 text-amber"
@@ -473,7 +473,7 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-line font-mono text-[11px] uppercase tracking-wider text-muted">
+              <tr className="border-b border-line font-mono text-xs uppercase tracking-wider text-muted">
                 <th className="py-2 pr-4 font-normal">Type</th>
                 <th className="py-2 pr-4 font-normal">Name</th>
                 <th className="py-2 pr-4 font-normal">Value</th>
@@ -492,21 +492,21 @@ function DomainDetail({ domain, token, onReset }: { domain: string; token: strin
                 forever for something it told them to create.
               */}
               <tr className="border-b border-line/60 align-top">
-                <td className="py-3.5 pr-4 font-mono text-xs">{shownRecord.type}</td>
-                <td className="py-3.5 pr-4">
+                <td className="py-4 pr-4 font-mono text-xs">{shownRecord.type}</td>
+                <td className="py-4 pr-4">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs break-all">{shownRecord.name}</span>
                     <CopyButton value={shownRecord.name} label="record name" />
                   </div>
                 </td>
-                <td className="py-3.5 pr-4">
+                <td className="py-4 pr-4">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs break-all">{shownRecord.value}</span>
                     <CopyButton value={shownRecord.value} label="record value" />
                   </div>
                 </td>
-                <td className="py-3.5 pr-4 font-mono text-xs text-muted">{shownRecord.ttl}</td>
-                <td className="py-3.5">
+                <td className="py-4 pr-4 font-mono text-xs text-muted">{shownRecord.ttl}</td>
+                <td className="py-4">
                   <StatusPill status={record?.status ?? "pending"} />
                 </td>
               </tr>

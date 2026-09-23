@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SearchBar } from "@/components/SearchBar";
 import { isValidAgentId } from "@agenid/core";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = pageMetadata({
   title: "Verify an AI Agent's Identity",
@@ -31,7 +32,8 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
+    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl">
       {/* eslint-disable-next-line react/no-danger */}
       <script
         type="application/ld+json"
@@ -47,8 +49,9 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
         }}
       />
       <div className="text-center">
-        <div className="mb-3 font-mono text-[11px] text-muted">VERIFY AN AGENT</div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Who is this AI agent?</h1>
+        <Breadcrumbs items={[{ label: "Verify an agent" }]} className="mb-6" />
+        <div className="eyebrow">Verify an agent</div>
+        <h1 className="display !text-4xl sm:!text-5xl">Who is this AI agent?</h1>
         <p className="mx-auto mt-4 max-w-xl text-muted">
           Enter an AgenID to resolve it against the live registry. This is the same lookup a program gets when it
           requests <span className="font-mono">Accept: application/json</span> from the same URL.
@@ -65,8 +68,8 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
       <div className="mt-14 grid gap-3 sm:grid-cols-2">
         {DISTINCTIONS.map((d) => (
           <div key={d.k} className="card p-4">
-            <div className="font-mono text-[11px] uppercase tracking-wider text-mint">{d.k}</div>
-            <p className="mt-1.5 text-sm text-muted">{d.v}</p>
+            <div className="font-mono text-xs uppercase tracking-wider text-mint">{d.k}</div>
+            <p className="mt-2 text-sm text-muted">{d.v}</p>
           </div>
         ))}
       </div>
@@ -82,6 +85,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
         anything — it simply has no record yet.{" "}
         <Link href="/issue" className="text-paper underline hover:no-underline">Register an agent →</Link>
       </div>
+    </div>
     </main>
   );
 }

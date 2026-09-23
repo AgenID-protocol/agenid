@@ -5,6 +5,8 @@ import { getOnboardingDoc } from "@/lib/onboarding";
 import { DocCodeCopy } from "@/components/DocCodeCopy";
 import { SITE_URL } from "@/lib/api";
 import { pageMetadata } from "@/lib/seo";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { Toc } from "@/components/ui/Toc";
 
 // "…and request independent verification" was dropped from this description: the
 // assertion write path is not deployed and the root authority key does not exist, so a
@@ -37,14 +39,13 @@ export default function OnboardingPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
+    <main className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:px-8">
+      <div className="max-w-3xl">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <DocCodeCopy />
 
-      <div className="mb-6 font-mono text-[11px] text-muted">
-        <Link href="/" className="hover:text-paper">AgenID</Link> / Operator onboarding
-      </div>
+      <Breadcrumbs items={[{ label: "Docs", href: "/docs" }, { label: "Operator onboarding" }]} className="mb-6" />
 
       {/* eslint-disable-next-line react/no-danger */}
       <article className="prose-agenid" dangerouslySetInnerHTML={{ __html: doc.html }} />
@@ -54,6 +55,10 @@ export default function OnboardingPage() {
           Partner integration briefs →
         </Link>
       </div>
+    </div>
+      <aside className="hidden lg:block">
+        <Toc selector=".prose-agenid h2" />
+      </aside>
     </main>
   );
 }

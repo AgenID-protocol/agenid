@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getPartnerDoc, getPartnerSlugs } from "@/lib/partners";
 import { SITE_URL } from "@/lib/api";
 import { pageMetadata } from "@/lib/seo";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { Toc } from "@/components/ui/Toc";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -57,17 +59,18 @@ export default async function PartnerDocPage({ params }: Params) {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
+    <main className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:px-8">
+      <div className="max-w-3xl">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
-      <div className="mb-6 font-mono text-[11px] text-muted">
-        <Link href="/" className="hover:text-paper">AgenID</Link> /{" "}
-        <Link href="/docs" className="hover:text-paper">Docs</Link> /{" "}
-        <Link href="/docs/partners" className="hover:text-paper">Partner integration briefs</Link>
-      </div>
+      <Breadcrumbs
+        items={[{ label: "Docs", href: "/docs" }, { label: "Partner integration briefs", href: "/docs/partners" }, { label: doc.title }]}
+        jsonLd={false}
+        className="mb-6"
+      />
 
       {/* eslint-disable-next-line react/no-danger */}
       <article className="prose-agenid" dangerouslySetInnerHTML={{ __html: doc.html }} />
@@ -77,6 +80,10 @@ export default async function PartnerDocPage({ params }: Params) {
           ← All partner integration briefs
         </Link>
       </div>
+    </div>
+      <aside className="hidden lg:block">
+        <Toc selector=".prose-agenid h2" />
+      </aside>
     </main>
   );
 }

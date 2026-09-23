@@ -4,6 +4,7 @@ import Link from "next/link";
 import { EcosystemMatrix, type MatrixEntry } from "@/components/ecosystem/EcosystemMatrix";
 import { IdentityFlow } from "@/components/ecosystem/IdentityFlow";
 import { SITE_URL } from "@/lib/api";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, getEcosystem, readLogoSvg } from "@/lib/ecosystem";
 
 export const metadata: Metadata = pageMetadata({
@@ -61,16 +62,11 @@ export default function EcosystemPage() {
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <section className="grid-bg border-b border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="mb-2 font-mono text-[11px] text-muted">
-            <Link href="/" className="hover:text-paper">
-              AgenID
-            </Link>{" "}
-            / The agent ecosystem
-          </div>
-          <h1 className="max-w-3xl text-4xl font-bold tracking-tight">The Agent Ecosystem</h1>
-          <p className="mt-5 max-w-3xl text-lg text-muted">
+      <section className="hero-atmos border-b border-line">
+        <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 lg:px-8">
+          <Breadcrumbs items={[{ label: "The agent ecosystem" }]} className="mb-6" />
+          <h1 className="display max-w-3xl">The Agent Ecosystem</h1>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-paper-dim">
             AgenID is designed to work across the platforms where AI agents live. Your agent can change platforms. Its
             identity shouldn&rsquo;t have to.
           </p>
@@ -83,25 +79,64 @@ export default function EcosystemPage() {
       </section>
 
       {/* WHAT A LISTING MEANS — deliberately above the grid, not a footnote below it */}
-      <section className="border-b border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-14">
-          <div className="mb-3 font-mono text-[11px] text-muted">WHAT A LISTING MEANS</div>
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24 lg:px-8">
+          <div className="eyebrow">What a listing means</div>
           {/* Count derived, not typed — this read "Three statuses" until a fourth was added. */}
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="section-title">
             {STATUS_COUNT} statuses. Only one of them is currently issued.
           </h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Unit chart: one square per listed platform, grouped by layer. It replaces four
+              equal-weight cards that gave "0 entries" the same visual mass as "27 entries".
+              Every square is neutral — Compatible is not a trust state — and the empty
+              statuses are stated as explicit zeros beside it. */}
+          <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_18rem]">
+            <figure
+              role="img"
+              aria-label={`${all.length} platforms listed across ${ECOSYSTEM_CATEGORIES.length} layers. ${(Object.keys(ECOSYSTEM_STATUSES) as (keyof typeof ECOSYSTEM_STATUSES)[]).map((k) => `${countFor(k)} ${ECOSYSTEM_STATUSES[k].label}`).join(", ")}.`}
+              className="card p-5 sm:p-6"
+            >
+              <div aria-hidden className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+                {ECOSYSTEM_CATEGORIES.map((c) => {
+                  const inLayer = all.filter((e) => e.category === c.id);
+                  return (
+                    <div key={c.id}>
+                      <div className="text-xs font-medium text-paper-dim">{c.label}</div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {inLayer.map((e) => (
+                          <span key={e.id} title={e.name} className="h-4 w-4 rounded-sm border border-line-strong bg-paper/[0.08]" />
+                        ))}
+                      </div>
+                      <div className="mt-1 text-xs text-muted">{inLayer.length}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <figcaption className="mt-6 border-t border-line pt-4 text-sm text-paper-dim">
+                {all.length} listed · {countFor("compatible")} Compatible · {countFor("verified-integration")} verified integrations · {countFor("official-partner")} partners
+              </figcaption>
+            </figure>
+            <dl className="card divide-y divide-line p-0">
+              {(Object.keys(ECOSYSTEM_STATUSES) as (keyof typeof ECOSYSTEM_STATUSES)[]).map((key) => (
+                <div key={key} className="flex items-baseline justify-between gap-3 px-5 py-4">
+                  <dt className="text-sm text-paper">{ECOSYSTEM_STATUSES[key].label}</dt>
+                  <dd className="font-mono text-2xl text-paper">{countFor(key)}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="mt-8 grid auto-rows-fr gap-4 md:grid-cols-2 lg:grid-cols-4">
             {(Object.keys(ECOSYSTEM_STATUSES) as (keyof typeof ECOSYSTEM_STATUSES)[]).map((key) => {
               const n = countFor(key);
               return (
-                <div key={key} className="card p-5">
+                <div key={key} className="rounded-lg border border-line p-4">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="pill !py-0.5 !text-[10px]">{ECOSYSTEM_STATUSES[key].label}</span>
-                    <span className="font-mono text-[11px] text-muted">
+                    <span className="pill">{ECOSYSTEM_STATUSES[key].label}</span>
+                    <span className="text-xs text-muted">
                       {n} {n === 1 ? "entry" : "entries"}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">{ECOSYSTEM_STATUSES[key].definition}</p>
+                  <p className="mt-3 text-sm leading-6 text-paper-dim">{ECOSYSTEM_STATUSES[key].definition}</p>
                 </div>
               );
             })}
@@ -120,19 +155,19 @@ export default function EcosystemPage() {
       </section>
 
       {/* IDENTITY FLOW */}
-      <section className="border-b border-line/70">
-        <div className="mx-auto max-w-6xl px-5 py-14">
-          <div className="mb-3 font-mono text-[11px] text-muted">ONE IDENTITY, MANY PLATFORMS</div>
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">The platforms change. The identity doesn&rsquo;t.</h2>
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24 lg:px-8">
+          <div className="eyebrow">One identity, many platforms</div>
+          <h2 className="section-title mb-10">The platforms change. The identity doesn&rsquo;t.</h2>
           <IdentityFlow />
         </div>
       </section>
 
       {/* MATRIX */}
       <section>
-        <div className="mx-auto max-w-6xl px-5 py-14">
-          <div className="mb-3 font-mono text-[11px] text-muted">COMPATIBILITY MATRIX</div>
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24 lg:px-8">
+          <div className="eyebrow">Compatibility matrix</div>
+          <h2 className="section-title mb-10">
             {all.length} platforms across {ECOSYSTEM_CATEGORIES.length} layers.
           </h2>
           <EcosystemMatrix entries={entries} categories={ECOSYSTEM_CATEGORIES.map((c) => ({ ...c }))} />
@@ -161,7 +196,7 @@ export default function EcosystemPage() {
 
           <div className="card mt-10 p-6">
             <h3 className="text-base font-semibold">Building on a platform that isn&rsquo;t listed?</h3>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-paper-dim">
               Absence from this list is not a compatibility claim in either direction. The pattern is the same
               everywhere: attach an <span className="font-mono">agenid:&lt;ULID&gt;</span> to the agent&rsquo;s existing
               config, sign a manifest with <span className="font-mono">@agenid/core</span>, and resolve it at{" "}

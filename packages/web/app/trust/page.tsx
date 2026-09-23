@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { TwoPathDiagram } from "@/components/Diagrams";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { Toc } from "@/components/ui/Toc";
 
 export const metadata: Metadata = pageMetadata({
   title: "Trust Center: Security, Keys & Verification Methodology",
@@ -12,26 +14,35 @@ export const metadata: Metadata = pageMetadata({
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20 border-t border-line/70 py-10 first:border-t-0 first:pt-0">
-      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-      <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted">{children}</div>
+    <section id={id} className="scroll-mt-24 border-t border-line py-12 first:border-t-0 first:pt-0">
+      <h2 className="subhead">{title}</h2>
+      <div className="mt-4 space-y-4 text-base leading-7 text-paper-dim">{children}</div>
     </section>
   );
 }
 
+const TOC = [
+  { id: "protocol", label: "Protocol" },
+  { id: "cryptography", label: "Cryptography" },
+  { id: "keys", label: "Key Management" },
+  { id: "verification", label: "Verification Methodology" },
+  { id: "root-key", label: "Root Authority Key — Status" },
+  { id: "open-source", label: "Open Source & Conformance" },
+  { id: "privacy", label: "Privacy" },
+];
+
 export default function TrustPage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
-      <div className="mb-2 font-mono text-[11px] text-muted">
-        <Link href="/" className="hover:text-paper">AgenID</Link> / Trust Center
-      </div>
-      <h1 className="text-3xl font-bold tracking-tight">Trust Center</h1>
-      <p className="mt-4 text-muted">
+    <main className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:px-8">
+      <div className="max-w-3xl">
+      <Breadcrumbs items={[{ label: "Trust Center" }]} className="mb-6" />
+      <h1 className="display">Trust Center</h1>
+      <p className="mt-6 text-lg leading-8 text-paper-dim">
         Everything on this page is either a fact about the shipped protocol, a fact about what is not yet complete, or
         a link to the primary source. Nothing here is marketing language standing in for a technical claim.
       </p>
 
-      <nav className="mt-6 flex flex-wrap gap-2 text-xs">
+      <nav aria-label="Sections" className="mt-6 flex flex-wrap gap-2 text-xs lg:hidden">
         {[
           ["#protocol", "Protocol"],
           ["#cryptography", "Cryptography"],
@@ -41,10 +52,11 @@ export default function TrustPage() {
           ["#open-source", "Open Source & Conformance"],
           ["#privacy", "Privacy"],
         ].map(([href, label]) => (
-          <a key={href} href={href} className="pill !py-1">{label}</a>
+          <a key={href} href={href} className="pill">{label}</a>
         ))}
       </nav>
 
+      <div className="mt-12" />
       <Section id="protocol" title="Protocol">
         <p>
           AgenID v1.1.1 is the current locked specification, published and MIT-licensed at{" "}
@@ -118,34 +130,34 @@ export default function TrustPage() {
           specification, and <em>issued by AgenID today</em> is a fact about this deployment. They are not the same
           answer for any level above L1.
         </p>
-        <ul className="list-disc space-y-1.5 pl-5">
+        <ul className="list-disc space-y-2 pl-5">
           <li>
             <span className="font-mono">L1_REGISTERED</span> — schema_validation.{" "}
-            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Issued by AgenID today.</strong>
+            <strong className="font-semibold text-paper-dim">Defined in v1.1.1 · Issued by AgenID today.</strong>
           </li>
           <li>
             <span className="font-mono">L2_DOMAIN_VERIFIED</span> — dns_txt_challenge / http_wellknown_challenge.{" "}
-            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
+            <strong className="font-semibold text-paper-dim">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
             The evidence can be collected now at <Link href="/verify/domain" className="text-paper underline hover:no-underline">/verify/domain</Link>; what cannot happen yet is signing the assertion.
           </li>
           <li>
             <span className="font-mono">L3_ORGANIZATION_VERIFIED</span> — business_registry_match / document_review.{" "}
-            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
+            <strong className="font-semibold text-paper-dim">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
             Deferred behind a written evidence standard as well as the root key.
           </li>
           <li>
             <span className="font-mono">L4_DEPLOYMENT_VERIFIED</span> — deployment_conformance via
             deployment_sample_review.{" "}
-            <strong className="font-semibold text-paper/90">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
+            <strong className="font-semibold text-paper-dim">Defined in v1.1.1 · Not issued by AgenID today.</strong>{" "}
             The sampling methodology is also still open — see below.
           </li>
           <li>
             <span className="font-mono">L5_CONTINUOUSLY_MONITORED</span> — a reserved name only. No
             continuous-integrity claim exists in v1.1.1.{" "}
-            <strong className="font-semibold text-paper/90">Not defined · Not issued.</strong>
+            <strong className="font-semibold text-paper-dim">Not defined · Not issued.</strong>
           </li>
         </ul>
-        <p className="rounded-lg border border-amber/40 bg-amber/10 p-4 text-paper/90">
+        <p className="rounded-lg border border-amber/40 bg-amber/10 p-4 text-paper-dim">
           <span className="font-semibold">The ceiling on this deployment is L1_REGISTERED.</span> Every level above it
           is a VerificationAssertion signed by the root authority key, and that key has not been generated — see below.
           An operator can complete every step that exists today and will still hold an L1 identity. Nothing on this
@@ -158,7 +170,7 @@ export default function TrustPage() {
       </Section>
 
       <Section id="root-key" title="Root Authority Key — Current Status">
-        <p className="rounded-lg border border-amber/40 bg-amber/10 p-4 text-paper/90">
+        <p className="rounded-lg border border-amber/40 bg-amber/10 p-4 text-paper-dim">
           <span className="font-semibold">Not yet complete.</span> The production root authority key has not
           completed its HSM ceremony. The verification <em>mechanism</em> for trust anchors — two-path key discovery,
           key roles, revocation — is fully specified and testable today (spec §9.5). What has not happened yet is the
@@ -194,6 +206,10 @@ export default function TrustPage() {
           that ever changes it will be a disclosed change on this page, not a silent one.
         </p>
       </Section>
+    </div>
+      <aside className="hidden lg:block">
+        <Toc items={TOC} />
+      </aside>
     </main>
   );
 }

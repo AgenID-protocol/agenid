@@ -37,7 +37,7 @@ export function PlatformMark({
 
   return (
     <span style={style} className={`${base} ${className}`} aria-hidden>
-      <span className="font-mono text-[13px] font-semibold tracking-tight">{abbr}</span>
+      <span className="font-mono text-sm font-semibold tracking-tight">{abbr}</span>
     </span>
   );
 }

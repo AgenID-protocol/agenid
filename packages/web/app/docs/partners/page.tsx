@@ -3,6 +3,7 @@ import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { getAllPartnerDocs } from "@/lib/partners";
 import { SITE_URL } from "@/lib/api";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = pageMetadata({
   title: "AI Agent Platform Integration Briefs",
@@ -29,14 +30,13 @@ export default function PartnersIndexPage() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-16">
+    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
+      <div className="max-w-4xl">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <div className="mb-2 font-mono text-[11px] text-muted">
-        <Link href="/" className="hover:text-paper">AgenID</Link> / Partner integration briefs
-      </div>
-      <h1 className="text-3xl font-bold tracking-tight">Partner Integration Briefs</h1>
+      <Breadcrumbs items={[{ label: "Docs", href: "/docs" }, { label: "Partner integration briefs" }]} className="mb-6" />
+      <h1 className="display !text-4xl md:!text-5xl">Partner Integration Briefs</h1>
       <p className="mt-4 max-w-2xl text-muted">
         Integration <em>patterns</em>, not shipped adapter packages — how to carry an{" "}
         <span className="font-mono">agenid:&lt;ULID&gt;</span> identity through each platform&rsquo;s existing,
@@ -55,12 +55,13 @@ export default function PartnersIndexPage() {
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         {docs.map((d) => (
           <Link key={d.slug} href={`/docs/partners/${d.slug}`} className="card block p-5 transition hover:border-muted">
-            <span className="pill !py-1 !text-[10px]">{d.category}</span>
+            <span className="pill !py-1 !text-xs">{d.category}</span>
             <h2 className="mt-3 text-base font-semibold">{d.title.replace(/^Attaching AgenID Identity to /, "")}</h2>
             <p className="mt-2 text-sm text-muted">{d.description}</p>
           </Link>
         ))}
       </div>
+    </div>
     </main>
   );
 }

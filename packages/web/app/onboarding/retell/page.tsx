@@ -341,7 +341,7 @@ export default function RetellOnboardingWizard() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label htmlFor="apiKey" className="block text-sm font-medium text-paper/80 mb-1.5">
+                <label htmlFor="apiKey" className="block text-sm font-medium text-paper-dim mb-2">
                   Retell API Key
                 </label>
                 <input
@@ -352,9 +352,9 @@ export default function RetellOnboardingWizard() {
                   onChange={(e) => setApiKey(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleFetchAgents()}
                   autoComplete="off"
-                  className="w-full bg-ink border border-line rounded-lg px-4 py-3 text-sm font-mono text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                  className="field font-mono"
                 />
-                <p className="mt-1.5 text-xs text-muted">
+                <p className="mt-2 text-xs text-muted">
                   Your API key is used for a single read-only call and is never stored.
                 </p>
               </div>
@@ -380,7 +380,7 @@ export default function RetellOnboardingWizard() {
               </div>
 
               <div>
-                <label htmlFor="domain" className="block text-sm font-medium text-paper/80 mb-1.5">
+                <label htmlFor="domain" className="block text-sm font-medium text-paper-dim mb-2">
                   Organization Domain
                 </label>
                 <input
@@ -393,7 +393,7 @@ export default function RetellOnboardingWizard() {
                     setDnsVerified(false);
                     setCapabilities(null);
                   }}
-                  className="w-full bg-ink border border-line rounded-lg px-4 py-3 text-sm font-mono text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                  className="field font-mono"
                 />
               </div>
 
@@ -452,7 +452,7 @@ export default function RetellOnboardingWizard() {
                 </div>
                 <button
                   onClick={() => navigator.clipboard.writeText(verificationRecord(domain, dnsToken).value)}
-                  className="text-muted hover:text-paper transition text-[10px] uppercase tracking-wider"
+                  className="text-muted hover:text-paper transition text-xs uppercase tracking-wider"
                 >
                   Copy to clipboard
                 </button>
@@ -512,10 +512,10 @@ export default function RetellOnboardingWizard() {
 
                   {/* Bound agents */}
                   <div className="space-y-2">
-                    <div className="text-sm font-medium text-paper/80">Registered Agent Fleet</div>
+                    <div className="text-sm font-medium text-paper-dim">Registered Agent Fleet</div>
                     <div className="max-h-48 overflow-y-auto space-y-1 bg-ink p-3 rounded-lg border border-line text-xs font-mono">
                       {bindResult.agents.map((a) => (
-                        <div key={a.agent_id} className="flex justify-between py-1.5 border-b border-line last:border-0">
+                        <div key={a.agent_id} className="flex justify-between py-2 border-b border-line last:border-0">
                           <div>
                             <span className="text-paper">{a.agent_name}</span>
                             <span className="text-muted ml-2">{a.retell_agent_id}</span>
@@ -553,7 +553,7 @@ export default function RetellOnboardingWizard() {
                   </div>
 
                   {/* Disclosures */}
-                  <div className="text-[11px] text-muted/70 leading-relaxed space-y-1">
+                  <div className="text-xs text-muted/70 leading-relaxed space-y-1">
                     {bindResult.disclosures.map((d, i) => (
                       <p key={i}>{d}</p>
                     ))}
@@ -571,7 +571,7 @@ export default function RetellOnboardingWizard() {
                   </p>
 
                   <div className="space-y-2">
-                    <div className="text-sm font-medium text-paper/80">
+                    <div className="text-sm font-medium text-paper-dim">
                       Agents Ready for Signing ({agents.length})
                     </div>
                     <div className="max-h-40 overflow-y-auto space-y-1 bg-ink p-3 rounded-lg border border-line text-xs font-mono">
@@ -590,7 +590,7 @@ export default function RetellOnboardingWizard() {
                     rule: never default a disclosure attestation.
                   */}
                   <div className="space-y-3 p-4 rounded-lg border border-line bg-ink">
-                    <div className="text-sm font-medium text-paper/80">Your attestations</div>
+                    <div className="text-sm font-medium text-paper-dim">Your attestations</div>
                     <p className="text-xs text-muted">
                       These become part of each signed manifest. Only state what is true of your agents — a
                       signature over a false claim is worse than no signature.
@@ -606,7 +606,7 @@ export default function RetellOnboardingWizard() {
                         value={operatorName}
                         onChange={(e) => setOperatorName(e.target.value)}
                         placeholder="Acme Corporation"
-                        className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                        className="field "
                       />
                     </div>
 
@@ -620,7 +620,7 @@ export default function RetellOnboardingWizard() {
                         value={operatorContact}
                         onChange={(e) => setOperatorContact(e.target.value)}
                         placeholder="ops@acme.com"
-                        className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm font-mono text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                        className="field font-mono "
                       />
                     </div>
 
@@ -634,7 +634,7 @@ export default function RetellOnboardingWizard() {
                         onChange={(e) => setPurposeSummary(e.target.value)}
                         rows={2}
                         placeholder="Inbound support calls for Acme's retail customers."
-                        className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-paper placeholder:text-muted/50 focus:outline-none focus:border-mint/50 transition"
+                        className="field "
                       />
                     </div>
 
@@ -643,7 +643,7 @@ export default function RetellOnboardingWizard() {
                         type="checkbox"
                         checked={disclosesToUser}
                         onChange={(e) => setDisclosesToUser(e.target.checked)}
-                        className="mt-0.5"
+                        className="mt-1"
                       />
                       <span>
                         These agents tell the person they are speaking with that they are an AI.
@@ -656,7 +656,7 @@ export default function RetellOnboardingWizard() {
                         type="checkbox"
                         checked={humanEscalation}
                         onChange={(e) => setHumanEscalation(e.target.checked)}
-                        className="mt-0.5"
+                        className="mt-1"
                       />
                       <span>
                         A person can reach a human from these agents.
@@ -666,7 +666,7 @@ export default function RetellOnboardingWizard() {
                   </div>
 
                   <div className="p-3 rounded-lg border border-line bg-ink text-xs text-muted space-y-1">
-                    <div className="text-paper/80 font-medium">What happens next:</div>
+                    <div className="text-paper-dim font-medium">What happens next:</div>
                     <div>1. An Ed25519 keypair is generated <strong className="text-paper">in your browser</strong></div>
                     <div>2. Each agent manifest is signed locally with your private key</div>
                     <div>3. Only <strong className="text-paper">public material</strong> (manifests, proofs, public key) is sent to the server</div>
@@ -692,7 +692,7 @@ export default function RetellOnboardingWizard() {
 
         {/* What this flow sends, and what it does not */}
         <div className="card p-4 text-xs text-muted space-y-1">
-          <div className="font-semibold text-paper/90">Key custody and what gets sent</div>
+          <div className="font-semibold text-paper-dim">Key custody and what gets sent</div>
           <div>
             Your Ed25519 keypair is generated in this browser tab using{" "}
             <span className="font-mono">@noble/curves</span> and the private key is never transmitted. The only

@@ -65,7 +65,7 @@ export function EcosystemMatrix({ entries, categories }: { entries: MatrixEntry[
               role="tab"
               aria-selected={active === t.id}
               onClick={() => setActive(t.id)}
-              className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm transition ${
+              className={`whitespace-nowrap rounded-lg border px-3 py-2 text-sm transition ${
                 active === t.id ? "border-muted bg-ink-2 text-paper" : "border-line text-muted hover:text-paper"
               }`}
             >
@@ -86,14 +86,14 @@ export function EcosystemMatrix({ entries, categories }: { entries: MatrixEntry[
             placeholder="Search platforms…"
             spellCheck={false}
             autoComplete="off"
-            className="w-full rounded-lg border border-line bg-ink-2 px-3.5 py-2 text-sm text-paper placeholder:text-muted/60 focus:border-mint focus:outline-none"
+            className="field !py-2"
           />
         </div>
       </div>
 
       {activeBlurb && <p className="mt-4 text-sm text-muted">{activeBlurb}</p>}
 
-      <p className="mt-2 font-mono text-[11px] text-muted" aria-live="polite">
+      <p className="mt-2 font-mono text-xs text-muted" aria-live="polite">
         {visible.length} of {entries.length} platforms
       </p>
 
@@ -111,22 +111,22 @@ export function EcosystemMatrix({ entries, categories }: { entries: MatrixEntry[
                 <PlatformMark abbr={e.abbr} logoSvg={e.logoSvg} />
                 <div className="min-w-0">
                   <h3 className="truncate text-base font-semibold">{e.name}</h3>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-muted">{e.categoryLabel}</div>
+                  <div className="font-mono text-xs uppercase tracking-wider text-muted">{e.categoryLabel}</div>
                 </div>
               </div>
 
               <p className="mt-3 text-sm text-muted">{e.description}</p>
 
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                <span className="pill !py-0.5 !text-[10px]">{e.statusLabel}</span>
-                <span className="pill !py-0.5 !text-[10px]">{e.integration_type}</span>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="pill !py-1 !text-xs">{e.statusLabel}</span>
+                <span className="pill !py-1 !text-xs">{e.integration_type}</span>
               </div>
 
-              <p className="mt-4 border-t border-line/70 pt-4 text-[13px] leading-relaxed text-muted">
+              <p className="mt-4 border-t border-line/70 pt-4 text-sm leading-relaxed text-muted">
                 {e.compatibility_note}
               </p>
 
-              <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 font-mono text-[11px] text-muted">
+              <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 font-mono text-xs text-muted">
                 {e.docs && (
                   <Link href={e.docs} className="text-paper underline underline-offset-2 hover:no-underline">
                     Integration brief

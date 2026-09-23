@@ -96,7 +96,7 @@ export function Connector({ at, step, reduced }: { at: number; step: number; red
 /** Small uppercase mono label — the eyebrow used throughout the set. */
 export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`font-mono text-[9px] uppercase tracking-[0.2em] text-muted ${className}`}>{children}</div>
+    <div className={`font-mono text-xs uppercase tracking-[0.2em] text-muted ${className}`}>{children}</div>
   );
 }
 
@@ -109,7 +109,7 @@ export function Eyebrow({ children, className = "" }: { children: ReactNode; cla
  */
 export function LevelChip({ level }: { level: string }) {
   return (
-    <span className="ml-2 inline-block rounded border border-line px-1.5 py-[3px] font-mono text-[8.5px] tracking-[0.08em] text-muted">
+    <span className="ml-2 inline-block rounded border border-line px-2 py-[3px] font-mono text-xs tracking-[0.08em] text-muted">
       {level}
     </span>
   );
@@ -136,12 +136,12 @@ export function FlowLine({
         first ? "" : "border-t border-line"
       }`}
     >
-      <span className="flex min-w-0 flex-wrap items-center text-[13.5px] leading-snug text-paper/80">
+      <span className="flex min-w-0 flex-wrap items-center text-sm leading-snug text-paper-dim">
         {label}
         {level ? <LevelChip level={level} /> : null}
       </span>
       <span
-        className={`flex items-center gap-2 whitespace-nowrap font-mono text-[11.5px] tracking-[0.09em] ${toneText(tone)}`}
+        className={`flex items-center gap-2 whitespace-nowrap font-mono text-xs tracking-[0.09em] ${toneText(tone)}`}
       >
         {pulse ? <span className={`scenario-pulse h-[5px] w-[5px] shrink-0 rounded-full ${toneDot(tone)}`} /> : null}
         {value}
@@ -155,7 +155,7 @@ export function Panel({ title, action, children }: { title: string; action?: Rea
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-ink-2">
       <div className="flex items-center justify-between gap-3 bg-paper/[0.015] px-4 py-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">{title}</span>
+        <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted">{title}</span>
         {action}
       </div>
       {children}

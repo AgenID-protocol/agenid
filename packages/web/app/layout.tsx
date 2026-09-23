@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -9,6 +10,14 @@ import { HOME_DESCRIPTION, HOME_TITLE } from "@/lib/seo";
 // Shared with the homepage (app/page.tsx) via lib/seo.ts so the two cannot drift.
 const TITLE = HOME_TITLE;
 const DESCRIPTION = HOME_DESCRIPTION;
+
+// Brand faces (design pass 2026-09-23, approved by Mike). next/font self-hosts them at
+// build time: no runtime request to Google, no new npm dependency, and the system stack
+// in globals.css stays as the fallback. Geist Mono's 0/O and 1/l/I are unambiguous, which
+// matters for ULIDs a reader might retype.
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
+
 
 export const metadata: Metadata = {
   title: { default: TITLE, template: "%s · AgenID" },
@@ -53,9 +62,14 @@ export function Mark() {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Marks the document as script-capable before first paint, so `.reveal` content is
+            only ever hidden when something is running that will reveal it. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+      </head>
       <body className="min-h-screen font-sans antialiased">
-        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-mint focus:px-3 focus:py-2 focus:text-ink">
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-paper focus:px-3 focus:py-2 focus:text-ink">
           Skip to content
         </a>
         <Nav />

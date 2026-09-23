@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type Col = { title: string; links: { href: string; label: string; external?: boolean }[] };
 
@@ -43,13 +46,14 @@ const COLUMNS: Col[] = [
 ];
 
 export function Footer() {
+  const pathname = usePathname() ?? "/";
   return (
-    <footer className="mt-24 border-t border-line/70">
-      <div className="mx-auto max-w-6xl px-5 py-14">
+    <footer className="mt-24 border-t border-line">
+      <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink-3 font-mono text-xs text-mint" aria-hidden>
+            <Link href="/" className="flex items-center gap-3 text-base font-semibold tracking-tight">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink-3 font-mono text-xs text-paper" aria-hidden>
                 ✓
               </span>
               AgenID
@@ -57,13 +61,13 @@ export function Footer() {
             <p className="mt-3 max-w-[220px] text-xs leading-relaxed text-muted">
               The open identity, provenance, and machine-resolution standard for AI agents.
             </p>
-            <Link href="/verify" className="btn btn-ghost mt-5 !py-1.5 !text-[12px]">
+            <Link href="/verify" className="btn btn-ghost btn-sm mt-5">
               Verify an Agent
             </Link>
           </div>
           {COLUMNS.map((col) => (
             <div key={col.title}>
-              <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted">{col.title}</div>
+              <div className="eyebrow">{col.title}</div>
               <ul className="space-y-2">
                 {col.links.map((l) => (
                   <li key={l.href}>
@@ -71,10 +75,11 @@ export function Footer() {
                       href={l.href}
                       target={l.external ? "_blank" : undefined}
                       rel={l.external ? "noopener" : undefined}
-                      className="text-sm text-paper/80 hover:text-paper hover:underline"
+                      aria-current={!l.external && !l.href.includes("#") && l.href === pathname ? "page" : undefined}
+                      className="text-sm text-paper-dim hover:text-paper hover:underline"
                     >
                       {l.label}
-                      {l.external && <span className="ml-1 text-[10px] text-muted">↗</span>}
+                      {l.external && <span className="ml-1 text-xs text-muted">↗</span>}
                     </a>
                   </li>
                 ))}
@@ -83,7 +88,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-line/70 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           {/* "MIT" unqualified read as "this product is open-source". The MIT-licensed,
               publicly readable artifacts are the specification and the conformance suite. */}
           <span>AgenID Protocol v1.1.1 · Specification MIT-licensed · Maintained by AI Venture Holdings LLC</span>

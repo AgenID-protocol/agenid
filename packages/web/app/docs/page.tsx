@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getAllPartnerDocs } from "@/lib/partners";
 import { SITE_URL } from "@/lib/api";
 import { pageMetadata } from "@/lib/seo";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 /**
  * /docs used to 404 while /docs/onboarding and /docs/partners lived beneath it, so every
@@ -60,14 +61,13 @@ export default function DocsIndexPage() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-16">
+    <main className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
+      <div className="max-w-4xl">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="mb-2 font-mono text-[11px] text-muted">
-        <Link href="/" className="hover:text-paper">AgenID</Link> / Docs
-      </div>
-      <h1 className="text-3xl font-bold tracking-tight">AgenID documentation</h1>
-      <p className="mt-4 max-w-2xl text-muted">
+      <Breadcrumbs items={[{ label: "Docs" }]} className="mb-6" />
+      <h1 className="display !text-4xl md:!text-5xl">AgenID documentation</h1>
+      <p className="mt-6 max-w-2xl text-lg leading-8 text-paper-dim">
         How to give an AI agent a permanent <span className="font-mono">agenid:&lt;ULID&gt;</span>, how a third party
         verifies it without trusting this registry, and how the identity travels through the platforms agents already
         run on. Everything below describes what is deployed today; anything not yet deployed says so on the page.
@@ -103,6 +103,7 @@ export default function DocsIndexPage() {
           </a>
         ))}
       </div>
+    </div>
     </main>
   );
 }

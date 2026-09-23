@@ -24,8 +24,8 @@ export function IdentityFlow() {
   return (
     <div className="card p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="font-mono text-[11px] text-muted">IDENTITY PERSISTENCE</div>
-        <div className="font-mono text-[11px] text-muted">
+        <div className="font-mono text-xs text-muted">IDENTITY PERSISTENCE</div>
+        <div className="font-mono text-xs text-muted">
           manifest_digest <span className="text-paper">{DIGEST}</span> · unchanged at every hop
         </div>
       </div>
@@ -34,7 +34,7 @@ export function IdentityFlow() {
       <div className="relative mt-10 hidden md:block">
         <div className="absolute left-[16.666%] right-[16.666%] top-[13px] h-px bg-line" aria-hidden />
         <div className="flow-token absolute -top-1 z-10 -translate-x-1/2" aria-hidden>
-          <span className="rounded-md border border-mint/40 bg-mint-deep px-2.5 py-1 font-mono text-[11px] whitespace-nowrap text-mint">
+          <span className="rounded-md border border-mint/40 bg-mint-deep px-3 py-1 font-mono text-xs whitespace-nowrap text-mint">
             {AGENT_ID}
           </span>
         </div>
@@ -42,9 +42,9 @@ export function IdentityFlow() {
           {STAGES.map((s, i) => (
             <div key={s.name} className="px-2">
               <div className={`flow-stage flow-stage-${i + 1} rounded-xl border border-line bg-ink-3 px-4 py-3 text-center`}>
-                <div className="font-mono text-[10px] uppercase tracking-wider text-muted">{s.layer}</div>
+                <div className="font-mono text-xs uppercase tracking-wider text-muted">{s.layer}</div>
                 <div className="mt-1 text-sm font-semibold text-paper">{s.name}</div>
-                <div className="mt-0.5 font-mono text-[10px] text-muted">{s.detail}</div>
+                <div className="mt-1 font-mono text-xs text-muted">{s.detail}</div>
               </div>
             </div>
           ))}
@@ -53,14 +53,14 @@ export function IdentityFlow() {
 
       {/* stacked — below md */}
       <div className="mt-6 space-y-2 md:hidden">
-        <div className="rounded-md border border-mint/40 bg-mint-deep px-2.5 py-1.5 text-center font-mono text-[11px] text-mint">
+        <div className="rounded-md border border-mint/40 bg-mint-deep px-3 py-2 text-center font-mono text-xs text-mint">
           {AGENT_ID}
         </div>
         {STAGES.map((s) => (
           <div key={s.name} className="rounded-xl border border-line bg-ink-3 px-4 py-3">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted">{s.layer}</div>
-            <div className="mt-0.5 text-sm font-semibold text-paper">
-              {s.name} <span className="font-mono text-[10px] font-normal text-muted">· {s.detail}</span>
+            <div className="font-mono text-xs uppercase tracking-wider text-muted">{s.layer}</div>
+            <div className="mt-1 text-sm font-semibold text-paper">
+              {s.name} <span className="font-mono text-xs font-normal text-muted">· {s.detail}</span>
             </div>
           </div>
         ))}

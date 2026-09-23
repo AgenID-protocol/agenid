@@ -131,7 +131,7 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
       */}
       <div
         aria-live="polite"
-        className="mt-3 min-h-[14px] font-mono text-[10px] uppercase tracking-[0.22em] text-muted"
+        className="mt-3 min-h-[14px] font-mono text-xs uppercase tracking-[0.22em] text-muted"
       >
         {without && t.step >= scenario.shape.beforeSteps
           ? scenario.outcome.without.title
@@ -168,14 +168,14 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
                 <div ref={mark(scenario.prompt.step)}>
                   <Reveal at={scenario.prompt.step} step={t.step} reduced={t.reducedMotion}>
                     <Card>
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-4">
                         <AgentMark />
                         <div className="min-w-0">
                           <Eyebrow>{scenario.prompt.role}</Eyebrow>
-                          <div className="mt-1 text-[17px] font-medium leading-tight">{scenario.prompt.name}</div>
+                          <div className="mt-1 text-lg font-medium leading-tight">{scenario.prompt.name}</div>
                         </div>
                       </div>
-                      <div className="mt-3 border-l border-line px-3.5 py-2.5 text-sm leading-relaxed text-paper/80">
+                      <div className="mt-3 border-l border-line px-4 py-3 text-sm leading-relaxed text-paper-dim">
                         {scenario.prompt.quote}
                       </div>
                     </Card>
@@ -191,31 +191,31 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
                 <Card accent>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <Eyebrow>{scenario.agent.role}</Eyebrow>
-                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-mint">
+                    <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-mint">
                       <span className="inline-block h-[5px] w-[5px] rounded-full bg-mint" />
                       Identity proof
                     </span>
                   </div>
-                  <div className="mt-3.5 flex items-center gap-3.5">
+                  <div className="mt-4 flex items-center gap-4">
                     <AgentMark />
                     <div className="min-w-0">
-                      <div className="text-[19px] font-semibold leading-tight tracking-tight">
+                      <div className="text-xl font-semibold leading-tight tracking-tight">
                         {scenario.agent.name}
                       </div>
-                      <div className="mt-1 text-[12.5px] text-muted">{scenario.agent.meta}</div>
+                      <div className="mt-1 text-xs text-muted">{scenario.agent.meta}</div>
                     </div>
                   </div>
                   {scenario.agent.quote && (
-                    <div className="mt-3.5 border-l border-line px-3.5 py-2.5 text-sm leading-relaxed text-paper/80">
+                    <div className="mt-4 border-l border-line px-4 py-3 text-sm leading-relaxed text-paper-dim">
                       {scenario.agent.quote}
                     </div>
                   )}
-                  <div className="mt-3.5 grid border-t border-line pt-3.5">
+                  <div className="mt-4 grid border-t border-line pt-4">
                     <div className="col-start-1 row-start-1">
                       <SwapPanel show={without} reduced={t.reducedMotion}>
-                        <div className="flex flex-wrap items-center justify-between gap-2.5">
-                          <span className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-amber">
-                            <span className="flex h-4 w-4 items-center justify-center rounded-full border border-amber/50 font-mono text-[9px]">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <span className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.16em] text-amber">
+                            <span className="flex h-4 w-4 items-center justify-center rounded-full border border-amber/50 font-mono text-xs">
                               ?
                             </span>
                             Unverifiable claim
@@ -226,9 +226,9 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
                     </div>
                     <div className="col-start-1 row-start-1">
                       <SwapPanel show={!without && t.step >= scenario.shape.idStep} reduced={t.reducedMotion}>
-                        <div className="flex flex-wrap items-center justify-between gap-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <Eyebrow>AgenID presented</Eyebrow>
-                          <span className="break-all font-mono text-[12.5px] text-mint">{EXAMPLE_AGENID}</span>
+                          <span className="break-all font-mono text-xs text-mint">{EXAMPLE_AGENID}</span>
                         </div>
                       </SwapPanel>
                     </div>
@@ -250,7 +250,7 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
                     onClick={() => setExplain((v) => !v)}
                     aria-expanded={explain}
                     aria-label="What does verified mean here?"
-                    className="h-[22px] w-[22px] shrink-0 rounded-full border border-line font-mono text-[10px] text-muted transition hover:border-mint hover:text-mint"
+                    className="h-[22px] w-[22px] shrink-0 rounded-full border border-line font-mono text-xs text-muted transition hover:border-mint hover:text-mint"
                   >
                     ?
                   </button>
@@ -281,8 +281,8 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
                 {explain && (
                   <div className="border-t border-mint/25 bg-mint-deep/40 px-4 py-4">
                     <Eyebrow className="!text-mint">What was verified?</Eyebrow>
-                    <p className="mt-2.5 text-[13px] leading-relaxed text-paper/80">{WHAT_WAS_VERIFIED}</p>
-                    <p className="mt-2.5 font-mono text-[11.5px] leading-relaxed text-muted">
+                    <p className="mt-3 text-sm leading-relaxed text-paper-dim">{WHAT_WAS_VERIFIED}</p>
+                    <p className="mt-3 font-mono text-xs leading-relaxed text-muted">
                       {CHALLENGE_IS_PROPOSED}
                     </p>
                   </div>
@@ -301,8 +301,8 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
                     </Reveal>
                   </div>
                 ))}
-                <div className="border-t border-line px-4 py-3.5">
-                  <p className="font-mono text-[11.5px] leading-relaxed text-muted">{scenario.separate.note}</p>
+                <div className="border-t border-line px-4 py-4">
+                  <p className="font-mono text-xs leading-relaxed text-muted">{scenario.separate.note}</p>
                 </div>
               </Panel>
             </div>
@@ -316,10 +316,10 @@ export function ScenarioPlayer({ scenario }: { scenario: Scenario }) {
             {scenario.closing && !without && (
               <Reveal at={scenario.outcome.step} step={t.step} reduced={t.reducedMotion} className="pt-10">
                 <div className="text-center">
-                  <p className="text-[25px] font-medium leading-snug tracking-tight text-balance">
+                  <p className="text-2xl font-medium leading-snug tracking-tight text-balance">
                     {scenario.closing.line}
                   </p>
-                  <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.26em] text-mint">
+                  <div className="mt-4 font-mono text-xs uppercase tracking-[0.26em] text-mint">
                     {scenario.closing.kicker}
                   </div>
                 </div>
@@ -354,15 +354,15 @@ function OutcomeGate({
       {succeeded ? (
         <div className={reduced ? "" : "transition-opacity duration-[440ms]"}>
           <Eyebrow className="!text-mint">{scenario.outcome.with.title}</Eyebrow>
-          <div className="mt-2.5 text-[21px] font-medium leading-snug tracking-tight text-balance">
+          <div className="mt-3 text-xl font-medium leading-snug tracking-tight text-balance">
             {scenario.outcome.with.headline}
           </div>
-          <div className="mt-2 text-[13px] leading-relaxed text-muted">{scenario.outcome.with.body}</div>
+          <div className="mt-2 text-sm leading-relaxed text-muted">{scenario.outcome.with.body}</div>
         </div>
       ) : (
         <div className={reduced ? "" : "transition-opacity duration-[440ms]"}>
           <Eyebrow>{without ? scenario.outcome.without.title : "Awaiting proof"}</Eyebrow>
-          <div className="mt-2.5 text-[13px] leading-relaxed text-muted">
+          <div className="mt-3 text-sm leading-relaxed text-muted">
             {without ? scenario.outcome.without.body : "Nothing proceeds on an unproven claim"}
           </div>
         </div>
@@ -389,13 +389,13 @@ function CounterpartyBlock({
         <div ref={mark(cp.step)}>
           <Reveal at={cp.step} step={step} reduced={reduced}>
             <Card>
-              <div className="flex flex-wrap items-center justify-between gap-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
                   <Eyebrow>{cp.role}</Eyebrow>
-                  <div className="mt-2 text-[17px] font-medium leading-tight">{cp.name}</div>
-                  {cp.meta && <div className="mt-1 text-[12.5px] text-muted">{cp.meta}</div>}
+                  <div className="mt-2 text-lg font-medium leading-tight">{cp.name}</div>
+                  {cp.meta && <div className="mt-1 text-xs text-muted">{cp.meta}</div>}
                 </div>
-                <div className="whitespace-nowrap rounded-md border border-amber/30 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-amber">
+                <div className="whitespace-nowrap rounded-md border border-amber/30 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-amber">
                   {cp.challenge}
                 </div>
               </div>
@@ -410,25 +410,25 @@ function CounterpartyBlock({
     return (
       <>
         <Connector at={cp.step} step={step} reduced={reduced} />
-        <div ref={mark(cp.step)} className="grid gap-2.5 sm:grid-cols-2">
+        <div ref={mark(cp.step)} className="grid gap-3 sm:grid-cols-2">
           {cp.members.map((m) => (
             <Reveal key={m.name} at={cp.step} step={step} reduced={reduced}>
               <div
-                className={`h-full rounded-2xl border bg-ink-2 px-4 py-3.5 ${
+                className={`h-full rounded-2xl border bg-ink-2 px-4 py-4 ${
                   m.chosen && step >= cp.detailStep ? "border-mint/40" : "border-line"
                 }`}
               >
                 <Eyebrow>{m.role}</Eyebrow>
-                <div className="mt-1.5 text-[15px] font-medium leading-tight">{m.name}</div>
+                <div className="mt-2 text-base font-medium leading-tight">{m.name}</div>
                 <div className="mt-2 min-h-[14px]">
                   <Reveal at={cp.badgeStep} step={step} reduced={reduced}>
-                    <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-mint">{m.badge}</div>
+                    <div className="font-mono text-xs uppercase tracking-[0.12em] text-mint">{m.badge}</div>
                   </Reveal>
                 </div>
                 <div className="mt-2 min-h-[34px]">
                   <Reveal at={cp.detailStep} step={step} reduced={reduced}>
-                    <div className="text-[17px] font-semibold tracking-tight">{m.headline}</div>
-                    <div className="mt-0.5 text-[11.5px] text-muted">{m.detail}</div>
+                    <div className="text-lg font-semibold tracking-tight">{m.headline}</div>
+                    <div className="mt-1 text-xs text-muted">{m.detail}</div>
                   </Reveal>
                 </div>
               </div>
@@ -447,13 +447,13 @@ function CounterpartyBlock({
           <div ref={mark(hop.step)}>
             <Reveal at={hop.step} step={step} reduced={reduced}>
               <div className="overflow-hidden rounded-2xl border border-line bg-ink-2">
-                <div className="bg-paper/[0.015] px-4 py-2 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
+                <div className="bg-paper/[0.015] px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] text-muted">
                   {cp.connector}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
                     <Eyebrow>{hop.index}</Eyebrow>
-                    <div className="mt-1 text-[15px] font-medium leading-tight">{hop.name}</div>
+                    <div className="mt-1 text-base font-medium leading-tight">{hop.name}</div>
                   </div>
                   <span className="whitespace-nowrap font-mono text-xs text-muted">{hop.id}</span>
                 </div>
@@ -494,7 +494,7 @@ function ModeButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`whitespace-nowrap rounded-md border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+      className={`whitespace-nowrap rounded-md border px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] transition ${
         active ? "border-mint/50 bg-mint-deep/50 text-mint" : "border-line text-muted hover:border-muted"
       }`}
     >
@@ -508,7 +508,7 @@ function SmallButton({ onClick, children }: { onClick: () => void; children: Rea
     <button
       type="button"
       onClick={onClick}
-      className="min-w-[74px] rounded-md border border-line px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition hover:border-mint hover:text-mint"
+      className="min-w-[74px] rounded-md border border-line px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-muted transition hover:border-mint hover:text-mint"
     >
       {children}
     </button>
