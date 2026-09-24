@@ -8,7 +8,7 @@
 |---|---|
 | **Name** | AgenID — cryptographic identity infrastructure for AI agents |
 | **Purpose** | An open protocol giving an AI agent a portable identifier, a signed manifest, and a resolution envelope **any third party can re-verify offline without trusting the AgenID registry** |
-| **Repository** | [`AgenID-protocol/agenid`](https://github.com/AgenID-protocol/agenid) (private), [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec) (public, normative), [`AgenID-protocol/conformance`](https://github.com/AgenID-protocol/conformance) (public) |
+| **Repository** | [`AgenID-protocol/agenid`](https://github.com/AgenID-protocol/agenid) (public since 2026-09-23, MIT), [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec) (public, normative), [`AgenID-protocol/conformance`](https://github.com/AgenID-protocol/conformance) (public) |
 | **Production URL** | [www.agenid.com](https://www.agenid.com) — apex redirects to www |
 
 ## Current status

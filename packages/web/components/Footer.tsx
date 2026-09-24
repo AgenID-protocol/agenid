@@ -20,7 +20,8 @@ const COLUMNS: Col[] = [
     title: "Developers",
     links: [
       { href: "/docs/onboarding", label: "Quick Start" },
-      // Was "@agenid/core" → AgenID-protocol/agenid, a private repository. Same fix as Nav.
+      // The monorepo is public since 2026-09-23. Same links as Nav.
+      { href: "https://github.com/AgenID-protocol/agenid", label: "Source (GitHub)", external: true },
       { href: "https://github.com/AgenID-protocol", label: "AgenID on GitHub", external: true },
       { href: "/docs/partners/mcp-server-integration", label: "MCP Server" },
       { href: "https://github.com/AgenID-protocol/spec", label: "Protocol Spec", external: true },

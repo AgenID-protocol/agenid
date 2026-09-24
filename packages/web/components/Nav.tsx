@@ -35,9 +35,8 @@ const GROUPS: NavGroup[] = [
       { href: "/api/v1/openapi.json", label: "API (OpenAPI)", external: true },
       { href: "https://github.com/AgenID-protocol/spec", label: "Protocol Spec", external: true },
       { href: "https://github.com/AgenID-protocol/spec/tree/main/schemas", label: "JSON Schemas", external: true },
-      // Was "@agenid/core (GitHub)" → AgenID-protocol/agenid, which is private: a logged-out
-      // visitor got GitHub's 404. The org page lists what is actually public (spec,
-      // conformance), so it is the honest destination until the monorepo opens.
+      // The monorepo is public since 2026-09-23; the org page stays for spec and conformance.
+      { href: "https://github.com/AgenID-protocol/agenid", label: "Source (GitHub)", external: true },
       { href: "https://github.com/AgenID-protocol", label: "AgenID on GitHub", external: true },
     ],
   },

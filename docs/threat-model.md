@@ -153,7 +153,7 @@ Ranked. Nothing material is omitted.
 6. **Two registration validation implementations can drift** — equivalence is held by test only.
 7. **No agent revocation or status transition in production** — the enum exists; nothing writes it.
 8. **The OpenAPI document covers 4 of 13 deployed routes**, understating the public attack surface to anyone auditing from the spec.
-9. **No `security@` mailbox exists** — the `agenid.com` zone publishes no MX records, so a conventional reporting address would silently drop mail. Private vulnerability reporting is enabled and verified on the two public repositories instead, and cannot be enabled here while this repository is private.
+9. **No `security@` mailbox exists** — the `agenid.com` zone publishes no MX records, so a conventional reporting address would silently drop mail. Private vulnerability reporting is the channel instead; it is enabled and verified on all three public repositories, including this one since it was made public on 2026-09-23.
 10. **`/onboarding/retell` has never been rendered in a browser** — exercised only over HTTP and by grepping the shipped bundle.
 
 ## Residual risk

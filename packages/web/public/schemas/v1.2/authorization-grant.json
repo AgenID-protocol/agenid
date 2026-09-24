@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenid.com/schemas/v1.2/authorization-grant.json",
+  "title": "AgenID AuthorizationGrant (v1.2-draft, NOT NORMATIVE)",
+  "$comment": "DRAFT — AgenID authorization layer v1.2-draft. NOT NORMATIVE and not part of ratified protocol v1.1.1; shape may change before ratification. Published so that objects already signed with this $schema value resolve to the rules they were checked against.",
+  "description": "Principal-signed grant of scopes to an agent. Signing input = RFC 8785 canonical bytes of this object with the `signature` member removed; the `$schema` member IS part of the signing input. Pure Ed25519 (RFC 8032), no pre-hash. Cross-field rules not expressible here: expires_at > not_before; scopes contain no '*' (also excluded by the pattern); key_id must resolve to a key document with role=principal whose controller is `principal`. A relying party MUST treat a grant carrying a constraint type it does not understand as not permitted (fail closed).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "grant_id",
+    "principal",
+    "subject",
+    "scopes",
+    "not_before",
+    "expires_at",
+    "key_id",
+    "signature"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://agenid.com/schemas/v1.2/authorization-grant.json"
+    },
+    "grant_id": {
+      "type": "string",
+      "pattern": "^grant:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "principal": {
+      "type": "string",
+      "pattern": "^agenid:principal:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "subject": {
+      "type": "string",
+      "pattern": "^agenid:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "scopes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,31}:[a-z][a-z0-9_]{0,31}$"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "domains"
+            ],
+            "properties": {
+              "type": {
+                "const": "counterparty_domain"
+              },
+              "domains": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "currency",
+              "amount_minor"
+            ],
+            "properties": {
+              "type": {
+                "const": "max_value"
+              },
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "amount_minor": {
+                "type": "string",
+                "pattern": "^\\d{1,18}$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "count"
+            ],
+            "properties": {
+              "type": {
+                "const": "max_uses"
+              },
+              "count": {
+                "type": "string",
+                "pattern": "^\\d{1,9}$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "requires_human_confirmation"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "not_before": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "expires_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "key_id": {
+      "type": "string",
+      "pattern": "^agenid:key:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    }
+  }
+}

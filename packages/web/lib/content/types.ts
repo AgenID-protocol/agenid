@@ -5,7 +5,7 @@
  * One model, one renderer (components/content/ContentArticle.tsx), one guard file
  * (test/content.test.ts). Every page built from these types inherits the same honesty
  * checks the scenario library carries: no overclaim vocabulary, no level above L1
- * named without the issuance ceiling, no link into a private repository, no internal
+ * named without the issuance ceiling, no link into a repository that is not public, no internal
  * link that does not resolve, and — for anything that describes a third party — a
  * source for every claim.
  *
@@ -79,7 +79,7 @@ export interface GlossaryTerm extends ContentPage {
 export interface BlogPost extends ContentPage {
   /** ISO date the capability shipped. */
   readonly published: string;
-  /** Commit hashes on AgenID-protocol/agenid the post describes. Plain text; that repo is private, so never linked. */
+  /** Commit hashes on AgenID-protocol/agenid the post describes. Plain text (the repo is public; hashes are looked up there). */
   readonly commits: readonly string[];
   readonly tags: readonly string[];
 }

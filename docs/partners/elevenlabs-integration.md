@@ -48,4 +48,4 @@ ElevenLabs signs its post-call webhooks with the `ElevenLabs-Signature` header, 
 - [ElevenLabs — Server tools](https://elevenlabs.io/docs/agents-platform/customization/tools/server-tools)
 - [ElevenLabs — Post-call webhooks](https://elevenlabs.io/docs/eleven-agents/workflows/post-call-webhooks)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm yet; its source is public at https://github.com/AgenID-protocol/agenid/tree/main/packages/core.

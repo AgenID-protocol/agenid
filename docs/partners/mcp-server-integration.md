@@ -42,4 +42,4 @@ A client (or an agent orchestrating multiple MCP servers) that sees an `agenid:<
 
 - [MCP — Lifecycle specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm yet; its source is public at https://github.com/AgenID-protocol/agenid/tree/main/packages/core.

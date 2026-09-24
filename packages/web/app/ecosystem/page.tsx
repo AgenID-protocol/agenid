@@ -201,12 +201,13 @@ export default function EcosystemPage() {
               everywhere: attach an <span className="font-mono">agenid:&lt;ULID&gt;</span> to the agent&rsquo;s existing
               config, sign a manifest with <span className="font-mono">@agenid/core</span>, and resolve it at{" "}
               <span className="font-mono">/a/&lt;agenid&gt;</span>. The registry itself lives at{" "}
-              {/* This linked "AgenID-protocol/agenid" as though a reader could open it and
-                  send a pull request. The monorepo is private — the link was a 404, and the
-                  invitation behind it was not one this project can currently honour. */}
-              <span className="font-mono">packages/web/data/ecosystem/</span> in the AgenID monorepo, one reviewable
-              JSON file per platform, validated in CI. That repository is not public yet, so it does not take outside
-              pull requests today; when it opens, a new entry will be one. Either way the rule does not change:
+              {/* The monorepo is public since 2026-09-23, so the directory is linkable and a new
+                  entry can be proposed as a pull request. */}
+              <a className="font-mono text-paper underline underline-offset-2 hover:no-underline" href="https://github.com/AgenID-protocol/agenid/tree/main/packages/web/data/ecosystem" rel="noopener noreferrer" target="_blank">
+                packages/web/data/ecosystem/
+              </a>{" "}
+              in the public AgenID monorepo, one reviewable JSON file per platform, validated in CI. A new entry can be
+              proposed as a pull request against that directory. The rule does not change:
               raising an entry above <em>Compatible</em> requires evidence in the same change.
             </p>
           </div>

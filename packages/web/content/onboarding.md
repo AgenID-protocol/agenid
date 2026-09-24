@@ -6,7 +6,7 @@ Nothing here requires trusting AgenID's own database: every step is checkable by
 
 ## Step 1 — Generate an Ed25519 keypair and build your `agenid.json` manifest
 
-> **`@agenid/core` is not published to npm yet.** Neither is `@agenid/cli` or `@agenid/mcp-server` — all three return 404 on the npm registry today, and the monorepo that contains them is not public. The commands below are the shape the package will have when it publishes; until then, the browser flow at [`/issue`](https://www.agenid.com/issue) does the same signing locally and is the path that actually works today.
+> **`@agenid/core` is not published to npm yet.** Neither is `@agenid/cli` or `@agenid/mcp-server` — all three return 404 on the npm registry today. Their source is public in the [monorepo](https://github.com/AgenID-protocol/agenid). The commands below are the shape the package will have when it publishes; until then, the browser flow at [`/issue`](https://www.agenid.com/issue) does the same signing locally and is the path that actually works today.
 
 Install `@agenid/core` (or vendor its pure-function primitives — Ed25519 + RFC 8785 canonicalization, no framework dependency):
 
@@ -143,7 +143,7 @@ The same registry and verification primitives are reachable from outside a brows
 
 `@agenid/mcp-server` is a stdio MCP server exposing `resolve_agent_identity`, `verify_agent_manifest`, and `generate_keypair`.
 
-> **Not installable today.** `@agenid/mcp-server` is not published to npm, so the `npx` invocation below will not resolve, and the repository that contains it is not public. This section documents the tool surface and the config shape for when it publishes; it is not a working setup you can paste in right now.
+> **Not installable today.** `@agenid/mcp-server` is not published to npm, so the `npx` invocation below will not resolve. Its source is public at [`packages/mcp-server`](https://github.com/AgenID-protocol/agenid/tree/main/packages/mcp-server), and it can be built from there. This section documents the tool surface and the config shape for when it publishes; it is not a working setup you can paste in right now.
 
 The config shape, for when it does publish:
 

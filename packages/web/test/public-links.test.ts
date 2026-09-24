@@ -9,8 +9,10 @@ import path from "node:path";
  * logged-in maintainer and obvious to a logged-out reader:
  *
  *   T-1  A link into a PRIVATE repository. Five public surfaces linked
- *        github.com/AgenID-protocol/agenid — including the homepage's primary
- *        developer CTA. Every logged-out visitor who clicked it got GitHub's 404.
+ *        github.com/AgenID-protocol/agenid while it was private — including the
+ *        homepage's primary developer CTA — and every logged-out visitor got a 404.
+ *        The monorepo was made public on 2026-09-23; the guard now pins the PUBLIC
+ *        set and checks that every in-repo path a surface links actually exists.
  *   T-2  A link to a file that is not there. The footer's Errata Log pointed at
  *        spec/blob/main/ERRATA.md; the errata log lives at docs/errata.md.
  *   T-3  "Issuable" collapsing a SPEC capability into a DEPLOYED one. L2/L3/L4 are
@@ -96,37 +98,43 @@ function read(rel: string): string {
 
 const FILES = publicSurfaceFiles();
 
-describe("T-1 — no public surface links into a private repository", () => {
+describe("T-1 — no public surface links into a private repository or a missing path", () => {
   it("scans a non-trivial number of files", () => {
     // A walker that silently matches nothing passes every assertion below.
     expect(FILES.length).toBeGreaterThan(40);
   });
 
-  it("links no file at AgenID-protocol/agenid, which is private", () => {
-    const offenders: string[] = [];
-    for (const rel of FILES) {
-      if (/github\.com\/AgenID-protocol\/agenid\b/i.test(read(rel))) offenders.push(rel);
-    }
-    expect(
-      offenders,
-      `These surfaces link the PRIVATE monorepo; a logged-out reader gets a 404:\n  ${offenders.join("\n  ")}`,
-    ).toEqual([]);
-  });
-
   it("references only repositories that are actually public", () => {
-    // github.com/AgenID-protocol            → the org page, public
-    // github.com/AgenID-protocol/spec       → public, MIT
-    // github.com/AgenID-protocol/conformance→ public, MIT
+    // github.com/AgenID-protocol             → the org page, public
+    // github.com/AgenID-protocol/spec        → public, MIT
+    // github.com/AgenID-protocol/conformance → public, MIT
+    // github.com/AgenID-protocol/agenid      → public, MIT, since 2026-09-23
     // Anything else in this org is private until someone decides otherwise, and the
     // decision should be made here rather than discovered by a visitor.
-    const PUBLIC = new Set(["spec", "conformance"]);
+    const PUBLIC = new Set(["spec", "conformance", "agenid"]);
     const bad: string[] = [];
     for (const rel of FILES) {
       for (const m of read(rel).matchAll(/github\.com\/AgenID-protocol\/([A-Za-z0-9._-]+)/g)) {
-        if (!PUBLIC.has(m[1])) bad.push(`${rel}: AgenID-protocol/${m[1]}`);
+        if (!PUBLIC.has(m[1]!)) bad.push(`${rel}: AgenID-protocol/${m[1]}`);
       }
     }
     expect(bad, `Reference(s) to a repository not known to be public:\n  ${bad.join("\n  ")}`).toEqual([]);
+  });
+
+  it("every monorepo path a surface links exists in this checkout", () => {
+    // A public repository still 404s on a path that is not there.
+    const REPO = path.join(WEB, "..", "..");
+    const missing: string[] = [];
+    let seen = 0;
+    for (const rel of FILES) {
+      for (const m of read(rel).matchAll(/github\.com\/AgenID-protocol\/agenid\/(?:tree|blob)\/main\/([A-Za-z0-9._\/-]+)/g)) {
+        seen++;
+        const target = m[1]!.replace(/[.\/]+$/, "");
+        if (!fs.existsSync(path.join(REPO, target))) missing.push(`${rel}: ${target}`);
+      }
+    }
+    expect(seen, "the walker should see the monorepo links this commit added").toBeGreaterThan(0);
+    expect(missing, `Linked monorepo path(s) that do not exist:\n  ${missing.join("\n  ")}`).toEqual([]);
   });
 });
 

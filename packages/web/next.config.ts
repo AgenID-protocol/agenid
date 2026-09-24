@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" },
         ],
       },
+      {
+        // v1.2-draft authorization schemas (NOT NORMATIVE). Published because the pilot
+        // grant is already signed with these $schema values, and a signed $schema must
+        // resolve. Short cache: the draft shape may change before ratification.
+        source: "/schemas/v1.2/:file*.json",
+        headers: [
+          { key: "Content-Type", value: "application/schema+json; charset=utf-8" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Cache-Control", value: "public, max-age=300" },
+        ],
+      },
     ];
   },
 };

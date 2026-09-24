@@ -5,8 +5,8 @@ import type { BlogPost } from "./types";
  *
  * Facts come only from CHANGELOG.md and PROJECT_STATE.md in the reference
  * implementation (and, for the scenario library, from the scenario modules the post
- * describes). Commit hashes are plain text: the implementation repository is private
- * and is never linked.
+ * describes). Commit hashes are plain text so each post stays readable offline; the
+ * implementation repository is public, so a reader can look any of them up.
  */
 
 const CEILING =
@@ -512,7 +512,7 @@ export const POSTS: readonly BlogPost[] = [
       {
         heading: "How to try it",
         body: [
-          "Inside the repository the static check runs as `pnpm run check:docs` and the production check as `pnpm run check:docs:live`. The implementation repository is not public yet, but you can run the same kind of check yourself: fetch `https://www.agenid.com/api/v1/openapi.json`, call a documented route with a bad input, and compare the error code with what the document describes. The [onboarding guide](/docs/onboarding) lists the public routes. The public [conformance suite](https://github.com/AgenID-protocol/conformance) tests the protocol side independently.",
+          "Inside the repository the static check runs as `pnpm run check:docs` and the production check as `pnpm run check:docs:live`. The [implementation repository](https://github.com/AgenID-protocol/agenid) is public, and you can also run the same kind of check against production yourself: fetch `https://www.agenid.com/api/v1/openapi.json`, call a documented route with a bad input, and compare the error code with what the document describes. The [onboarding guide](/docs/onboarding) lists the public routes. The public [conformance suite](https://github.com/AgenID-protocol/conformance) tests the protocol side independently.",
         ],
       },
     ],

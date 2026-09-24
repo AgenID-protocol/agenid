@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenid.com/schemas/v1.2/revocation.json",
+  "title": "AgenID Revocation (v1.2-draft, NOT NORMATIVE)",
+  "$comment": "DRAFT — AgenID authorization layer v1.2-draft. NOT NORMATIVE and not part of ratified protocol v1.1.1; shape may change before ratification. Published so that objects already signed with this $schema value resolve to the rules they were checked against. The reference registry at agenid.com has no revocation write path today; this schema describes the draft object only.",
+  "description": "Signed withdrawal of an agent, grant, key or assertion. Signing input = RFC 8785 canonical bytes of this object with the `signature` member removed; `$schema` IS part of the signing input. Pure Ed25519. The revoking key's role must match the target type: grant→principal, agent→operator, key→operator, assertion→authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "revocation_id",
+    "revokes",
+    "revokes_type",
+    "reason",
+    "revoked_at",
+    "key_id",
+    "signature"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://agenid.com/schemas/v1.2/revocation.json"
+    },
+    "revocation_id": {
+      "type": "string",
+      "pattern": "^revocation:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "revokes": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revokes_type": {
+      "enum": [
+        "agent",
+        "grant",
+        "key",
+        "assertion"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "key_compromise",
+        "superseded",
+        "no_longer_authorized",
+        "operator_request",
+        "agent_retired",
+        "issued_in_error",
+        "unspecified"
+      ]
+    },
+    "revoked_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "key_id": {
+      "type": "string",
+      "pattern": "^agenid:key:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "revokes_type": {
+            "const": "agent"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "revokes": {
+            "pattern": "^agenid:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "revokes_type": {
+            "const": "grant"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "revokes": {
+            "pattern": "^grant:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "revokes_type": {
+            "const": "key"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "revokes": {
+            "pattern": "^agenid:key:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "revokes_type": {
+            "const": "assertion"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "revokes": {
+            "pattern": "^assertion:[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          }
+        }
+      }
+    }
+  ]
+}

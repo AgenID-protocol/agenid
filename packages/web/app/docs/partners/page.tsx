@@ -42,13 +42,16 @@ export default function PartnersIndexPage() {
         <span className="font-mono">agenid:&lt;ULID&gt;</span> identity through each platform&rsquo;s existing,
         documented API surface and verify it with <span className="font-mono">@agenid/core</span>. Every brief is
         explicit about what&rsquo;s actually shipped versus illustrative.{" "}
-        {/* This linked @agenid/core to AgenID-protocol/agenid, a private repository — a 404
-            for every logged-out reader. The package is not published to npm either, so
-            there is no public destination to link to; saying so is more useful than a link
-            that fails. */}
+        {/* The monorepo has been public since 2026-09-23, so the source is a real destination.
+            The package is still not on npm; the sentence says so rather than implying an
+            install works. */}
         <span className="text-muted">
-          <span className="font-mono">@agenid/core</span> is not published to npm and its repository is not public
-          yet, so the briefs describe the pattern rather than a package you can install today.
+          <span className="font-mono">@agenid/core</span> is not published to npm yet, so the briefs describe the
+          pattern rather than a package you can install today. Its source is{" "}
+          <a className="text-paper underline underline-offset-2 hover:no-underline" href="https://github.com/AgenID-protocol/agenid/tree/main/packages/core" rel="noopener noreferrer" target="_blank">
+            public on GitHub
+          </a>
+          .
         </span>
       </p>
 

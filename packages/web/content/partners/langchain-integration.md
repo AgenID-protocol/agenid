@@ -44,4 +44,4 @@ Two hooks fit, depending on whether verification should be automatic or on-deman
 - [LangChain — `RunnableConfig` reference](https://reference.langchain.com/python/langchain-core/runnables/config/RunnableConfig)
 - [LangChain — Callbacks](https://reference.langchain.com/python/langchain-core/runnables/config/RunnableConfig/callbacks)
 - [AgenID Protocol Specification](https://github.com/AgenID-protocol/spec)
-- `@agenid/core` — the TypeScript reference implementation. Not published to npm, and its repository is not public yet.
+- `@agenid/core` — the TypeScript reference implementation. Not published to npm yet; its source is public at https://github.com/AgenID-protocol/agenid/tree/main/packages/core.

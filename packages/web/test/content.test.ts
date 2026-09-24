@@ -67,7 +67,9 @@ const words = (p: ContentPage) => plain(text(p)).split(/\s+/).filter(Boolean).le
 
 const BANNED =
   /\b(production[- ]ready|generally available|enterprise[- ]grade|bank[- ]grade|SOC ?2|ISO ?27001|HIPAA|trusted by|fully (automated|integrated|supported|secure|compliant)|guarantee[sd]?|ensures? (safety|security|trust)|proves? (safety|legitimacy)|100% (private|secure)|issuable in v1\.1\.1)\b/i;
-const DEAD_HOSTS = /agenid\.org|agenid\.ai|api\.agenid\.com|github\.com\/AgenID-protocol\/agenid\b/i;
+// AgenID-protocol/agenid left this list on 2026-09-23 when the monorepo was made public;
+// public-links.test.ts T-1 now pins which org repositories may be linked.
+const DEAD_HOSTS = /agenid\.org|agenid\.ai|api\.agenid\.com/i;
 
 const STATIC_ROUTES = [
   "/", "/issue", "/verify", "/verify/domain", "/trust", "/ecosystem", "/why-agent-identity", "/how-it-works",
@@ -151,7 +153,7 @@ describe("content library — substance", () => {
 describe("content library — honesty", () => {
   for (const { kind, page } of ALL) {
     const t = text(page);
-    it(`${kind}/${page.slug}: no overclaim vocabulary, dead host or private repository`, () => {
+    it(`${kind}/${page.slug}: no overclaim vocabulary or dead host`, () => {
       expect(plain(t)).not.toMatch(BANNED);
       expect(t).not.toMatch(DEAD_HOSTS);
       expect(t, "raw markup is not part of the inline grammar").not.toMatch(/\*\*/);

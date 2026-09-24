@@ -267,8 +267,8 @@ export default function Home() {
             {/* "Locked · MIT" read as "the software is finished and open-source". Neither
                 half was a claim this project can make: the spec is versioned and still
                 taking errata, and the only MIT-licensed, publicly readable artifacts are
-                the specification and the conformance suite — the reference implementation
-                is not public yet. The dot is neutral: a version label is not a trust state. */}
+                the specification and the conformance suite (the reference implementation
+                became public, MIT, on 2026-09-23, but is not a stable release). The dot is neutral: a version label is not a trust state. */}
             <span className="h-1.5 w-1.5 rounded-full bg-paper-dim" /> Protocol v1.1.1 · Specification public · MIT
           </p>
           <h1 className="display mt-6">AI agents need an identity.</h1>
@@ -397,13 +397,14 @@ export default function Home() {
               <span className="font-mono text-paper">@agenid/core</span> gives you identifiers, RFC 8785 canonicalization, the normative schemas, and the Ed25519 proof engine — the same code that passes the specification&apos;s deterministic test vectors byte-for-byte.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              {/* This button said "Get @agenid/core" and pointed at AgenID-protocol/agenid,
-                  which is a PRIVATE repository: every logged-out visitor who clicked the
-                  homepage's primary developer CTA got GitHub's 404. The package is not on
-                  npm either, so there is nothing to "get" yet — the honest destination is
-                  the quick start, which explains how to work with the protocol today.
-                  Outline, not emerald: one emerald action per viewport. */}
+              {/* The package is not on npm yet, so there is nothing to "get": the primary
+                  destination is the quick start. The source link is secondary and real — the
+                  monorepo is public since 2026-09-23. Outline, not emerald: one emerald
+                  action per viewport. */}
               <Link className="btn btn-ghost" href="/docs/onboarding">Build with AgenID</Link>
+              <a className="btn btn-ghost" href="https://github.com/AgenID-protocol/agenid/tree/main/packages/core" rel="noopener noreferrer" target="_blank">
+                Read the source
+              </a>
               <a className="btn btn-ghost" href="https://github.com/AgenID-protocol/spec">Read the spec</a>
             </div>
           <div className="card mt-8 p-5 sm:p-6">
@@ -444,9 +445,8 @@ export default function Home() {
               <strong className="font-semibold text-paper">Not yet installable.</strong>{" "}
               <span className="font-mono">@agenid/mcp-server</span> is not published to npm — neither it nor{" "}
               <span className="font-mono">@agenid/core</span> nor <span className="font-mono">@agenid/cli</span> has been
-              published, and the monorepo that contains them is not public yet. The brief below documents the
-              integration pattern and the tool surface; running the server today means building it from a source tree
-              you do not have access to. Nothing here is available to install.
+              published. The brief below documents the integration pattern and the tool surface; running the server
+              today means building it from the public monorepo source. Nothing here is available to install from npm.
             </p>
             <div className="mt-6">
               <Link href="/docs/partners/mcp-server-integration" className="btn btn-ghost">Read the MCP integration brief</Link>
