@@ -47,15 +47,22 @@ informative:
   RFC7942:
   RFC8792:
   AGENID-SPEC:
-    title: "AgenID v1.1.1 Protocol Specification, with Errata E1 and E2"
+    title: "AgenID v1.1.1 Protocol Specification, with Errata E1 to E3"
     target: https://github.com/AgenID-protocol/spec
     author:
       -
         org: AI Venture Holdings LLC
-    date: 2026-09-13
+    date: 2026-09-23
   AGENID-CONFORMANCE:
     title: "AgenID Conformance Suite"
     target: https://github.com/AgenID-protocol/conformance
+    author:
+      -
+        org: AI Venture Holdings LLC
+    date: 2026
+  AGENID-IMPL:
+    title: "AgenID Reference Implementation"
+    target: https://github.com/AgenID-protocol/agenid
     author:
       -
         org: AI Venture Holdings LLC
@@ -75,18 +82,17 @@ VerificationAssertion and AuthoritiesDocument objects, verification
 levels, two-path key discovery using a well-known URI, the resolution
 envelope, and the verification procedures.
 
-This is an individual draft prepared for discussion. It has not been
-submitted to the IETF Datatracker. It describes protocol version 1.1.1
-as published at the specification repository, which remains
-authoritative wherever this document and that specification differ.
+This is an individual draft prepared for discussion. It describes
+protocol version 1.1.1 as published at the specification repository,
+which remains authoritative wherever this document and that
+specification differ.
 
 --- note_Status_of_This_Draft
 
-This document is an individual draft prepared for discussion. It has
-NOT been submitted to the IETF Datatracker and has no standing in any
-IETF working group.
+This document is an individual submission prepared for discussion. It
+is not a product of any IETF working group and has no IETF consensus.
 
-It restates AgenID protocol version 1.1.1, with Errata E1 and E2
+It restates AgenID protocol version 1.1.1, with Errata E1 to E3
 applied, as published in {{AGENID-SPEC}}. That specification is
 authoritative. Where this document and {{AGENID-SPEC}} differ, the
 specification governs and the difference is a defect in this document.
@@ -126,7 +132,7 @@ that answers the second question ({{claim-states}}).
 
 ## Relationship to the Specification
 
-The normative definition of AgenID v1.1.1 is {{AGENID-SPEC}}. Two
+The normative definition of AgenID v1.1.1 is {{AGENID-SPEC}}. Three
 errata are applied:
 
 E1:
@@ -140,6 +146,11 @@ E2:
   and the authority registry document is served under `agenid.com`.
   Because `$schema` is part of the signing input, E2 changed the signed
   bytes of every test vector.
+
+E3:
+: Editorial. The two signature values printed in spec Sections 8.3 and
+  8.4 are replaced with the values in the machine-readable vector file.
+  No rule, key, signing input or schema changed ({{vectors}}).
 
 Section numbers of the form "spec Section N" in this document refer to
 {{AGENID-SPEC}}.
@@ -318,7 +329,7 @@ obtains each key from two independent discovery paths and requires
 that they agree, decides whether it trusts each named Authority via a
 pinned root key, and computes the level itself.
 
-# Identifiers {#identifiers}
+# Identifiers {#id-syntax}
 
 ## Agent Identifiers
 
@@ -1452,8 +1463,10 @@ Description:
   byte-identical to the core library by a cross-implementation test, a
   registry served by a web application, a standalone registry server,
   and a command-line signer. Erratum E1 was found by this
-  implementation. The source repository is not referenced here; the
-  public artifacts are {{AGENID-SPEC}} and {{AGENID-CONFORMANCE}}.
+  implementation. The source is {{AGENID-IMPL}}.
+
+Licensing:
+: MIT.
 
 Maturity:
 : Deployed at L1. Verification procedures and registration are
@@ -1538,20 +1551,22 @@ of {{RFC8792}}; unfold before use.
 
 ## Keys
 
+Public keys in this block are base64url without padding.
+
 ~~~
 Operator key
   seed label:  AgenID v1.1.1 operator test key seed
   key_id:      agenid:key:01J8Z3M9Q4XK2P7VBN6TDR8HWE
   role:        operator
   controller:  agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y
-  public key:  C2XCaQ41IZoFum-4PbNJ1aUCevSZwClSzjyZ-x85T3g (base64url)
+  public key:  C2XCaQ41IZoFum-4PbNJ1aUCevSZwClSzjyZ-x85T3g
 
 Authority key
   seed label:  AgenID v1.1.1 authority test key seed
   key_id:      agenid:key:01J8Z3NC5R7YT3W9KM2XQ4VJHB
   role:        authority
   controller:  agenid:authority:node-01
-  public key:  gGsTCSTbswlr2XSubZnRSyGM9X4pH_piNzVTZ0rmT-A (base64url)
+  public key:  gGsTCSTbswlr2XSubZnRSyGM9X4pH_piNzVTZ0rmT-A
 ~~~
 
 Private keys (32 bytes, hex):
@@ -1654,14 +1669,13 @@ A9kgJycXIJ3f_qd0l1yShB4uOF5r_ilWvbTPnP9ZTCw
 
 The signature values above were recomputed by the author of this
 document from the seed labels and the signing inputs printed in spec
-Sections 8.3 and 8.4, and verify over those inputs. At the time of
-writing, the prose copy of the specification prints signature values
-for Sections 8.3 and 8.4 that do not verify over its own printed
-signing inputs; they verify over the signing inputs as they were before
-Erratum E2 changed the `$schema` URI. The digest, keys and signing
-inputs agree. The machine-readable vector file published with the
-specification is the reference for implementers. The printed values
-in the prose specification should be corrected.
+Sections 8.3 and 8.4, and verify over those inputs. They equal the
+values in the machine-readable vector file published with the
+specification. While this document was being prepared, the prose copy
+of the specification still printed the signatures computed before
+Erratum E2 changed the `$schema` URI. Erratum E3 corrected them, and
+the specification's continuous integration now fails if a signature
+printed in Section 8 differs from the vector file.
 
 ## Negative Cases
 
