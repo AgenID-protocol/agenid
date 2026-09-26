@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/api";
 import { HOME_DESCRIPTION, HOME_TITLE } from "@/lib/seo";
 
+import Script from "next/script";
 // Shared with the homepage (app/page.tsx) via lib/seo.ts so the two cannot drift.
 const TITLE = HOME_TITLE;
 const DESCRIPTION = HOME_DESCRIPTION;
@@ -75,6 +76,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Nav />
         <div id="main">{children}</div>
         <Footer />
+        {/* BugLoop feedback widget — reports file as GitHub issues in this repo */}
+        <Script src="https://bugloop.ai/w.js" data-bugloop-key="bl_pk_2cca2375ca9bde31ad21034012b12a67" strategy="afterInteractive" />
       </body>
     </html>
   );
