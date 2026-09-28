@@ -7,6 +7,7 @@ import { buildCloudClusters, getEcosystem } from "@/lib/ecosystem";
 import { Reveal } from "@/components/ui/Reveal";
 import { LevelLadder } from "@/components/LevelLadder";
 import { BadgeStates } from "@/components/BadgeStates";
+import { LiveBadgeExample } from "@/components/LiveBadgeExample";
 
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/api";
@@ -558,9 +559,7 @@ export default function Home() {
               <div className="mt-4"><BadgeStates compact /></div>
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-4">
                 <span className="text-xs text-muted">Live example (points at an unregistered example ID, so it honestly shows &ldquo;unavailable&rdquo;):</span>
-                <div suppressHydrationWarning>
-                  <script src="/badge.js" data-agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y" />
-                </div>
+                <LiveBadgeExample agent="agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y" />
               </div>
             </div>
           </div>
