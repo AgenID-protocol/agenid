@@ -310,7 +310,8 @@ body { background: var(--color-ink); color: var(--color-paper); }
   --home-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.home-shell { margin-inline: auto; width: 100%; max-width: 80rem; padding-inline: 1.25rem; }
+/* Same shell as the header and footer (max-w-6xl + px-5/6/8) so every left edge aligns. */
+.home-shell { margin-inline: auto; width: 100%; max-width: 72rem; padding-inline: 1.25rem; }
 @media (min-width: 640px) { .home-shell { padding-inline: 1.5rem; } }
 @media (min-width: 1024px) { .home-shell { padding-inline: 2rem; } }
 
