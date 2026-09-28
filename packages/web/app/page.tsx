@@ -256,8 +256,7 @@ export default function Home() {
             <figure className="home-specimen rise" style={{ "--rise-i": 3 } as React.CSSProperties}>
               <figcaption className="home-label">Example identifier · not registered</figcaption>
               <p className="home-specimen-id" translate="no">
-                <span className="text-muted">agenid:</span>
-                <wbr />
+                <span className="block text-muted">agenid:</span>
                 01J8Z3K3F2QZ9X6V7R4T8N2W5Y
               </p>
               <dl className="home-specimen-notes">
