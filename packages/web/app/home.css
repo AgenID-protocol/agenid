@@ -1,0 +1,308 @@
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ * Editorial homepage layer (design/editorial-homepage, 2026-09-28).
+ * AIVH editorial-motion-web-design, Mode 002 PRODUCT_CONVERSION_LANDING.
+ *
+ * Scoped to `.home-*` classes used only by app/page.tsx, so no other route changes. The
+ * brand holds: ink ground, Geist, emerald only for the primary action (never atmosphere).
+ * Tone alternation is the rhythm device: ink → paper (the page's single light band, at
+ * the PROBLEM beat) → ink → ink-2 → ink … Type sizes are fluid clamp() values fitted to
+ * the real headlines ("AI agents need an identity." breaks into two lines at 1280 and
+ * three at 390). Section padding varies by density class instead of one uniform value.
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ */
+.home {
+  /* Paper-band roles. ink-soft on paper is 10.3:1, muted-on-paper 7.2:1 (WCAG AA body). */
+  --home-ink-soft: #334155;
+  --home-muted-on-paper: #475569;
+  --home-rule-on-paper: #cbd5e1;
+  --home-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.home-shell { margin-inline: auto; width: 100%; max-width: 80rem; padding-inline: 1.25rem; }
+@media (min-width: 640px) { .home-shell { padding-inline: 1.5rem; } }
+@media (min-width: 1024px) { .home-shell { padding-inline: 2rem; } }
+
+/* Density classes (storyboard): immersive > editorial > informational. */
+.home-pad-immersive { padding-block: clamp(4.5rem, 11vw, 10rem); }
+.home-pad-editorial { padding-block: clamp(4rem, 9vw, 8rem); }
+.home-pad-info { padding-block: clamp(3.5rem, 6vw, 6rem); }
+.home-ground-2 { background: var(--color-ink-2); }
+
+/* Type roles. */
+.home-display {
+  font-size: clamp(3rem, 8.6vw, 8.75rem);
+  font-weight: 600;
+  line-height: 0.94;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+  max-width: 14ch;
+}
+.home-display-2 {
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.home-statement {
+  font-size: clamp(2rem, 4.4vw, 4rem);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.home-h2 {
+  font-size: clamp(2rem, 3.8vw, 3.5rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.home-h3 {
+  font-size: clamp(1.375rem, 2.2vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.home-h4 { font-size: 1.125rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; color: var(--color-paper); }
+.home-lede { font-size: clamp(1.125rem, 1.5vw, 1.375rem); line-height: 1.55; color: var(--color-paper-dim); max-width: 36ch; text-wrap: pretty; }
+.home-convert .home-lede { max-width: 52ch; }
+.home-body { font-size: 1.0625rem; line-height: 1.65; color: var(--color-paper-dim); max-width: 62ch; text-wrap: pretty; }
+.home-note { font-size: 0.9375rem; line-height: 1.65; color: var(--color-paper-dim); max-width: 64ch; text-wrap: pretty; }
+.home-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+}
+.home-numeral {
+  font-size: clamp(5rem, 12vw, 11rem);
+  font-weight: 600;
+  line-height: 0.85;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  color: var(--color-paper);
+}
+
+/* Links. Text + underline, never a second colour (brand guide: colour is for state). */
+.home-inline-link { color: var(--color-paper); text-decoration: underline; text-underline-offset: 3px; }
+.home-inline-link:hover { text-decoration-thickness: 2px; }
+.home-textlink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-paper);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 6px;
+}
+.home-textlink:hover { text-decoration-color: var(--color-paper); }
+.home-links { display: flex; flex-wrap: wrap; column-gap: 1.75rem; }
+
+/* The one hover motion the mode allows: the CTA arrow nudge. */
+.home-cta-arrow { display: inline-block; transition: transform 240ms var(--home-ease); }
+@media (prefers-reduced-motion: no-preference) {
+  a:hover > .home-cta-arrow, a:focus-visible > .home-cta-arrow { transform: translateX(6px); }
+}
+
+/* Above-the-fold load-in. Always completes (no observer); off under reduced motion. */
+@keyframes home-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .rise { animation: home-rise 900ms var(--home-ease) both; animation-delay: calc(var(--rise-i, 0) * 90ms); }
+}
+
+/* HOOK ─ copy left, identifier specimen right; stacks under 900px. */
+.home-hero-grid { display: grid; gap: 3.5rem; align-items: end; }
+@media (min-width: 900px) { .home-hero-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 4rem; } }
+.home-specimen { border-top: 1px solid var(--color-line-strong); padding-top: 1.25rem; }
+.home-specimen-id {
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: clamp(1.25rem, 2.35vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-paper);
+  overflow-wrap: anywhere;
+}
+.home-specimen-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; margin-top: 1.5rem; }
+.home-specimen-notes dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-muted); }
+.home-specimen-notes dd { margin-top: 0.25rem; font-size: 0.9375rem; line-height: 1.5; color: var(--color-paper-dim); }
+
+/* PROBLEM ─ the single light band. */
+.ground-paper { background: var(--color-paper); color: var(--color-ink); color-scheme: light; }
+.ground-paper .home-body { color: var(--home-ink-soft); }
+.ground-paper .home-inline-link { color: var(--color-ink); }
+.ground-paper :where(a, button):focus-visible { outline-color: var(--color-ink); }
+.home-label-on-paper { color: var(--home-muted-on-paper); }
+.home-problem { display: grid; gap: 4rem; }
+@media (min-width: 900px) {
+  .home-problem { grid-template-columns: repeat(12, minmax(0, 1fr)); row-gap: 5rem; }
+  .home-problem-a { grid-column: 1 / span 7; }
+  .home-problem-b { grid-column: 6 / span 7; }
+}
+.home-questions { display: grid; gap: 1.5rem; border-top: 1px solid var(--home-rule-on-paper); padding-top: 1.5rem; }
+@media (min-width: 900px) { .home-questions { grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); } }
+.home-questions ol { display: grid; }
+.home-questions li {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  padding-block: 0.875rem;
+  border-bottom: 1px solid var(--home-rule-on-paper);
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.home-q-n { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--home-muted-on-paper); font-variant-numeric: tabular-nums; }
+
+/* MECHANISM ─ pillar rows (verb-led rows, not cards). */
+.home-rows { border-top: 1px solid var(--color-line-strong); }
+.home-row {
+  display: grid;
+  gap: 0.75rem;
+  padding-block: 1.75rem;
+  border-bottom: 1px solid var(--color-line);
+}
+@media (min-width: 900px) {
+  .home-row { grid-template-columns: 4rem minmax(0, 4fr) minmax(0, 6fr) minmax(0, 2.5fr); gap: 2rem; align-items: baseline; padding-block: 2.25rem; }
+}
+.home-row-n { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-muted); }
+.home-row-body { font-size: 1rem; line-height: 1.65; color: var(--color-paper-dim); max-width: 62ch; }
+.home-row-tag { font-size: 0.75rem; color: var(--color-muted); }
+@media (min-width: 900px) { .home-row-tag { text-align: right; } }
+
+/* Lifecycle rail: horizontal from 900px, a vertical list with its markers below. */
+.home-rail { display: grid; gap: 0; position: relative; }
+.home-rail li { position: relative; display: grid; gap: 0.25rem; padding: 0 0 1.75rem 2rem; }
+.home-rail li::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-line-strong);
+}
+.home-rail li:last-child::before { display: none; }
+.home-rail-marker {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--color-paper);
+}
+.home-rail li.is-pending .home-rail-marker { background: transparent; border: 1px dashed var(--color-paper-dim); }
+.home-rail-n { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-muted); }
+.home-rail-label { font-size: 0.9375rem; color: var(--color-paper); }
+.home-rail-sub { font-size: 0.875rem; color: var(--color-paper-dim); }
+.home-rail-flag {
+  justify-self: start;
+  margin-top: 0.5rem;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+@media (min-width: 900px) {
+  .home-rail { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.5rem; }
+  .home-rail li { padding: 1.75rem 0 0 0; align-content: start; }
+  .home-rail li::before { left: 0; right: -1.5rem; top: 5px; bottom: auto; width: auto; height: 1px; }
+  .home-rail li.is-pending::before { background: repeating-linear-gradient(to right, var(--color-line-strong) 0 6px, transparent 6px 10px); }
+  .home-rail-marker { top: 0; }
+}
+
+/* PRODUCT ─ resolver split. */
+.home-split { display: grid; gap: 3rem; align-items: center; }
+@media (min-width: 900px) { .home-split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 5rem; } }
+.home-resolver {
+  border: 1px solid var(--color-line-strong);
+  border-radius: 1rem;
+  background: var(--color-ink);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+.home-resolver-outcomes { display: grid; gap: 1.25rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-line); }
+@media (min-width: 560px) { .home-resolver-outcomes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; } }
+.home-resolver-outcomes dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-muted); }
+.home-resolver-outcomes dd { margin-top: 0.375rem; font-size: 0.9375rem; line-height: 1.55; color: var(--color-paper-dim); }
+
+/* LEVELS ─ the ceiling at display scale beside the ladder. */
+.home-levels { display: grid; gap: 3rem; align-items: start; }
+@media (min-width: 900px) { .home-levels { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 5rem; } }
+.home-list { display: grid; gap: 0.875rem; }
+.home-list li { position: relative; padding-left: 1.25rem; font-size: 0.9375rem; line-height: 1.6; color: var(--color-paper-dim); }
+.home-list li::before { content: "–"; position: absolute; left: 0; color: var(--color-muted); }
+.home-two { display: grid; gap: 3rem; }
+@media (min-width: 900px) { .home-two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4rem; } }
+
+/* DEVELOPERS ─ sub-blocks separated by rules, each in a different form. */
+.home-dev-top { display: grid; gap: 3rem; align-items: start; }
+@media (min-width: 900px) { .home-dev-top { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 4rem; } }
+.home-subblock { margin-top: clamp(4rem, 8vw, 6.5rem); padding-top: clamp(2.5rem, 5vw, 4rem); border-top: 1px solid var(--color-line); }
+.home-discovery, .home-badge { display: grid; gap: 3rem; }
+@media (min-width: 900px) {
+  .home-discovery { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 4rem; }
+  .home-badge { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 4rem; }
+}
+.home-chain { display: flex; flex-wrap: wrap; gap: 1.5rem 0; }
+.home-chain li { display: grid; grid-template-columns: auto auto; column-gap: 1.25rem; align-items: baseline; padding-right: 1.25rem; }
+.home-chain-label { grid-column: 1; font-size: clamp(1rem, 1.5vw, 1.25rem); color: var(--color-paper); }
+.home-chain-sub { grid-column: 1; font-size: 0.8125rem; color: var(--color-muted); }
+.home-chain-arrow { grid-column: 2; grid-row: 1; color: var(--color-muted); }
+.home-code {
+  display: block;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-ink-3);
+  padding: 0.875rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-paper-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* FIT ─ one row of four statements divided by rules, not four cards. */
+.home-fit { display: grid; border-top: 1px solid var(--color-line-strong); }
+.home-fit > li { padding-block: 1.75rem; border-bottom: 1px solid var(--color-line); }
+@media (min-width: 640px) {
+  .home-fit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-fit > li:nth-child(odd) { padding-right: 2rem; }
+  .home-fit > li:nth-child(even) { padding-left: 2rem; border-left: 1px solid var(--color-line); }
+}
+@media (min-width: 1024px) {
+  .home-fit { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .home-fit > li { padding: 2rem 2rem 2rem 0; border-bottom: 0; }
+  .home-fit > li + li { padding-left: 2rem; border-left: 1px solid var(--color-line); }
+}
+.home-eco-head { display: grid; gap: 2rem; align-items: end; }
+@media (min-width: 900px) { .home-eco-head { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 4rem; } }
+
+/* CONVERSION */
+.home-convert { display: grid; gap: 2.5rem; align-items: end; }
+@media (min-width: 900px) { .home-convert { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 5rem; } }
+
+/* OBJECTIONS ─ visible question/answer pairs (no accordion: nothing hides without JS). */
+.home-objections { display: grid; border-top: 1px solid var(--color-line-strong); }
+.home-objections > div { display: grid; gap: 0.5rem; padding-block: 1.5rem; border-bottom: 1px solid var(--color-line); }
+@media (min-width: 900px) { .home-objections > div { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 3rem; } }
+.home-objections dt { font-size: clamp(1.125rem, 1.6vw, 1.375rem); font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
+.home-objections dd { font-size: 0.9375rem; line-height: 1.65; color: var(--color-paper-dim); max-width: 62ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: none !important; }
+  .home-cta-arrow { transition: none; }
+}
