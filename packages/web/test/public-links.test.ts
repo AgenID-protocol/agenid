@@ -234,16 +234,18 @@ describe("T-4 — no public surface claims a capability this deployment does not
     expect(bad, `Implies an unpublished package can be installed:\n  ${bad.join("\n  ")}`).toEqual([]);
   });
 
-  it("claims no live status transition, because no write path sets one", () => {
-    // Agent status (CHANGED/STALE/SUSPENDED/REVOKED) and key retirement/revocation are
-    // in the schemas and rendered by both badges — and nothing writes them. Describing
-    // them as something that happens to a live identity is a capability claim.
-    const bad = FILES.filter((rel) => /(suspended|revoked) identity changes/i.test(read(rel)));
+  it("claims no status transition beyond operator revocation, because no other write path exists", () => {
+    // Since 2026-10-19 exactly one transition is written: an operator-signed REVOKED
+    // (lib/revoke.ts). CHANGED/STALE/SUSPENDED and key retirement/revocation are still in
+    // the schemas, rendered by both badges, and written by nothing. Describing them as
+    // something that happens to a live identity is a capability claim — and so is
+    // describing revocation as something anyone but the operator can do.
+    const bad = FILES.filter((rel) => /suspended identity changes|(registry|agenid|authority) (can|will) revoke/i.test(read(rel)));
     expect(bad, `Claims a status transition that cannot occur:\n  ${bad.join("\n  ")}`).toEqual([]);
     for (const rel of [HOME, TRUST]) {
-      expect(read(rel), `${rel} does not disclose that there is no revocation flow`).toMatch(
-        /no revocation flow/i,
-      );
+      const src = read(rel).replace(/\s+/g, " ");
+      expect(src, `${rel} does not say revocation is operator-only`).toMatch(/revoke their own agent/i);
+      expect(src, `${rel} does not disclose that there is no key-revocation flow`).toMatch(/no key-revocation flow/i);
     }
   });
 

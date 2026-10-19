@@ -21,6 +21,7 @@ import {
 } from "@agenid/core";
 import { MemoryStore, type RegistryStore, type AgentRecord } from "./store.js";
 import { buildEnvelope } from "./envelope.js";
+import { revokeAgentRequest, revocationResponseBody } from "./revoke.js";
 import { registrationTime } from "./registration-time.js";
 import {
   resolveKeyFromRawPath,
@@ -231,6 +232,14 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
       detail_ref: { assertion_id: assertion.assertion_id, level: assertion.level, manifest_digest: assertion.manifest_digest.value },
     });
     return reply.code(201).send({ assertion_id: assertion.assertion_id, level: assertion.level, links: { self: `/v1/assertions/${assertion.assertion_id.slice("assertion:".length)}` } });
+  });
+
+  // Operator-signed, not authority-gated: only the agent's own operator key can retire it,
+  // and the signature is the authorization. Rules live in revoke.ts, shared with packages/web.
+  app.post<{ Params: { agent_id: string } }>("/v1/agents/:agent_id/revocation", async (req, reply) => {
+    const r = await revokeAgentRequest(req.body, store, { now: new Date(now()), agentIdFromPath: req.params.agent_id });
+    if (!r.ok) return err(reply, r.status, r.error, r.message, r.issues ? { issues: r.issues } : undefined);
+    return reply.code(200).send(revocationResponseBody(r));
   });
 
   // ---------------------------------------------------------------- assertions

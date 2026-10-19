@@ -72,9 +72,10 @@ export function ListInDirectory({ agentId, keyId, keyPair }: { agentId: string; 
   );
 }
 
-type KeyFile = { agent_id: string; key_id: string; private_key_hex: string };
+export type KeyFile = { agent_id: string; key_id: string; private_key_hex: string };
 
-function parseKeyFile(text: string): KeyFile | string {
+/** Shared with the revocation form, so both read the key file /issue offers identically. */
+export function parseKeyFile(text: string): KeyFile | string {
   try {
     const o = JSON.parse(text) as Record<string, unknown>;
     if (typeof o.agent_id !== "string" || typeof o.key_id !== "string" || typeof o.private_key_hex !== "string") {

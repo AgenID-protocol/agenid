@@ -168,7 +168,7 @@ describe("honesty through consolidation", () => {
       "has not completed its HSM ceremony",
       "Not yet installable.",
       "no adapter package exists for any of them",
-      "there is no revocation flow today",
+      "there is no key-revocation flow.",
       "Not a third-party check of the",
       "Verification ≠ compliance.",
     ]) {

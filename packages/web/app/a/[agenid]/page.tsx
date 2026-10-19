@@ -148,6 +148,17 @@ function Card({ env, id, keyState }: { env: Envelope; id: string; keyState: KeyS
             <Row k="Manifest digest" v={env.manifest_digest.value} mono />
             <Row k="Operator key" v={env.operator_key.key_id} mono />
             <Row k="Registered" v={env.registered_at} mono />
+            {env.revocation && (
+              <>
+                {/* Shown only when the registry returned a signed revocation; the status
+                    pill above already reads REVOKED through the trust module. These rows
+                    let a reader see who signed it and check it themselves. */}
+                <Row k="Revoked at" v={env.revocation.revoked_at} mono />
+                <Row k="Revocation reason" v={env.revocation.reason} mono />
+                <Row k="Revoked by key" v={`${env.revocation.key_id}${env.revocation.key_id === env.operator_key.key_id ? " (this agent's operator key)" : ""}`} mono />
+                <Row k="Revocation" v={env.revocation.revocation_id} mono />
+              </>
+            )}
           </div>
         </div>
 

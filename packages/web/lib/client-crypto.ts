@@ -313,3 +313,59 @@ export function keyPairFromPrivateHex(hex: string): ClientKeyPair {
   const publicKey = ed25519.getPublicKey(privateKey);
   return { privateKey, publicKey, publicKeyHex: hexEncode(publicKey), publicKeyB64u: b64uEncode(publicKey) };
 }
+
+// ---------------------------------------------------------------------------
+// Agent revocation (v1.2-draft Revocation object, revokes_type "agent")
+// ---------------------------------------------------------------------------
+
+/** Must equal REVOCATION_SCHEMA_ID in @agenid/core (test-pinned). */
+const REVOCATION_SCHEMA_ID = "https://agenid.com/schemas/v1.2/revocation.json";
+
+/** Must equal @agenid/core's RevocationReason enum (test-pinned). */
+export const REVOCATION_REASONS = [
+  "key_compromise",
+  "superseded",
+  "no_longer_authorized",
+  "operator_request",
+  "agent_retired",
+  "issued_in_error",
+  "unspecified",
+] as const;
+export type ClientRevocationReason = (typeof REVOCATION_REASONS)[number];
+
+export interface SignedRevocation {
+  $schema: string;
+  revocation_id: string;
+  revokes: string;
+  revokes_type: "agent";
+  reason: ClientRevocationReason;
+  revoked_at: string;
+  key_id: string;
+  signature: string;
+}
+
+/**
+ * Sign a permanent agent revocation with the agent's operator key, in the browser.
+ * RFC 8785 canonical bytes of the object without `signature` (`$schema` included), pure
+ * Ed25519 — the same construction @agenid/core's signRevocation uses, cross-checked by test.
+ * Only the returned object is ever sent.
+ */
+export function signAgentRevocation(
+  keyPair: ClientKeyPair,
+  agentId: string,
+  keyId: string,
+  reason: ClientRevocationReason,
+  now: Date = new Date(),
+): SignedRevocation {
+  const payload = {
+    $schema: REVOCATION_SCHEMA_ID,
+    revocation_id: `revocation:${generateUlid()}`,
+    revokes: agentId,
+    revokes_type: "agent" as const,
+    reason,
+    revoked_at: now.toISOString(),
+    key_id: keyId,
+  };
+  const signature = ed25519.sign(canonicalizeToBytes(payload), keyPair.privateKey);
+  return { ...payload, signature: b64uEncode(signature) };
+}

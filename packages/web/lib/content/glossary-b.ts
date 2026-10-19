@@ -807,7 +807,7 @@ export const GLOSSARY_B: readonly GlossaryTerm[] = [
         body: [
           "In the spec, rotation means a new key with its own ULID, and the old key marked `retired`. Proofs created before `retired_at` remain valid. `revoked_at` invalidates proofs created after it regardless of signature, and every signed payload carries its own `expires_at`, checked independently.",
           "Retired and revoked key documents stay resolvable forever, so historical signatures remain checkable. Without that, revoking a key would silently rewrite history.",
-          "What is deployed: no revocation flow is deployed on agenid.com, and there is no rotation flow either. Agent status values such as `SUSPENDED` and `REVOKED` exist in the schema, but nothing writes them; every registered agent is `ACTIVE`.",
+          "What is deployed: agenid.com has no key-rotation or key-revocation flow, so every published key is `active`. An operator can permanently revoke a whole agent at [/revoke](/revoke), signed with its operator key; that sets the agent to `REVOKED` and leaves the key document unchanged. `CHANGED`, `STALE` and `SUSPENDED` are never written.",
         ],
       },
       {
@@ -826,7 +826,7 @@ export const GLOSSARY_B: readonly GlossaryTerm[] = [
     faqs: [
       {
         q: "Can I revoke my agent's key on agenid.com today?",
-        a: "No. No revocation flow is deployed. The spec defines the model; the reference deployment does not implement it yet.",
+        a: "Not the key itself. There is no key-revocation flow; the spec defines the model and the reference deployment does not implement it yet. You can permanently revoke the whole agent at [/revoke](/revoke) with the key file, which is what to do if the key is compromised.",
       },
       {
         q: "Why keep a revoked key resolvable?",

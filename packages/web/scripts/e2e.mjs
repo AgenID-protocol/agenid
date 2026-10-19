@@ -12,6 +12,7 @@ import next from "next";
 import { buildApp } from "@agenid/api";
 import {
   generateAgentId, generateKeyId, generateKeyPair, makeKeyDocument, signManifestProof, keyIdToWire,
+  signRevocation, verifyRevocation, generateRevocationId, REVOCATION_SCHEMA_ID,
 } from "@agenid/core";
 
 const API_PORT = 3901;
@@ -205,6 +206,31 @@ const env = await r.json();
 env.operator_key?.discovery?.registry_path === `/v1/keys/${wire}` && !/not (served|deployed)/i.test(env.verify_instructions ?? "")
   ? ok("3k. the envelope advertises the registry path and no longer disclaims it")
   : fail("3k. envelope key-discovery pointer or verify_instructions is stale");
+
+// --- Revocation through the web route, forwarded to the HTTP registry. Runs last: it is permanent.
+const revocation = signRevocation(
+  { $schema: REVOCATION_SCHEMA_ID, revocation_id: generateRevocationId(), revokes: agentId, revokes_type: "agent", reason: "agent_retired", revoked_at: NOW, key_id: opDoc.key_id },
+  { privateKey: op.privateKey, document: opDoc },
+);
+r = await fetch(`${W}/api/v1/agents/${agentId}/revocation`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(revocation) });
+const revBody = await r.json();
+r.status === 200 && revBody.status === "REVOKED"
+  ? ok("3s. an operator-signed revocation is accepted through the web route in HTTP-registry mode")
+  : fail(`3s. revocation: ${r.status} ${JSON.stringify(revBody).slice(0, 160)}`);
+r = await fetch(`${W}/a/${agentId}`, { headers: { accept: "application/json" } });
+const revEnv = await r.json();
+revEnv.status === "REVOKED" && verifyRevocation(revEnv.revocation, revEnv.operator_key?.document, { now: NOW }).ok
+  ? ok("3t. the envelope is REVOKED and carries a revocation that verifies against its own operator key")
+  : fail(`3t. revoked envelope: status=${revEnv.status} revocation=${Boolean(revEnv.revocation)}`);
+r = await fetch(`${W}/a/${agentId}`, { headers: { accept: "text/html" } });
+const revHtml = await r.text();
+r.status === 200 && revHtml.includes("REVOKED") && revHtml.includes(revocation.revocation_id)
+  ? ok("3u. the Verification Card renders REVOKED and names the signed revocation")
+  : fail(`3u. revoked card: ${r.status}`);
+r = await fetch(`${W}/api/v1/agents/${agentId}/revocation`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(revocation) });
+r.status === 409 && (await r.json()).error === "already_revoked"
+  ? ok("3v. revocation is permanent: a replay is 409 already_revoked")
+  : fail(`3v. replay: ${r.status}`);
 
 await new Promise((res) => web.close(res));
 await api.close();

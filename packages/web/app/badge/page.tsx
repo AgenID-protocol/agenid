@@ -117,8 +117,9 @@ export default function BadgePage() {
         </table>
       </div>
       <p className="mt-4 text-sm leading-relaxed text-muted">
-        The protocol defines agent status transitions and the badge renders them, but no write path on this deployment
-        sets them yet: every registered agent is ACTIVE, and there is no revocation flow today.
+        The protocol defines agent status transitions and the badge renders them. This deployment writes one: an operator
+        can permanently revoke their own agent at <Link href="/revoke" className="underline">/revoke</Link>, and the badge then
+        reads REVOKED. CHANGED, STALE and SUSPENDED are never set, and there is no key-revocation flow.
       </p>
 
       <div className="mt-10 rounded-2xl border border-line bg-paper/[0.012] p-5">
