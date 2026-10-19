@@ -19,10 +19,11 @@
 | **Phase** | Reference implementation live at L1; trust root not yet established |
 | **Production status** | **PRODUCTION** for registration, resolution, verification cards and badges |
 | **Deployment status** | Vercel, deployed from `main`, root directory `packages/web` |
-| **Last verified** | 2026-09-15, commit `a95928b`, by calling every live endpoint and diffing the served OpenAPI document against the routes |
-| **Test suite** | **678 passing** — core 99 (93 + the six §8 rejection vectors now driven from the spec fixture), api 84, cli 8, mcp-server 4, web 483. Concurrent sessions are actively adding to `web` and `api`; re-count rather than assuming a delta is yours. CI reports the authoritative count for the committed tree. |
+| **Last verified** | 2026-10-19, commit `b2dff44`, by `check:docs --live` (every documented endpoint claim and the OpenAPI path count against production) and direct SQL against the production registry |
+| **Test suite** | **1,471 passing** — core 99, api 89, cli 8, mcp-server 4, web 1,271. CI reports the authoritative count for the committed tree. |
 | **CI** | **Green on Node 20, 22 and 24.** Previously red on the Node 20 leg for several commits; root-caused and fixed in `a95928b`. A second job, `spec-sync`, fails the build if the §8 vector fixture or any of the five JSON Schemas drifts from `AgenID-protocol/spec`. |
-| **npm** | Nothing published. `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server` all 404 on the registry. |
+| **npm** | Nothing published. `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server` all 404 on the registry (rechecked 2026-10-19). |
+| **Production registry** | Supabase Postgres. 2026-10-19: 7 agents, 7 operator keys, 14 ledger events (two per registration, so no registration has lost its audit trail), 0 assertions, 0 directory listings; every agent `ACTIVE`. |
 
 **The honest ceiling: `L1_REGISTERED` is the highest level this deployment can issue, and L1 is a self-declaration.** Every surface renders it amber, never emerald.
 
@@ -45,7 +46,7 @@ Capabilities that exist in code. Implemented is not the same as deployed, and ne
 
 ## Production verified
 
-Independently checked against the deployed system on 2026-09-15 — not inferred from the code, and not the same list as *Implemented*.
+Independently checked against the deployed system — not inferred from the code, and not the same list as *Implemented*. Rows are dated where re-checked after 2026-09-15.
 
 | Capability | How it was verified |
 |---|---|
@@ -56,10 +57,11 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 | **Representation split on `/a/`** | HTML returns `200` with a neutral *Not registered* card for an unknown identifier; `Accept: application/json` returns `404 agent_not_found`. Both confirmed by live request. |
 | **`POST /api/v1/verify`** | Live; raw Ed25519 check over JCS bytes; `400` with `invalid_manifest` on empty body |
 | **Badges** | `/badge/<id>/shield.svg` returns 200 for an unknown identifier and renders neutral grey; `/badge.js` live, generated from the canonical trust-presentation module |
-| **OpenAPI 3.0.3** | Fetched live; four paths and six component schemas, matching the implementation |
+| **OpenAPI 3.0.3** | Fetched live; all 16 deployed paths and eight component schemas, matching the implementation — re-asserted against production by `check:docs --live` |
 | **`GET /v1/keys/{key-ulid}`** | Live; resolves a published operator key by its wire form, and `?key_id=` returns a byte-identical document; unknown key is `404 key_not_found`; malformed reference and URI fragment are `400 invalid_key_id` |
 | **Every "not deployed" claim** | `/v1/agents/…/assertions` and `/.well-known/agenid/authorities.json` each confirmed `404` |
-| **Public site** | All 11 pages return 200; `/sitemap.xml` and `/robots.txt` live; `/onboarding/retell` serves `noindex, nofollow` |
+| **Public site** | 2026-10-19: all 98 URLs in the live `/sitemap.xml` return 200 (17 of them `/how-it-works` scenarios); `/robots.txt` live; `/onboarding/retell` serves `noindex, nofollow` |
+| **Domain-control flow** (`/verify/domain`, `POST /api/domain/status`) | 2026-10-19: one read returns provider detection, the expected `_agenid` TXT record and its state, and `.well-known` key-document state; a Cloudflare-hosted zone reports `no_domain_connect` with `apply_url: null`, so no one-click button is rendered that would 404 |
 | **First real pilot agent** | `agenid:01M30753M8KR2AMB86WKR4DDFB` — a live AIVH-operated agent registered through the public write path, `201 L1_REGISTERED`; card, envelope, amber badge and both key-discovery wire forms confirmed live; envelope re-verified **offline** with `@agenid/core` alone. See [docs/grok-bot-pilot.md](docs/grok-bot-pilot.md) |
 
 ## In development
@@ -76,10 +78,8 @@ Independently checked against the deployed system on 2026-09-15 — not inferred
 - `L2_DOMAIN_VERIFIED` issuance. **L2 first and only**: its evidence is a DNS record any third party can re-derive, so a bad L2 is externally detectable. L3's evidence is offline documentation nobody outside can re-check.
 - Request-level authentication (nothing binds a live HTTP request to a registered agent).
 - An authorization layer: scopes, delegation from a principal, and revocation. See [docs/SECURITY-GAP-ANALYSIS.md](docs/SECURITY-GAP-ANALYSIS.md).
-- OpenAPI coverage for the nine deployed routes it currently omits.
 - `@agenid/adapter-*` packages for the eight documented platforms. Not started.
 - npm publication of `@agenid/core`, `@agenid/cli`, `@agenid/mcp-server`. Scope confirmed unclaimed; the `@agenid` org does not yet exist. All three are now *packaged* for it — LICENSE, README and `publishConfig.access` in place, asserted by `check:docs` — and `.github/workflows/release.yml` is a manual, dry-run-by-default publish path. **Nothing is published, and provenance does not exist until a real release produces one:** npm attaches a provenance attestation only from a public repository.
-- Flip this repository public at launch.
 - Go and Rust reference implementations.
 - Rendered-browser visual QA and Lighthouse pass; reduced-motion and keyboard navigation confirmed in a real browser.
 
@@ -105,7 +105,7 @@ Nothing is currently deprecated. `_quarantine/` holds removed fabricated stubs f
 
 **Issue an identity (CLI).** `@agenid/cli` generates a keypair, writes the private key `0600` without printing it, builds a manifest from *explicit* operator attestations, signs a `ManifestProof`, and re-verifies before reporting. It reports `DECLARED` and nothing above it.
 
-**Verify an agent (third party).** Resolve `/a/<agenid>` in a browser for the Verification Card, or with `Accept: application/json` for the envelope → re-run verification offline with `@agenid/core` → compare the envelope's operator key against the operator's `.well-known` copy. The full two-path check cannot be completed against `agenid.com` yet.
+**Verify an agent (third party).** Resolve `/a/<agenid>` in a browser for the Verification Card, or with `Accept: application/json` for the envelope → re-run verification offline with `@agenid/core` → fetch the operator key from the registry (`/v1/keys/{key-ulid}`, the path the envelope advertises) and from the operator's own `.well-known/agenid/keys.json`, and require that they agree. Both halves are deployed; the second exists only where the operator publishes it.
 
 **Retell fleet onboarding.** `/onboarding/retell` (`noindex`, linked from nothing) collects operator identity and attestations, signs client-side, and batch-registers through `POST /api/retell/bind`, which delegates to the same registration implementation as the public write path.
 
@@ -126,7 +126,7 @@ Full reference, verified live: [docs/api.md](docs/api.md).
 
 ## Current data model
 
-Supabase Postgres, one migration applied (`0001_registry_store.sql`). RLS is enabled on all four tables with public-read policies; all writes go through the service role.
+Supabase Postgres. Applied migrations (confirmed 2026-10-19 against production): `0001_registry_store`, `0003_rate_limit`, `0004_rate_limit_grants`, `0005_directory_listings`. `0002_onboarding_tables` is deliberately unapplied. RLS is enabled on every table; the four registry tables have public-read policies and all writes go through the service role. The rate-limit and directory tables are described in their migrations.
 
 | Table | Key | Contents |
 |---|---|---|
@@ -149,8 +149,8 @@ Ledger event types: `agent.registered`, `key.published`, `assertion.issued`, `ma
 | Vercel | **Active** — hosting and deployment for `packages/web` |
 | GitHub Actions | **Active** — CI on Node 20/22/24, all five packages plus e2e |
 | DNS TXT lookup | **Active** — read-only, for domain-control evidence |
-| Cloudflare / GoDaddy DNS write APIs | **Implemented, not configured** — no credential in production; gated so nothing is advertised that cannot run |
-| Retell API | **Active** — one read-only call with a caller-supplied key, never stored |
+| Cloudflare / GoDaddy DNS write APIs | **Deleted** — AgenID holds no DNS provider credential; one-click setup goes through Domain Connect at the operator's own provider |
+| Retell API | **Active** — one read-only call with a caller-supplied key, never stored; same-origin requests only |
 | npm registry | **Unavailable** — the `@agenid` org does not exist; nothing published |
 | Retell, Vapi, Bland, ElevenLabs, Grok Bot, LangChain, MCP Server, OpenClaw adapter packages | **Planned** — `docs/partners/` holds integration *patterns*; each carries its own "no adapter package exists" disclaimer |
 
@@ -160,7 +160,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 **Controls in place.** Strict schema validation rejecting unknown members · Ed25519 signature and digest-binding verification on every write · key role and controller enforcement · bounded forward clock skew at registration with none at verification · operator keys generated and held client-side only, never transmitted or stored · RLS enabled on every table with public-read policies and service-role writes · append-only event ledger storing pointers, never evidence · a public-surface test suite that makes each honesty rule a build-breaking assertion.
 
-**Known gaps.** No request-level authentication on public write endpoints (they are rate limited as of 2026-09-18, and every write is signature-verified, but nothing ties a live request to a registered agent) · no authorization model at all: verification levels say how carefully an identity was checked, never what an agent may do · no revocation path for an agent or a key · `/api/retell/agents` is an unauthenticated relay to a third-party API from AgenID's domain · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
+**Known gaps.** No request-level authentication on public write endpoints (they are rate limited as of 2026-09-18, and every write is signature-verified, but nothing ties a live request to a registered agent) · no authorization model at all: verification levels say how carefully an identity was checked, never what an agent may do · no revocation path for an agent or a key · `/api/retell/agents` forwards a caller-supplied key to a third-party API from AgenID's domain — rate limited and refused unless same-origin, but a non-browser client can forge the origin headers · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
 
 ## Known limitations
 
@@ -168,23 +168,23 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 2. **No delegation object in v1.1.1.** The pinned root must sign every assertion, so the offline-root CA pattern is unavailable and a root compromise would invalidate historical assertions — a verifier cannot distinguish a legitimate historical signature from a backdated forgery.
 3. **Two-path key discovery depends on the operator's half.** Both routes resolve, but the `.well-known` copy is published by the operator; where there is none, a verifier has one source instead of two and the key-substitution defense is not actually in force.
 4. **The trust root's real ceiling is control of the `agenid.com` zone and the `AgenID-protocol` GitHub org**, not key storage. An attacker controlling either publishes a different pin using none of AgenID's key material.
-5. **Public write endpoints are unauthenticated and unrated.** Every write is signature-verified and self-attributed, but volume is unbounded, and `/api/retell/bind` accepts an unbounded array.
+5. **Public write endpoints are unauthenticated.** Every write is signature-verified and self-attributed and every POST route is rate limited (since 2026-09-18), but the bound is per client-address range, so a widely distributed source is limited only in proportion to its ranges. `/api/retell/bind` caps its array at 25.
 6. **`packages/web` carries a second registry implementation** mirroring `@agenid/api`'s validation, because `zod` is not resolvable inside `packages/web`. Equivalence is held by test, not by shared code.
 7. **`/onboarding/retell` cannot complete a one-click DNS setup.** Its `apply_url` is null until AgenID's Domain Connect service template is registered with providers, so the operator adds the TXT record by hand. This is the correct failure mode — the alternative was a link that 404s on someone else's dashboard — but it is a real gap in that flow.
 8. **Agent lifecycle statuses are stored but never written.** Every agent is `ACTIVE`; there is no revocation or status-change path in production.
-9. **Some content is manually mirrored** — `packages/web/public/schemas/`, `content/partners/` and `content/onboarding.md` are byte-identical twins of their sources, kept in sync by hand.
+9. **Some content is mirrored rather than shared** — the v1.1.1 schemas and §8 vectors are copies of `AgenID-protocol/spec` (the `spec-sync` CI job fails on any difference), and `content/partners/` and `content/onboarding.md` are copies of `docs/` (`check:docs` fails on any difference, since 2026-10-19). The copies are enforced, not hand-checked, but they are still copies.
 10. **`/onboarding/retell` has never been rendered in a browser.** It has been exercised over HTTP and by grepping the shipped JS bundle only.
-12. **A malformed percent-escape is a `500` on a self-hosted `next start`.** `/v1/keys/%ZZ` and `/v1/keys/%` make Next's own parameter decoding throw before the route handler runs, so the raw-target rule never gets to answer them. It cannot be fixed inside a route handler. Production is unaffected: Vercel's edge refuses those targets with its own plain `400 Bad Request` first — verified by sending the raw target directly, since curl will not transmit it.
-13. **A single layer of unreserved-character percent-encoding in a path is invisible on Vercel.** The platform normalizes it away before any application code runs, so this registry cannot tell `/v1/keys/01J8…` from `/v1/keys/%30%31…`. That is RFC 3986 §2.3 equivalence, not an alias — and nothing beyond one layer resolves on any platform — but it does mean a local test cannot prove production's answer for that one spelling.
-14. **No deployment binding exists.** v1.1.1 has no object tying an identity to the runtime it executes on, so presenting a valid identity from an unauthorized deployment is not detectable by the protocol. Found by the first pilot; see [docs/grok-bot-pilot.md](docs/grok-bot-pilot.md).
-15. **No capability or provider object exists.** `platform`, `permissions` and `configuration_fingerprint` are reserved manifest keys that `.strict()` rejects, so what an agent can do — and which vendor actually ships it — cannot be expressed in signed protocol material. The pilot records both as repository evidence, explicitly outside the protocol.
-16. **`evaluateAuthorization` binds the actor only when asked to.** The v1.2-draft evaluator ties the presented agent to the grant's subject only if both `manifest` and `operatorKey` are supplied; omit them and a grant issued for a *different* agent evaluates `PERMITTED`. Pinned by a core test that runs one forged grant both bound and unbound. It needs the treatment `revocationsChecked` already gets — report the gap rather than let it read as a bound decision.
+11. **A malformed percent-escape is a `500` on a self-hosted `next start`.** `/v1/keys/%ZZ` and `/v1/keys/%` make Next's own parameter decoding throw before the route handler runs, so the raw-target rule never gets to answer them. It cannot be fixed inside a route handler. Production is unaffected: Vercel's edge refuses those targets with its own plain `400 Bad Request` first — verified by sending the raw target directly, since curl will not transmit it.
+12. **A single layer of unreserved-character percent-encoding in a path is invisible on Vercel.** The platform normalizes it away before any application code runs, so this registry cannot tell `/v1/keys/01J8…` from `/v1/keys/%30%31…`. That is RFC 3986 §2.3 equivalence, not an alias — and nothing beyond one layer resolves on any platform — but it does mean a local test cannot prove production's answer for that one spelling.
+13. **No deployment binding exists.** v1.1.1 has no object tying an identity to the runtime it executes on, so presenting a valid identity from an unauthorized deployment is not detectable by the protocol. Found by the first pilot; see [docs/grok-bot-pilot.md](docs/grok-bot-pilot.md).
+14. **No capability or provider object exists.** `platform`, `permissions` and `configuration_fingerprint` are reserved manifest keys that `.strict()` rejects, so what an agent can do — and which vendor actually ships it — cannot be expressed in signed protocol material. The pilot records both as repository evidence, explicitly outside the protocol.
+15. **`evaluateAuthorization` binds the actor only when asked to.** The v1.2-draft evaluator ties the presented agent to the grant's subject only if both `manifest` and `operatorKey` are supplied; omit them and a grant issued for a *different* agent evaluates `PERMITTED`. Pinned by a core test that runs one forged grant both bound and unbound. It needs the treatment `revocationsChecked` already gets — report the gap rather than let it read as a bound decision.
 
 ## Known risks
 
 - **Root compromise would be unbounded and retroactive** (limitation 2). This is the single largest unresolved architectural risk, and it is why custody is a callable audit-logged KMS key rather than air-gapped hardware.
 - **Domain or GitHub org compromise defeats the trust root entirely** (limitation 4), independent of key storage. The hardening checklist is a prerequisite of the ceremony, not an adjacent chore.
-- **Unbounded registration volume** (limitation 5) is a cost and availability risk today, and — since the opt-in directory shipped (2026-09-23) — a directory-spam risk: anyone who registers can list their own agent. Bounded by the registration and consent rate limits and by the rule that only the agent's own operator key can list it; there is no moderation or review of listings.
+- **Registration volume** (limitation 5) is bounded per address range but not per actor — a cost and availability risk, and — since the opt-in directory shipped (2026-09-23) — a directory-spam risk: anyone who registers can list their own agent. Bounded by the registration and consent rate limits and by the rule that only the agent's own operator key can list it; there is no moderation or review of listings.
 - **Two implementations of registration validation** (limitation 6) can drift. They are tested for equivalence; the test is the only thing preventing divergence.
 - **Fabricated verification claims have reached this repository repeatedly** — seven instances, one of which shipped to production for a day inside a commit whose headline change was a genuine security improvement. The controls are now tests rather than review conventions, but the class is live.
 
@@ -192,6 +192,8 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 | Date | Change |
 |---|---|
+| 2026-10-19 | **Retell relay is same-origin only** — `/api/retell/agents` refuses cross-site and non-JSON requests before reading the body; a test asserts a refused request never reaches Retell. **Mirrored docs enforced** — `check:docs` fails if the site's onboarding guide or any partner brief drifts from `docs/`, or a package LICENSE from the root |
+| 2026-09-28 | Editorial homepage redesign (`b2dff44`, PR #2); BugLoop feedback widget (`acd99ad`, PR #1) |
 | 2026-09-23 | **Opt-in agent directory (S9)** — `/agents` and `/api/v1/directory`; operator-signed, replay-bounded listing consent; migration `0005` applied; registration alone lists nothing |
 | 2026-09-23 | **Content library (SEO strategic investments S1–S8)** — glossary, guides, comparisons (every third-party claim cited), research report (every figure cited), blog, use-case hubs, badge docs, eight new scenarios; an IETF-style Internet-Draft of v1.1.1 at `docs/draft-morgan-agenid-agent-identity-00.md` (not submitted) |
 | 2026-09-15 | **Key discovery decided from the raw request target** — a twice-encoded key ULID resolved `200` in production while the identical code returned `400` locally, because the guard was built on a framework-decoded path parameter and Vercel decodes the path once before Next decodes the segment again. Also: Fastify framework errors stopped reflecting the caller's request target; `/v1/keys` became read-only on both frameworks and authority key publication moved to `POST /v1/authority/keys`; the cross-registry parity test was rebuilt on raw-target fixtures after it was found comparing two different requests |

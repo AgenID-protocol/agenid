@@ -483,7 +483,11 @@ function buildSpec(origin: string) {
             "stored. This endpoint does NOT validate the key beyond what Retell's own response reports, and it asserts " +
             "nothing about verification.\n\n" +
             "Same-origin only, and rate limited at the relay bound: the abuse case for a credential-forwarding proxy " +
-            "lands on a third party's API with AgenID as the apparent source.",
+            "lands on a third party's API with AgenID as the apparent source. A request is refused with `403 " +
+            "cross_origin_refused` unless `Sec-Fetch-Site` is `same-origin` (or, absent that header, `Origin` matches " +
+            "this site), and with `415` unless the body is `application/json`; both checks run before the body is " +
+            "read, so a refused request's key is never forwarded. These headers are not authentication: a " +
+            "non-browser client can set them, which is why the rate limit remains.",
           tags: ["Retell"],
           requestBody: {
             required: true,
@@ -495,8 +499,12 @@ function buildSpec(origin: string) {
           },
           responses: {
             "200": { description: "The workspace's agents.", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } },
-            "400": { description: "Missing or malformed `api_key`, or Retell rejected it.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "400": { description: "Body is not JSON, or `api_key` is missing.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "401": { description: "Retell rejected the key (`retell_unauthorized`).", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "403": { description: "Not a same-origin request (`cross_origin_refused`). Nothing was forwarded.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "415": { description: "Content type is not `application/json`. Nothing was forwarded.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             "429": { description: "Rate limited.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "502": { description: "Retell was unreachable, returned an error, or returned non-JSON.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

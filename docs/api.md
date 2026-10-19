@@ -269,7 +269,7 @@ Errors: `invalid_domain`, `invalid_token`, `invalid_json`, `dns_error`.
 
 `POST /api/retell/bind` is a batch registration. It delegates every agent to the same `registerAgent` implementation `/api/v1/agents` uses — a test forbids it from verifying, storing, or applying a clock policy of its own — writes both ledger events per agent, and fails the whole batch rather than reporting partial success. It returns byte-identical validation errors to `/api/v1/agents`, plus batch context.
 
-`POST /api/retell/agents` proxies one read-only call to Retell using a caller-supplied API key. The key is used once and never stored. **It is unauthenticated and unrated.** Errors: `missing_api_key`, `retell_unauthorized`, `retell_error`, `retell_bad_response`.
+`POST /api/retell/agents` proxies one read-only call to Retell using a caller-supplied API key. The key is used once and never stored. It is unauthenticated, rate limited at the relay bound, and **same-origin only**: a request is refused with `403 cross_origin_refused` unless `Sec-Fetch-Site` is `same-origin` (or, without that header, `Origin` matches the site), and with `415 unsupported_media_type` unless the body is `application/json`. Both checks run before the body is read, so a refused request's key is never forwarded. These headers stop a third-party page from driving a visitor's browser at the relay; they are not authentication, since a non-browser client can set them. Errors: `cross_origin_refused` (403), `unsupported_media_type` (415), `invalid_json` / `missing_api_key` (400), `retell_unauthorized` (401), `upstream_unreachable` / `retell_error` / `retell_bad_response` (502).
 
 ---
 

@@ -168,6 +168,10 @@ const CLAIMS = [
   ["POST", "/api/dns/detect", 404, "provider detection is folded into /api/domain/status"],
   ["POST", "/api/dns/auto-add", 404, "AgenID holds no DNS write credential — this route is deleted, not unconfigured"],
   ["POST", "/api/retell/declare", 400, "retell declare rejects an empty body"],
+  // The credential-forwarding relay. This checker sends neither Origin nor
+  // Sec-Fetch-Site, which is exactly the headerless caller the gate must refuse — and
+  // it must refuse with the gate's own code, before the (empty) body is even read.
+  ["POST", "/api/retell/agents", 403, "the Retell relay refuses a request that is not same-origin", "cross_origin_refused"],
 ];
 
 if (LIVE) {
@@ -296,6 +300,45 @@ for (const dir of PUBLISHABLE) {
   }
 }
 pass(`${PUBLISHABLE.length} publishable packages ship a LICENSE, a README and every declared file`);
+
+// ---------------------------------------------------------------------------
+// 9. Hand-mirrored copies are byte-identical to their source.
+// ---------------------------------------------------------------------------
+// The site renders the operator guide and the eight partner briefs from copies under
+// packages/web/content/, because Next cannot read outside its own package at build
+// time. The repository copy under docs/ is the source. These pairs were kept in step
+// by hand — `1a52a2c` edited both onboarding twins separately — and nothing compared
+// them, so a fix to one could silently miss the page people actually read.
+//
+// The pairing is checked in both directions: a brief added to one directory and not
+// the other is drift too, not merely a pair that happens to differ.
+//
+// The npm-shipped LICENSE copies are included for the same reason: npm only packs a
+// LICENSE from the package directory, so each is a copy of the root file.
+const MIRRORS = [
+  ["docs/OPERATOR_ONBOARDING.md", "packages/web/content/onboarding.md"],
+  ...PUBLISHABLE.map((d) => ["LICENSE", `packages/${d}/LICENSE`]),
+];
+const PARTNER_SRC = "docs/partners";
+const PARTNER_DST = "packages/web/content/partners";
+const srcBriefs = readdirSync(join(ROOT, PARTNER_SRC)).filter((f) => f.endsWith(".md")).sort();
+const dstBriefs = readdirSync(join(ROOT, PARTNER_DST)).filter((f) => f.endsWith(".md")).sort();
+for (const f of srcBriefs) {
+  if (dstBriefs.includes(f)) MIRRORS.push([`${PARTNER_SRC}/${f}`, `${PARTNER_DST}/${f}`]);
+  else fail("partner brief not mirrored to the site", `${PARTNER_SRC}/${f} has no copy in ${PARTNER_DST}`);
+}
+for (const f of dstBriefs) {
+  if (!srcBriefs.includes(f)) fail("site partner brief has no repository source", `${PARTNER_DST}/${f}`);
+}
+for (const [src, dst] of MIRRORS) {
+  const a = join(ROOT, src);
+  const b = join(ROOT, dst);
+  if (!existsSync(a) || !existsSync(b)) { fail("mirror missing", `${src} <-> ${dst}`); continue; }
+  if (!readFileSync(a).equals(readFileSync(b))) {
+    fail("mirrored copy has drifted", `${dst} differs from its source ${src} — edit the source and copy it across`);
+  }
+}
+pass(`${MIRRORS.length} hand-mirrored copies byte-identical to their source`);
 
 // ---------------------------------------------------------------------------
 console.log(checks.map((c) => `  ok  ${c}`).join("\n"));

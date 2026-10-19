@@ -10,6 +10,7 @@
  */
 import { normalizeRetellList } from "../../../../lib/retell-manifest";
 import { POLICIES, checkRateLimit, rateLimitHeaders, tooManyRequests } from "@/lib/rate-limit";
+import { checkSameOrigin, isJsonContentType } from "@/lib/same-origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,6 +20,22 @@ const json = (body: unknown, status: number, extra: Record<string, string> = {})
   new Response(JSON.stringify(body), { status, headers: { ...HEADERS, ...extra } });
 
 export async function POST(req: Request) {
+  /**
+   * Who may ask, before how often. Only AgenID's own onboarding page calls this route,
+   * so a cross-site or headerless request is refused before it consumes rate-limit
+   * budget and before the body — and the credential inside it — is read. A JSON content
+   * type is required too: a `text/plain` body is a CORS "simple request" that skips the
+   * preflight, and it is the only way a third-party page could have reached the upstream
+   * call at all. See lib/same-origin.ts for what this does and does not prove.
+   */
+  const so = checkSameOrigin(req);
+  if (!so.allowed) {
+    return json({ error: "cross_origin_refused", message: "this endpoint only accepts requests from agenid.com pages" }, 403);
+  }
+  if (!isJsonContentType(req)) {
+    return json({ error: "unsupported_media_type", message: "`content-type` must be application/json" }, 415);
+  }
+
   /**
    * The tightest limit in the table, and the risk is not load on AgenID.
    *

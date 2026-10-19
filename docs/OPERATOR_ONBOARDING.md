@@ -118,6 +118,10 @@ The live badge (`badge.js`) fetches the current verification level at page load 
 > what the protocol defines, not what AgenID can issue right now.
 
 - **L2 — Domain Verified:** the authority confirms you control `ownership.operator_domain` (e.g. via the `.well-known` publication in step 2, or an equivalent domain-control check).
+
+**What you can do today toward L2.** Prove domain control now, so the evidence already exists when issuance opens: [`/verify/domain`](https://www.agenid.com/verify/domain) gives you a per-domain `_agenid.<your-domain>` TXT record, checks it until it propagates, and also reports whether your `.well-known/agenid/keys.json` is published. The same check is available as an API: `POST https://www.agenid.com/api/verify-dns` for the TXT record alone, or `POST https://www.agenid.com/api/domain/status` for everything in one read. Both report domain control as **evidence**, never as a level — confirming it raises nothing above L1 today.
+
+To see what each level would mean in practice for a counterparty, [`/how-it-works`](https://www.agenid.com/how-it-works) walks through 17 scenarios. They are illustrations of the protocol, and each one states on the page what the reference deployment can actually issue.
 - **L3 — Organization Verified:** the authority confirms `ownership.operator` is a real legal entity.
 - **L4 — Deployment Verified:** the authority reviews an actual production deployment sample (spec §11; the review methodology for this level is still being finalized — see the project queue).
 - **L5** is a reserved name in v1.1.1 and is not issuable by any authority yet — do not claim it.
