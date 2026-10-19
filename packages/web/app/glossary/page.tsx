@@ -60,11 +60,18 @@ export default function GlossaryIndexPage() {
           <section key={c} id={c.toLowerCase().replace(/\s+/g, "-")} className="mt-12 scroll-mt-24">
             <h2 className="text-xl font-semibold tracking-tight">{c}</h2>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              {/* A <dl> may contain only <dt>/<dd> groups wrapped in <div>; an <a> directly
+                  inside it is invalid (axe: definition-list, dlitem). The whole card stays
+                  clickable through the link's stretched ::after. */}
               {terms.map((t) => (
-                <Link key={t.slug} href={`/glossary/${t.slug}`} className="card block p-4 transition card-hover">
-                  <dt className="text-base font-medium tracking-tight text-paper">{t.term}</dt>
+                <div key={t.slug} className="card card-hover relative p-4 transition">
+                  <dt className="text-base font-medium tracking-tight text-paper">
+                    <Link href={`/glossary/${t.slug}`} className="after:absolute after:inset-0 after:content-['']">
+                      {t.term}
+                    </Link>
+                  </dt>
                   <dd className="mt-1.5 text-sm leading-relaxed text-muted">{plain(t.definition)}</dd>
-                </Link>
+                </div>
               ))}
             </dl>
           </section>
