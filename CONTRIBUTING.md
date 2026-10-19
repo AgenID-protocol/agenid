@@ -2,6 +2,37 @@
 
 AgenID is a protocol implementation, so the review bar is different from an ordinary application: **the specification is the source of truth, and code follows it.** A change to identity, cryptography, serialization, verification, or schemas is a protocol change and requires an erratum or a new protocol version in [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec) — it is never made silently here.
 
+## Contributing from outside the project
+
+The repository has been public since 2026-09-23 and accepts pull requests. Where a change goes depends on what it touches:
+
+| Change | Where it goes |
+|---|---|
+| A security finding, in anything | A private advisory on this repository — never a public issue. See [SECURITY.md](SECURITY.md). |
+| Identity, cryptography, serialization, verification, schemas, or the test vectors | An issue or pull request on [`AgenID-protocol/spec`](https://github.com/AgenID-protocol/spec). This repository implements the spec and cannot change it. |
+| A conformance test | [`AgenID-protocol/conformance`](https://github.com/AgenID-protocol/conformance) |
+| Everything else — code, docs, site copy, an ecosystem entry | A pull request here, using the template |
+
+**Sign-off.** No DCO sign-off or CLA is required today. The repository is MIT-licensed.
+
+### Proposing or changing an ecosystem entry
+
+Each platform on [`/ecosystem`](https://www.agenid.com/ecosystem) is one JSON file in [`packages/web/data/ecosystem/`](packages/web/data/ecosystem/). CI validates every file, so most mistakes fail before review.
+
+- **A new entry starts at `compatible`.** That status claims only that identity can be carried through the platform's existing, documented API. `compatibility_note` must say how, in terms a reader can check against the platform's own docs.
+- **Raising a status above `compatible` is a factual claim and needs evidence in the same pull request.** `verified-integration` means AgenID has run the integration end to end and published the result. `official-partner` means a partnership is on record with AgenID. Neither can come from an outside pull request alone, because the evidence is something AgenID did or signed. A test fails the build if any entry is above `compatible`, so a maintainer changes that test and the status together. To propose an upgrade, describe it in the pull request instead.
+- **`planned` is deliberately empty** and is not available for proposals.
+- **No logos.** An entry may carry `logo_svg` only when [`data/brand-permissions.json`](packages/web/data/brand-permissions.json) records a written grant from that company. None does today, so every entry renders as text. CI enforces this.
+- **Corrections need a source.** If a `compatibility_note` is wrong, link the platform documentation that shows it.
+
+### What reviewers check
+
+The [review bar](#review-bar) below applies to every pull request. The first question asked of every diff is rule 2: does any page, badge, or response now state something the code did not compute? A pull request that adds such a claim is declined, whatever else it fixes. Expect a reviewer to:
+
+- run the suite and the documentation checks themselves, rather than relying on a description of a passing run;
+- ask for a negative test when a change touches validation;
+- ask for the test that enforces any new rule the change states.
+
 ## Environment
 
 | Requirement | Version |
