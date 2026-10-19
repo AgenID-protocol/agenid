@@ -24,6 +24,7 @@ import Link from "next/link";
 import { generateKeyPair, signAgent, hexEncode, type ClientKeyPair, type SignedAgent } from "@/lib/client-crypto";
 import { presentTrustLevel } from "@/lib/trust-presentation";
 import { ListInDirectory } from "@/components/DirectoryConsent";
+import { buildKeysDocument, keysDocumentUrl } from "@/lib/keys-document";
 
 /** What issuance produces, resolved through the one module that decides how it looks. */
 const L1 = presentTrustLevel("L1_REGISTERED");
@@ -362,6 +363,21 @@ function Result({
   // README badge is the <img> route, not badge.js — Markdown renderers strip scripts.
   const markdown = `[![AgenID](${siteUrl}/badge/${agentId}/shield.svg)](${cardUrl})`;
   const curl = `curl -H 'Accept: application/json' ${cardUrl}`;
+  const operatorDomain = String((signed.manifest.ownership as Record<string, unknown>)?.operator_domain ?? "");
+  // Public material only: the key document /api/v1/agents just accepted, nothing else.
+  const keysJson = buildKeysDocument(operatorDomain, [signed.keyDocument]);
+
+  function downloadKeysJson() {
+    const blob = new Blob([keysJson], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "keys.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="mt-10">
@@ -439,6 +455,28 @@ function Result({
         <Copyable label="HTML embed" value={badgeSnippet} lines={2} />
         <Copyable label="Markdown (README)" value={markdown} lines={2} />
         <Copyable label="Verify from a terminal" value={curl} lines={2} />
+      </div>
+
+      {/* The operator half of two-path discovery. Without it a verifier has one source. */}
+      <div className="card mt-6 grid gap-4 p-6 sm:p-8">
+        <div>
+          <h3 className="text-lg font-semibold">Publish your key at your own domain</h3>
+          <p className="mt-2 text-sm text-muted">
+            A verifier fetches this agent&rsquo;s key from AgenID <em>and</em> from your domain, and requires the two to
+            match. That second copy is what stops anyone — AgenID included — from quietly swapping your key. Serve this
+            file as <span className="font-mono text-xs">application/json</span> at{" "}
+            <span className="font-mono text-xs break-all text-paper">{keysDocumentUrl(operatorDomain)}</span>. It holds
+            your public key only. Running several agents on one domain? Put every agent&rsquo;s key document in the one{" "}
+            <span className="font-mono text-xs">keys</span> array.
+          </p>
+        </div>
+        <Copyable label="keys.json" value={keysJson} lines={8} />
+        <div className="flex flex-wrap items-center gap-4">
+          <button type="button" onClick={downloadKeysJson} className="btn btn-ghost">Download keys.json</button>
+          <Link href={`/verify/domain?domain=${encodeURIComponent(operatorDomain)}`} className="text-sm text-paper underline hover:no-underline">
+            Check it once it is live
+          </Link>
+        </div>
       </div>
 
       {/* Opt-in, and only on a click: registration never lists an agent by itself. */}

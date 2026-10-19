@@ -79,6 +79,8 @@ https://yourcompany.com/.well-known/agenid/keys.json
 
 A verifier is required to check both the AgenID-hosted path and your own domain's path and require they agree. This is what makes the registry non-authoritative by design: AgenID cannot silently swap your key, because a verifier is checking your own domain too.
 
+The file is a `KeysDocument`: `{"$schema": "https://agenid.com/schemas/v1.1.1/keys.json", "controller_domain": "yourcompany.com", "keys": [ <your key document> ]}`, served as `application/json`. If you registered at [`/issue`](https://www.agenid.com/issue), the result screen gives you this exact file to copy or download, built from the key document the registry just accepted. Several agents on one domain share one file: put every agent's key document in the `keys` array. [`/verify/domain`](https://www.agenid.com/verify/domain) reports whether it is live and well-formed.
+
 > **Both paths are live.** The registry-hosted path is
 > `GET https://www.agenid.com/v1/keys/<key-ulid>` (the bare key ULID — the wire form of
 > `agenid:key:<ULID>`), and `GET https://www.agenid.com/v1/keys?key_id=agenid%3Akey%3A<ULID>` returns the
