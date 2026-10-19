@@ -35,3 +35,19 @@ Appended at the end of each working cycle. Every "shipped" line names its proof.
 **Next** — plan F (registration atomicity, reusing the transactional-function pattern; it also needs a migration, so it will be built to the same PR-first standard), then G (operator key-discovery nudge) and H (axe in CI).
 
 **Risks / blockers** — revocation waits on one approval. Nothing else is blocked.
+
+## Cycle 3 · 2026-10-19
+
+**Shipped to production**
+- **Operator key-discovery nudge** (plan G, `7f8773a`): after issuing, the wizard builds the `keys.json` the operator publishes at their own domain, with copy and download. Proof: `test/keys-document.test.ts` 8/8; CI success.
+- **Accessibility fix** (`bcc60e0`): the third-party feedback launcher failed WCAG 2.2 AA contrast on 96 of 98 pages, and the glossary definition list held children a `<dl>` may not contain. Replaced it with a site-styled launcher that opens the same widget, and wrapped each glossary term and definition in a `<div>` whose link covers the card. Proof: axe on production now reports **0 serious or critical violations across 98 pages**. Before the fix it was 96 of 98. The visible launcher is the site's. CI success.
+- `scripts/a11y.mjs`: the axe gate across every sitemap URL, run with reduced motion.
+
+**Blocked** — wiring the gate into CI (plan H). GitHub refuses workflow-file changes from the available credential. Three approaches failed; logged in BLOCKERS. The fix is NEEDS_MIKE #10, and the job is ready to push.
+
+**Found** — the open feedback panel still uses the widget's dashboard accent (2.53:1). It is outside the repo, so it went to NEEDS_MIKE #11.
+
+**Next** — plan I (external-contributor guide) and J (#46 example-agent label, #20 durable rate-limit layer). Plan F is being prepared PR-first because it needs a migration.
+
+**Risks** — PR #3 (revocation) still waits on migration approval. It is rebased and green.
+

@@ -8,11 +8,16 @@
  * failures — the rule is evaluated against the page a reader who asked for no motion
  * sees, not excluded.
  *
- * Deliberately NOT a workspace dependency: Playwright and axe are installed by the CI job
- * into a scratch directory at pinned versions, and this file is copied there to run, so
- * `pnpm-lock.yaml` (which must keep its darwin entries for local builds) is untouched.
+ * Deliberately NOT a workspace dependency: Playwright and axe are installed into a scratch
+ * directory at pinned versions and this file is copied there to run, so `pnpm-lock.yaml`
+ * (which must keep its darwin entries for local builds) is untouched:
  *
- *   node a11y.mjs http://127.0.0.1:3000
+ *   mkdir -p /tmp/a11y && cd /tmp/a11y && npm init -y
+ *   npm install playwright@1.56.1 @axe-core/playwright@4.11.0 && npx playwright install chromium
+ *   cp <repo>/scripts/a11y.mjs . && node a11y.mjs https://www.agenid.com
+ *
+ * The CI job that runs this on every push is written but not yet merged — adding a
+ * workflow file needs a credential with the `workflow` scope (docs/autonomy/NEEDS_MIKE.md).
  */
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
