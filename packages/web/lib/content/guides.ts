@@ -15,7 +15,7 @@ const CEILING =
 const IDENTITY_NOT_PERMISSION =
   "Which agent is acting is not the same question as what it is allowed to do. AgenID answers the first. Protocol v1.1.1 defines no signed authorization object, so the permission decision stays with the relying party and the operator. A v1.2 authorization layer exists only as a draft in development.";
 
-const EXAMPLE_ID = "agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC";
+const EXAMPLE_ID = "agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y";
 
 export const GUIDES: readonly ContentPage[] = [
   // ─────────────────────────────────────────────────────────────────────────

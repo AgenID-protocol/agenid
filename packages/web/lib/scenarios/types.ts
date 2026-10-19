@@ -205,5 +205,5 @@ export const WHAT_WAS_VERIFIED =
 export const CHALLENGE_IS_PROPOSED =
   "Challenge–response is a proposed interaction pattern. v1.1.1 defines the signed objects, not this exchange.";
 
-/** The spec's own example ULID. No scenario invents an identifier. */
-export const EXAMPLE_AGENID = "agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC";
+/** The spec's own agent example: the `subject` of its §8 assertion vector. No scenario invents an identifier. */
+export const EXAMPLE_AGENID = "agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y";

@@ -97,7 +97,7 @@ export const GLOSSARY_B: readonly GlossaryTerm[] = [
         heading: "How it relates to AgenID",
         body: [
           "The envelope is the resolver's output in the protocol. A verifier recomputes the [manifest digest](/glossary/manifest-digest), confirms the [ManifestProof](/glossary/manifest-proof) binds it, and re-runs the Ed25519 check over RFC 8785 canonical bytes. The registry cannot forge an operator signature, so a tampered envelope fails that check.",
-          "Identifiers have the shape of the spec's example, `agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC`. Paste any registered identifier into [/verify](/verify) to see its envelope checked.",
+          "Identifiers have the shape of the spec's example, `agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y`. Paste any registered identifier into [/verify](/verify) to see its envelope checked.",
           "The key-discovery pointers name both sources for the operator key: the registry copy at `GET https://www.agenid.com/v1/keys/<key-ulid>` and the operator's own `/.well-known/agenid/keys.json`.",
         ],
       },
@@ -922,7 +922,7 @@ export const GLOSSARY_B: readonly GlossaryTerm[] = [
       {
         heading: "How it relates to AgenID",
         body: [
-          "An [AgenID identifier](/glossary/agenid-identifier) is `agenid:<ULID>`, for example `agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC`. It is not a DID, and v1.1.1 does not define a DID method. Where a DID method specifies its own resolution, AgenID resolves through its registry and cross-checks the operator key against the operator's own domain using [two-path key discovery](/glossary/two-path-key-discovery). The [comparison](/compare/decentralized-identifiers) covers the trade-offs.",
+          "An [AgenID identifier](/glossary/agenid-identifier) is `agenid:<ULID>`, for example `agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y`. It is not a DID, and v1.1.1 does not define a DID method. Where a DID method specifies its own resolution, AgenID resolves through its registry and cross-checks the operator key against the operator's own domain using [two-path key discovery](/glossary/two-path-key-discovery). The [comparison](/compare/decentralized-identifiers) covers the trade-offs.",
           "Those two paths are the registry at `GET https://www.agenid.com/v1/keys/<key-ulid>` and the operator's `https://<operator_domain>/.well-known/agenid/keys.json`.",
         ],
       },

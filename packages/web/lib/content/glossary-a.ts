@@ -140,7 +140,7 @@ export const GLOSSARY_A: readonly GlossaryTerm[] = [
     definition:
       "An AgenID identifier is the permanent, non-semantic name of an AI agent in the AgenID protocol, written `agenid:` followed by a 26-character ULID. It is assigned once, never reissued and never re-keyed when the agent changes platform.",
     lead: [
-      "Every registered agent has exactly one identifier, of the form `agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC` (an illustrative value). It is the handle everything else hangs from: the manifest, the operator's proof, any verification assertions and the public Verification Card.",
+      "Every registered agent has exactly one identifier, of the form `agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y` (an illustrative value). It is the handle everything else hangs from: the manifest, the operator's proof, any verification assertions and the public Verification Card.",
       "The identifier deliberately carries no meaning. It does not encode the operator, the platform or the agent's name, so none of those can be read into it or spoofed through it.",
     ],
     sections: [

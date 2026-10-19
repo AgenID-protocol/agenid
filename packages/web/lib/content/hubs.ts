@@ -78,7 +78,7 @@ export const WHY_HUB: ContentPage = {
       heading: "The solution: what AgenID adds",
       body: [
         "AgenID is an open protocol for agent identity. It adds three things that the existing credentials do not.",
-        "A permanent identifier bound to a signed operator manifest. Every agent gets an identifier of the form `agenid:<ULID>`, such as the spec's example `agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC`. Behind it is a manifest in which the operator states the agent's name and description, the operating organization and its domain, the agent's purpose and channels, and whether it is an AI, whether it discloses that to users and whether a human can take over. The operator signs it with its own key. The identifier survives a change of platform: the agent can move from one vendor to another and keep the same identity, history and record.",
+        "A permanent identifier bound to a signed operator manifest. Every agent gets an identifier of the form `agenid:<ULID>`, such as the spec's example `agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y`. Behind it is a manifest in which the operator states the agent's name and description, the operating organization and its domain, the agent's purpose and channels, and whether it is an AI, whether it discloses that to users and whether a human can take over. The operator signs it with its own key. The identifier survives a change of platform: the agent can move from one vendor to another and keep the same identity, history and record.",
         "A strict separation between what was declared and what was independently checked. The operator's own statements are DECLARED. A specific claim that an authority checked against evidence, such as control of a domain, is VERIFIED at a named level and only for that claim. What an agent is permitted to do is a third question, AUTHORIZED, which is never inferred from the other two. Which agent is acting is not the same question as what it is allowed to do.",
         "Machine-readable resolution. Anyone can resolve an identifier at `https://www.agenid.com/a/<agenid>`. A browser gets a Verification Card; a client that asks for `application/json` gets the canonical resolution envelope, which carries the proof check, per-assertion checks, the highest currently valid level and pointers to where the operator's key can be fetched. No account, API key or business relationship with AgenID is needed.",
       ],
@@ -181,7 +181,7 @@ export const VOICE_HUB: ContentPage = {
     {
       heading: "How a business resolves a calling agent's AgenID",
       body: [
-        "An AgenID is an identifier of the form `agenid:<ULID>`; the spec's example is `agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC`. When an agent presents one, by stating it, passing it in call metadata or including it in a follow-up message, the business can check it without an account or a relationship with AgenID.",
+        "An AgenID is an identifier of the form `agenid:<ULID>`; the spec's example is `agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y`. When an agent presents one, by stating it, passing it in call metadata or including it in a follow-up message, the business can check it without an account or a relationship with AgenID.",
       ],
       bullets: [
         "Resolve it. Open `https://www.agenid.com/a/<agenid>` in a browser for the Verification Card, or request it with `Accept: application/json` for the resolution envelope. The [verify page](/verify) does the same from a search box.",

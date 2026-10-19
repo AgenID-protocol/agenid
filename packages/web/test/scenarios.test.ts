@@ -172,13 +172,37 @@ describe("scenarios — no fabricated material", () => {
    * first impression than no illustration at all.
    */
   it("uses the spec's example ULID and invents no other full identifier", () => {
-    expect(EXAMPLE_AGENID).toBe("agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC");
+    // Derived from the normative vector rather than restated: the agent example is the
+    // `subject` the spec's own §8 assertion is about. The assertion's own ULID is a
+    // different object and must never be printed as an agent identifier.
+    const vectors = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, "../../core/tests/fixtures/v1_1_1_vectors.json"), "utf8"),
+    );
+    const input = JSON.parse(JSON.stringify(vectors).match(/"signing_input_utf8":"((?:[^"\\]|\\.)*assertion_id(?:[^"\\]|\\.)*)"/)![1].replace(/\\"/g, '"'));
+    expect(EXAMPLE_AGENID).toBe(input.subject);
+    expect(EXAMPLE_AGENID).not.toBe(input.assertion_id.replace(/^assertion:/, "agenid:"));
     const full = /agenid:[0-9A-HJKMNP-TV-Z]{26}/g;
     for (const s of SCENARIOS) {
       for (const found of JSON.stringify(s).match(full) ?? []) {
         expect(found, `${s.slug}`).toBe(EXAMPLE_AGENID);
       }
     }
+  });
+
+  it("no page prints the spec's assertion ULID as an agent identifier", () => {
+    const vectors = fs.readFileSync(path.resolve(__dirname, "../../core/tests/fixtures/v1_1_1_vectors.json"), "utf8");
+    const assertionUlid = vectors.match(/"assertion_id":\s*"assertion:([0-9A-HJKMNP-TV-Z]{26})"/)![1];
+    const roots = ["app", "components", "lib"].map((d) => path.resolve(__dirname, "..", d));
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.(tsx?|mdx?|json)$/.test(e.name) && fs.readFileSync(p, "utf8").includes(`agenid:${assertionUlid}`)) offenders.push(p);
+      }
+    };
+    roots.forEach(walk);
+    expect(offenders).toEqual([]);
   });
 
   it("no key material of any kind appears", () => {

@@ -124,7 +124,7 @@ export const POSTS: readonly BlogPost[] = [
           "The same type constrains what a scenario can say at all:",
         ],
         bullets: [
-          "The only identifier any scenario uses is the spec's example, `agenid:01J8Z3P2K8VW4RN7XTQ6MYD5HC`. No scenario invents one, and no key material appears in any form.",
+          "The only identifier any scenario uses is the spec's example, `agenid:01J8Z3K3F2QZ9X6V7R4T8N2W5Y`. No scenario invents one, and no key material appears in any form.",
           "Level names are verbatim from v1.1.1, and the illustrated-level type omits L5 entirely. L5 is reserved, so it cannot be named.",
           "Rows have four tones: verified, declared, pending and neutral. There is no failed tone. Absence of verification is not a negative finding, and DECLARED renders amber, never emerald.",
           "Any scenario that shows a nonce must say that challenge-response is a proposed interaction pattern. v1.1.1 defines the signed objects, not that exchange.",
