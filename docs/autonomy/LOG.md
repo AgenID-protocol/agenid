@@ -18,3 +18,20 @@ Appended at the end of each working cycle. Every "shipped" line names its proof.
 **Next** — plan D: operator-signed agent revocation.
 
 **Risks / blockers** — none new.
+
+## Cycle 2 · 2026-10-19
+
+**Shipped to production**
+- Cycle 1 (`24e7df4`): CI success on Node 20/22/24 (run `39258102406`). Live: headerless and cross-site relay requests → `403 cross_origin_refused`; `text/plain` → `415`; same-origin JSON still reaches validation (the wizard path works); OpenAPI lists the new 403/415; onboarding guide serves the new L2 section; `check:docs --live` consistent with production.
+
+**Built, parked on a PR** — https://github.com/AgenID-protocol/agenid/pull/3
+- Operator-signed agent revocation (plan D) plus the propagation proposal (plan E). 42 files. web 1294 · api 93 green; build clean; e2e 3s–3v; guards proven to fail; migration validated on embedded Postgres.
+- **Not merged:** migration `0006` needs approval (NEEDS_MIKE #8). Merging first would publish "revocation is deployed" while the endpoint 503s (D-6).
+
+**Found**
+- Thirteen public passages stated "no revocation flow", and two tests required that sentence. Both are updated in the PR so the claim changes in the same commit as the capability.
+- Production cache headers: resolution is `no-store`; badges are `max-age=0` but third-party image proxies may cache longer — recorded in the propagation proposal.
+
+**Next** — plan F (registration atomicity, reusing the transactional-function pattern; it also needs a migration, so it will be built to the same PR-first standard), then G (operator key-discovery nudge) and H (axe in CI).
+
+**Risks / blockers** — revocation waits on one approval. Nothing else is blocked.
