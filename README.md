@@ -25,6 +25,7 @@ Read [PROJECT_STATE.md](PROJECT_STATE.md) for the authoritative, dated breakdown
 | Identifier, canonicalization, schemas, Ed25519 proof engine (`@agenid/core`) | **Production** — conformance vectors passing |
 | Browser issuance → `L1_REGISTERED`, durable registry, resolution, badges | **Production** — verified live on `www.agenid.com` against Supabase |
 | Two-path key discovery — `GET /v1/keys/<key-ulid>` plus the operator's `.well-known` copy | **Production** — both paths resolvable |
+| Agent revocation — operator-signed, permanent, carried in the envelope | **Production** — `POST /api/v1/agents/{agenid}/revocation` and `/revoke`; key rotation and key revocation are **not deployed** |
 | Operator CLI (`@agenid/cli`), MCP server (`@agenid/mcp-server`) | **Implemented**, not published to npm |
 | Assertion issuance (`L2`–`L4`) | **Not deployed** — blocked on the root authority key ceremony |
 | `L5` | **Reserved by the spec. Not issuable.** |
@@ -159,6 +160,7 @@ Stated plainly, because a trust product that hides these is not a trust product:
 | [docs/trust-model.md](docs/trust-model.md) | What a verifier must trust, what they can check themselves, and the verification levels |
 | [docs/threat-model.md](docs/threat-model.md) | Adversaries, assumptions, what the protocol defends against, and what it does not |
 | [docs/api.md](docs/api.md) | Endpoint reference, request and response shapes, error codes, deployment status |
+| [docs/revocation-propagation.md](docs/revocation-propagation.md) | **Proposal, not normative** — how long a relying party may rely on an `ACTIVE` answer, and what to do when the registry is unreachable |
 | [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md) | End-to-end operator walkthrough |
 | [docs/ECOSYSTEM-LOGO-REGISTRY.md](docs/ECOSYSTEM-LOGO-REGISTRY.md) | The registry behind every third-party name on the site: statuses, evidence rules, asset policy, and the tests that keep compatibility from reading as partnership |
 | [docs/brand-compliance-audit.md](docs/brand-compliance-audit.md) | Sixteen providers' trademark terms reviewed against displaying their marks here, and the machine-readable record that enforces the answer |

@@ -1,5 +1,5 @@
 export { buildApp, type AppOptions } from "./app.js";
-export { MemoryStore, type RegistryStore, type AgentRecord, type AgentStatus, type LedgerEvent } from "./store.js";
+export { MemoryStore, type RegistryStore, type AgentRecord, type AgentStatus, type LedgerEvent, type RevokeAgentInput } from "./store.js";
 export { buildEnvelope, type ResolutionEnvelope, type AssertionView } from "./envelope.js";
 export { SupabaseStore, supabaseStoreFromEnv } from "./supabase-store.js";
 export { registrationTime, MAX_FORWARD_SKEW_MS, type RegistrationTime } from "./registration-time.js";
@@ -18,3 +18,4 @@ export {
   type KeyReader,
 } from "./serve-key.js";
 export { originForm, rawKeyPathSegment, rawKeyQueryValues, rawKeyTargetFailure, type RawTargetResult } from "./raw-key-target.js";
+export { revokeAgentRequest, revocationDigestHex, revocationResponseBody, REVOCATION_DISCLOSURES, REVOCATION_WINDOW_MS, type RevokeResult } from "./revoke.js";

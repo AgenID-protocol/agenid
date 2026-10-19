@@ -11,6 +11,7 @@ import {
   keyResolverPath,
   wellKnownKeysUrl,
   type KeyDocument,
+  type Revocation,
   type VerificationAssertion,
   type VerificationLevel,
 } from "@agenid/core";
@@ -50,6 +51,13 @@ export interface ResolutionEnvelope {
     total_assertions: number;
   };
   assertions: AssertionView[];
+  /**
+   * The operator-signed revocation, when `status` is `REVOKED`; otherwise null. Carried in
+   * full so a verifier can check that the revocation was signed by this agent's own
+   * operator key (role=operator, controller=agent_id) rather than taking the status on
+   * the registry's word. Always present so the envelope shape does not depend on status.
+   */
+  revocation: Revocation | null;
   /** How a third party re-verifies this envelope without trusting the registry. */
   verify_instructions: string;
 }
@@ -73,6 +81,8 @@ export async function buildEnvelope(store: RegistryStore, rec: AgentRecord, now:
     }
   }
 
+  const revocation = rec.status === "REVOKED" ? await store.getAgentRevocation(rec.agent_id) : null;
+
   return {
     agenid_envelope_version: "1.0",
     agent_id: rec.agent_id,
@@ -92,11 +102,13 @@ export async function buildEnvelope(store: RegistryStore, rec: AgentRecord, now:
     },
     verification: { level, valid_assertions: valid, total_assertions: stored.length },
     assertions: views,
+    revocation,
     verify_instructions:
       "Recompute sha256(RFC8785(manifest)) and compare to manifest_digest; fetch the operator key from BOTH discovery paths " +
       "(operator_key.discovery.registry_path on this registry's origin, and operator_key.discovery.well_known_url on the operator's domain) " +
       "and require they agree, and that both agree with operator_key.document; " +
       "verify Ed25519 over RFC8785(proof minus signature); for each assertion, fetch the authority key, check role=authority, verify Ed25519 over " +
-      "RFC8785(assertion minus signature), check the validity window and that assertion.manifest_digest matches. Spec: https://github.com/AgenID-protocol/spec",
+      "RFC8785(assertion minus signature), check the validity window and that assertion.manifest_digest matches; if status is REVOKED, verify revocation (Ed25519 over " +
+      "RFC8785(revocation minus signature)) against operator_key.document and require revocation.revokes = agent_id. Spec: https://github.com/AgenID-protocol/spec",
   };
 }

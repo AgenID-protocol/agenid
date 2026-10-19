@@ -73,7 +73,7 @@ const DEAD_HOSTS = /agenid\.org|agenid\.ai|api\.agenid\.com/i;
 
 const STATIC_ROUTES = [
   "/", "/issue", "/verify", "/verify/domain", "/trust", "/ecosystem", "/why-agent-identity", "/how-it-works",
-  "/docs", "/docs/onboarding", "/docs/partners", "/badge", "/agents",
+  "/docs", "/docs/onboarding", "/docs/partners", "/badge", "/agents", "/revoke",
 ];
 const KNOWN = new Set<string>([
   ...STATIC_ROUTES,
