@@ -305,7 +305,7 @@ export const POSTS: readonly BlogPost[] = [
       },
       {
         q: "What happens to a retired key?",
-        a: "Retired and revoked keys stay resolvable so historical signatures remain checkable. There is no revocation flow deployed today.",
+        a: "Retired and revoked keys stay resolvable so historical signatures remain checkable. There is no key-revocation flow deployed today; an operator can revoke the whole agent instead.",
       },
     ],
     related: ["/glossary/two-path-key-discovery", "/glossary/well-known-uri", "/glossary/operator-key", "/learn/how-to-verify-an-ai-agent", "/verify"],
@@ -597,7 +597,7 @@ export const POSTS: readonly BlogPost[] = [
       },
       {
         q: "Is the registration permanent?",
-        a: "The identifier is permanent. Agent status values exist in the schema, but no revocation or status-change flow is deployed today.",
+        a: "The identifier is permanent. Its operator can revoke it at any time with the operator key, and a revoked identifier stays resolvable and is never reissued.",
       },
     ],
     related: ["/issue", "/verify", "/docs/onboarding", "/glossary/manifest-proof", "/blog/removing-fabricated-verification"],

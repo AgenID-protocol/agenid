@@ -181,7 +181,7 @@ Separately: **"not verified" and "merely compatible" always render neutral — n
 3. Two-path key discovery is deployed on the registry side, but a verifier only gets its benefit where the operator publishes their own key document.
 4. The trust root's ceiling is domain and org control, not key storage.
 5. Operator attestations are unverifiable by anyone, including AgenID. The protocol can only guarantee they were stated explicitly under a real key.
-6. There is no revocation of an *agent* in production — the status enum exists but no transition writes it.
-7. Registration is unauthenticated and unrated.
+6. Agent revocation is operator-only and permanent, and how quickly it reaches a relying party is not yet specified — a party holding a cached `ACTIVE` answer keeps it until it re-resolves ([revocation-propagation.md](revocation-propagation.md) proposes the rules). No other status transition is written, and keys cannot be rotated or revoked.
+7. Registration is unauthenticated; it is rate limited per address range, not per actor.
 
 Adversaries, attack vectors and residual risk: [threat-model.md](threat-model.md).

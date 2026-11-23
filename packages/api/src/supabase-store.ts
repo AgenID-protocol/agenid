@@ -7,8 +7,8 @@
  * constructed with an anon/publishable key, and must never run in a browser context.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { KeyDocument, Manifest, ManifestProof, VerificationAssertion } from "@agenid/core";
-import type { AgentRecord, LedgerEvent, RegistryStore } from "./store.js";
+import type { KeyDocument, Manifest, ManifestProof, Revocation, VerificationAssertion } from "@agenid/core";
+import type { AgentRecord, LedgerEvent, RegistryStore, RevokeAgentInput } from "./store.js";
 
 interface AgentRow {
   agent_id: string;
@@ -189,6 +189,39 @@ export class SupabaseStore implements RegistryStore {
       .order("occurred_at", { ascending: true });
     if (error) throw new Error(`SupabaseStore.listEvents: ${error.message}`);
     return ((data as EventRow[] | null) ?? []).map((e) => ({ ...e, occurred_at: toUtcZ(e.occurred_at) }));
+  }
+
+  /**
+   * One call to `revoke_agent` (migration 0006), which stores the revocation, flips the
+   * status and appends the ledger event inside a single Postgres transaction. Done as a
+   * function rather than three PostgREST writes because PostgREST has no multi-statement
+   * transaction, and registration's four un-transacted writes are already a recorded
+   * trade-off this path should not repeat.
+   */
+  async revokeAgent(input: RevokeAgentInput): Promise<"revoked" | "already_revoked" | "not_found"> {
+    const { data, error } = await this.client.rpc("revoke_agent", {
+      p_agent_id: input.agent_id,
+      p_revocation_id: input.revocation.revocation_id,
+      p_document: input.revocation,
+      p_revoked_at: input.revocation.revoked_at,
+      p_recorded_at: input.recorded_at,
+      p_event_id: input.event_id,
+      p_detail_ref: input.detail_ref,
+    });
+    if (error) throw new Error(`SupabaseStore.revokeAgent: ${error.message}`);
+    if (data === "revoked" || data === "already_revoked" || data === "not_found") return data;
+    throw new Error(`SupabaseStore.revokeAgent: unexpected result ${JSON.stringify(data).slice(0, 60)}`);
+  }
+
+  async getAgentRevocation(agentId: string): Promise<Revocation | null> {
+    const { data, error } = await this.client
+      .from("revocations")
+      .select("document")
+      .eq("revokes_type", "agent")
+      .eq("revokes", agentId)
+      .maybeSingle();
+    if (error) throw new Error(`SupabaseStore.getAgentRevocation: ${error.message}`);
+    return data ? (data as { document: Revocation }).document : null;
   }
 }
 

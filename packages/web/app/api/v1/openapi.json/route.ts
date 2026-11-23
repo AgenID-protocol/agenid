@@ -184,6 +184,35 @@ function buildSpec(origin: string) {
           responses: { "200": { description: "The badge script.", content: { "application/javascript": { schema: { type: "string" } } } } },
         },
       },
+      "/api/v1/agents/{agenid}/revocation": {
+        post: {
+          operationId: "revokeAgent",
+          summary: "Permanently revoke an agent identity (operator-signed)",
+          description:
+            "Records an operator-signed `Revocation` (v1.2-draft object, `revokes_type: \"agent\"`, schema " +
+            "https://agenid.com/schemas/v1.2/revocation.json) and sets the agent's status to `REVOKED`, which spec v1.1.1 §12 " +
+            "makes permanent: the identifier stays resolvable and is never reissued. Only the agent's own operator key — the key " +
+            "its ManifestProof names, role=operator, controller=agent_id — has standing; AgenID holds no key that can revoke. " +
+            "`revoked_at` must be within five minutes of the registry clock. The status write, the stored revocation and the " +
+            "`agent.revoked` ledger event are recorded atomically. The resolution envelope then carries the full signed object in " +
+            "`revocation` so a verifier can check it offline against `operator_key.document`.",
+          tags: ["Registry"],
+          parameters: [{ name: "agenid", in: "path", required: true, schema: { type: "string", pattern: "^agenid:[0-7][0-9A-HJKMNP-TV-Z]{25}$" } }],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "https://agenid.com/schemas/v1.2/revocation.json" } } },
+          },
+          responses: {
+            "200": { description: "Revoked. Body carries agent_id, status REVOKED, revocation_id, reason, revoked_at, recorded_at, revocation_digest, links and disclosures.", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } },
+            "400": { description: "`invalid_revocation`, `unsupported_revocation_target`, `agent_id_mismatch` or `revocation_expired`. Nothing was changed.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "403": { description: "`key_not_operator`, `key_not_active` or `signature_invalid` — the request does not come from this agent's operator key. Nothing was changed.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "404": { description: "`agent_not_found`.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "409": { description: "`already_revoked` — revocation is permanent; the first revocation stands.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "429": { description: "Rate limited.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "503": { description: "`registry_unavailable`. Nothing was changed.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
       "/api/v1/directory": {
         get: {
           operationId: "listDirectory",
@@ -613,7 +642,7 @@ function buildSpec(origin: string) {
           properties: {
             agenid_envelope_version: { type: "string", enum: ["1.0"] },
             agent_id: { type: "string", pattern: "^agenid:[0-7][0-9A-HJKMNP-TV-Z]{25}$" },
-            status: { type: "string" },
+            status: { type: "string", enum: ["ACTIVE", "CHANGED", "STALE", "SUSPENDED", "REVOKED"] },
             registered_at: { type: "string", format: "date-time" },
             manifest: { type: "object", additionalProperties: true },
             manifest_digest: {
@@ -642,6 +671,14 @@ function buildSpec(origin: string) {
               },
             },
             assertions: { type: "array", items: { type: "object", additionalProperties: true } },
+            revocation: {
+              type: "object",
+              nullable: true,
+              additionalProperties: true,
+              description:
+                "The operator-signed Revocation (v1.2-draft object) when status is REVOKED; null otherwise. Verify it against " +
+                "operator_key.document and require revokes = agent_id.",
+            },
             verify_instructions: { type: "string" },
           },
         },

@@ -105,7 +105,7 @@ export const WHY_HUB: ContentPage = {
       ],
       bullets: [
         "The issuance ceiling. " + CEILING + " L1_REGISTERED means the registry validated the schema, the digest binding and the operator's signature; it is a self-declaration and renders amber, never emerald.",
-        "No revocation flow. Agent status values exist in the schema so the envelope's shape is stable, but nothing writes them. Every registered agent is active, and there is no deployed way to revoke an agent or a key.",
+        "Revocation is operator-only. An operator can permanently revoke their own agent, signed with its operator key, and the envelope carries the signed revocation. No other status is ever written, and there is no deployed way to revoke a key.",
         "No authorization object in v1.1.1. The protocol defines no signed statement of what an agent may do; `permissions` and `authorizations` are reserved manifest keys. A v1.2 authorization layer exists only as a draft in development. Permission today stays with the operator and with the party on the other side.",
         "No request-level binding. Nothing yet ties a live request, or a live call, to a registered agent. A signature authenticates a signed object, and an object can be handed over by anyone who has seen it.",
         "Operator attestations are self-declared. Whether an agent discloses that it is an AI, or lets a human take over, is the operator's signed statement. No one, including AgenID, can verify it from an API.",
@@ -237,7 +237,7 @@ export const VOICE_HUB: ContentPage = {
       body: [
         "The largest limit is recorded in AgenID's own security analysis as GAP-C1: nothing yet binds a live request, and therefore a live call, to a registered agent in v1.1.1. An agent can state an AgenID, and the business can confirm that the identifier resolves and that its manifest verifies. It cannot confirm from the protocol alone that the voice on the line is the agent that identifier belongs to, because a signature authenticates a signed object and an object can be repeated by anyone who has seen it.",
         "The scenarios show one way this could be closed: the business issues a fresh challenge during the call and the agent answers it with its key. Challenge-response is a proposed pattern. v1.1.1 defines the signed objects, not that exchange, and nothing in the reference deployment performs it today.",
-        "Two further limits apply. There is no deployed revocation flow, so an operator cannot yet mark an agent as withdrawn. And there is no signed authorization object in v1.1.1, so an AgenID never tells a business what a caller is permitted to do.",
+        "Two further limits apply. Only the operator can revoke an agent, so a business cannot ask AgenID to withdraw an agent that is misbehaving; it can only stop trusting it. And there is no signed authorization object in v1.1.1, so an AgenID never tells a business what a caller is permitted to do.",
       ],
     },
   ],

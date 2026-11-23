@@ -29,7 +29,7 @@ Protocol v1.1.1 + errata E1/E2.
 
 | Surface | Limit | Window |
 |---|---|---|
-| `POST /api/v1/agents`, `POST /api/retell/declare`, `POST /api/v1/directory` | 30 | 60s |
+| `POST /api/v1/agents`, `POST /api/v1/agents/{agenid}/revocation`, `POST /api/retell/declare`, `POST /api/v1/directory` | 30 | 60s |
 | `POST /api/retell/bind` | 10 | 60s |
 | `POST /api/retell/agents` | 12 | 60s |
 | `POST /api/domain/status`, `POST /api/verify-dns` | 40 | 60s |
@@ -51,9 +51,9 @@ Three properties worth stating because they are the ones that usually go wrong:
 
 ## CORS
 
-**Verified by live request.** These eleven send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
+**Verified by live request.** These twelve send `access-control-allow-origin: *` on their responses and are intended to be callable cross-origin from a browser, a CI job, or an agent runtime:
 
-`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key_ulid}` · `GET /api/v1/directory` · `POST /api/v1/directory`
+`POST /api/v1/agents` · `POST /api/v1/verify` · `POST /api/retell/declare` · `POST /api/retell/bind` · `GET /api/v1/openapi.json` · `GET /api/resolve/{agenid}` · `GET /badge/{agenid}/shield.svg` · `GET /badge.js` · `GET /v1/keys/{key_ulid}` · `GET /api/v1/directory` · `POST /api/v1/directory` · `POST /api/v1/agents/{agenid}/revocation`
 
 The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin only.
 
@@ -79,11 +79,12 @@ The DNS routes and `/api/retell/agents` do **not** send it, and are same-origin 
 | GET | `/v1/keys?key_id={percent-encoded logical id}` | **Production** — returns the identical document |
 | GET | `/api/v1/directory` | **Production** — opt-in listed agents only |
 | POST | `/api/v1/directory` | **Production** — operator-signed listing consent |
+| POST | `/api/v1/agents/{agenid}/revocation` | **Production** — operator-signed, permanent agent revocation |
 | GET | `/blog/feed.xml` | **Production** — RSS for `/blog` |
 | POST | `/v1/agents/{id}/assertions` | **Not deployed** — 404. No root key exists to sign with. |
 | GET | `/.well-known/agenid/authorities.json` | **Not published** — 404, correctly |
 
-Only the first four, plus the SVG badge, appear in the OpenAPI document. The Retell and DNS routes are deployed but undocumented there — see *Known documentation gaps* at the end.
+Every deployed path appears in the OpenAPI document; see *OpenAPI* at the end.
 
 ---
 
@@ -158,9 +159,12 @@ Returns the canonical **resolution envelope** — everything a verifier needs to
   },
   "verification": { "level": "L1_REGISTERED", "valid_assertions": 0, "total_assertions": 0 },
   "assertions": [],
+  "revocation": null,
   "verify_instructions": "how to re-verify this envelope without the registry"
 }
 ```
+
+`status` is `ACTIVE` or, after an operator-signed revocation, `REVOKED` — the only two values this deployment writes. `revocation` is the signed revocation object when `status` is `REVOKED` and `null` otherwise; see [revoke an agent](#post-apiv1agentsagenidrevocation--revoke-an-agent).
 
 Two properties matter more than they look:
 
@@ -356,6 +360,49 @@ A **registry feature of this deployment, not a protocol object**: spec v1.1.1 de
 
 `GET` returns at most 200 listed, `ACTIVE` agents (`agent_id`, `name`, `operator`, `operator_domain`, `listed_at`, `card`) and the disclosures. **A listing carries no verification level** and is not an endorsement; read each agent's level from `/a/{agenid}`. Storage: `directory_listings` (migration `0005`), RLS enabled, public read limited to listed rows, no write policies.
 
+## POST /api/v1/agents/{agenid}/revocation — revoke an agent
+
+**Permanent.** Spec v1.1.1 §12 defines `REVOKED` as permanent and publicly resolvable: the identifier is never reissued, the record never disappears, and every badge and card renders `REVOKED` instead of a level.
+
+**Only the agent's own operator key has standing** — the key its ManifestProof names, with `role: operator` and `controller` equal to the agent. AgenID holds no key and no credential that can revoke an agent; the signature is the authorization, so this route is cross-origin callable like registration.
+
+The body is a signed **`Revocation`**, the v1.2-draft object (schema [`/schemas/v1.2/revocation.json`](https://www.agenid.com/schemas/v1.2/revocation.json), **draft, not normative**) with `revokes_type: "agent"`. v1.1.1 defines the status but no signed object for reaching it; this deployment uses the draft object rather than inventing a second shape for the same statement.
+
+```json
+{
+  "$schema": "https://agenid.com/schemas/v1.2/revocation.json",
+  "revocation_id": "revocation:<ULID>",
+  "revokes": "agenid:<ULID>",
+  "revokes_type": "agent",
+  "reason": "agent_retired",
+  "revoked_at": "2026-10-19T12:00:00.000Z",
+  "key_id": "agenid:key:<ULID>",
+  "signature": "<Ed25519 over RFC 8785 bytes of the object without signature, base64url>"
+}
+```
+
+`reason` is one of `key_compromise`, `superseded`, `no_longer_authorized`, `operator_request`, `agent_retired`, `issued_in_error`, `unspecified`. It is the operator's statement; the registry checks who signed, not why. `revoked_at` must be within **five minutes** of the registry clock, so a revocation cannot be pre-signed and held or back-dated.
+
+The status change, the stored revocation and an `agent.revoked` ledger event (carrying `revocation_id`, a sha-256 `revocation_digest` and `reason` — references, not the object) are written **atomically** by one Postgres function (`revoke_agent`, migration `0006`).
+
+**Success — `200`:** `agent_id`, `status: "REVOKED"`, `revocation_id`, `reason`, `revoked_at`, `recorded_at` (the registry's clock), `revocation_digest`, `links` and `disclosures`.
+
+| Status | Error | Meaning |
+|---|---|---|
+| 400 | `invalid_json` / `invalid_revocation` | Not a strict `Revocation` (unknown members are refused) |
+| 400 | `unsupported_revocation_target` | `revokes_type` is not `agent`; this registry records agent revocations only |
+| 400 | `agent_id_mismatch` | `revokes` differs from the identifier in the path |
+| 400 | `revocation_expired` | `revoked_at` is more than five minutes from the registry clock |
+| 403 | `key_not_operator` | `key_id` is not this agent's operator key |
+| 403 | `key_not_active` / `signature_invalid` | The key was not active at `revoked_at`, or the signature does not verify |
+| 404 | `agent_not_found` | No such agent |
+| 409 | `already_revoked` | Revocation is permanent; the first one stands and nothing is appended |
+| 503 | `registry_unavailable` | Nothing was changed |
+
+After revocation the resolution envelope's **`revocation`** member carries the full signed object (it is `null` for every other status). A verifier should check it against `operator_key.document` and require `revocation.revokes === agent_id`, rather than take `status` on the registry's word. A browser flow that signs locally from the key file `/issue` offers is at [`/revoke`](https://www.agenid.com/revoke).
+
+**What is still not deployed:** key rotation and key revocation, and every other status transition (`CHANGED`, `STALE`, `SUSPENDED`). Propagation semantics — how long a relying party may cache an `ACTIVE` result — are not yet specified; see [revocation-propagation.md](revocation-propagation.md).
+
 ## Not deployed
 
 **`POST /v1/agents/{id}/assertions`** — exists in `@agenid/api`, gated by `AGENID_AUTHORITY_TOKEN`, no deployed route, and no root authority key to sign an assertion with.
@@ -398,7 +445,7 @@ The envelope carries its own `agenid_envelope_version: "1.0"`.
 
 ## OpenAPI
 
-[`/api/v1/openapi.json`](https://www.agenid.com/api/v1/openapi.json) — **OpenAPI 3.0.3** (not 3.1). Verified live: it documents **all 16 deployed paths** — `/api/v1/agents`, `/api/v1/directory`, `/api/resolve/{agenid}`, `/a/{agenid}`, `/api/v1/verify`, `/api/v1/openapi.json`, `/badge/{agenid}/shield.svg`, `/badge.js`, `/blog/feed.xml`, `/v1/keys/{key_ulid}`, `/v1/keys`, `/api/verify-dns`, `/api/domain/status`, `/api/retell/declare`, `/api/retell/bind`, `/api/retell/agents` — eight component schemas (`RegisterRequest`, `RegisterResponse`, `VerifyRequest`, `VerifyResponse`, `ResolutionEnvelope`, `DomainControlResult`, `DomainStatus`, `Error`), and one server (`https://www.agenid.com`). Its request and response shapes match the implementation and this document.
+[`/api/v1/openapi.json`](https://www.agenid.com/api/v1/openapi.json) — **OpenAPI 3.0.3** (not 3.1). Verified live: it documents **all 17 deployed paths** — `/api/v1/agents`, `/api/v1/agents/{agenid}/revocation`, `/api/v1/directory`, `/api/resolve/{agenid}`, `/a/{agenid}`, `/api/v1/verify`, `/api/v1/openapi.json`, `/badge/{agenid}/shield.svg`, `/badge.js`, `/blog/feed.xml`, `/v1/keys/{key_ulid}`, `/v1/keys`, `/api/verify-dns`, `/api/domain/status`, `/api/retell/declare`, `/api/retell/bind`, `/api/retell/agents` — eight component schemas (`RegisterRequest`, `RegisterResponse`, `VerifyRequest`, `VerifyResponse`, `ResolutionEnvelope`, `DomainControlResult`, `DomainStatus`, `Error`), and one server (`https://www.agenid.com`). Its request and response shapes match the implementation and this document.
 
 Coverage is enforced in both directions by `packages/web/test/dns-surface.test.ts` — a route handler with no documented path fails the suite, and so does a documented path with no handler — and `scripts/check-docs.mjs` re-asserts it against the live document.
 

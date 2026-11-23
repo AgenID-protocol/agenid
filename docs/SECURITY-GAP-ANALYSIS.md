@@ -56,18 +56,20 @@ computed.
 
 ## A. Agent Identity
 
-**Verdict: implemented and sound. One real gap — no revocation path.**
+**Verdict: implemented and sound. The revocation gap is partly closed (2026-10-19): operator-signed agent revocation is deployed; propagation semantics and key revocation are not.**
 
 | Property | State | Evidence |
 |---|---|---|
 | Agent ID format | `agenid:<ULID>`, regex-enforced at every boundary | `packages/core/src/identifier.ts`, `AGENT_ID_REGEX` |
 | Registration | `POST /api/v1/agents` — 201 | signature, digest binding, key role, controller and expiry all checked before any write; single implementation in `packages/web/lib/register.ts` |
 | Ownership | operator key, `role=operator`, `controller === agent_id` | enforced in `verifyManifestProof` step 3 and re-checked at signing time |
-| Lifecycle status | **stored, never written** | `agents.status` has a five-value CHECK (`ACTIVE`/`CHANGED`/`STALE`/`SUSPENDED`/`REVOKED`); only `ACTIVE` is ever set |
-| Revocation | **does not exist** | see GAP-A1 |
+| Lifecycle status | **`ACTIVE` and `REVOKED` written** | `agents.status` has a five-value CHECK; `REVOKED` is set only by `revoke_agent` after an operator-signed revocation verifies. `CHANGED`/`STALE`/`SUSPENDED` are never set |
+| Revocation | **agent: deployed, operator-signed, permanent · key: does not exist** | see GAP-A1 |
 | Rotation | modelled correctly, no write path | see GAP-A2 |
 
-### GAP-A1 — There is no revocation path for an agent. *(Severity: high)*
+### GAP-A1 — There is no revocation path for an agent. *(Severity: high)* — **PARTLY CLOSED 2026-10-19**
+
+> **Update.** `POST /api/v1/agents/{agenid}/revocation` now accepts a `Revocation` signed by the agent's own operator key and records it atomically (status `REVOKED`, stored object, `agent.revoked` event); the envelope carries the signed object. See [api.md](api.md#post-apiv1agentsagenidrevocation--revoke-an-agent). **Still open:** propagation semantics ([revocation-propagation.md](revocation-propagation.md), a proposal), key revocation (GAP-A2), and suspension. The analysis below is the record of the gap as it was found.
 
 `LedgerEvent` declares the event types `manifest.changed`, `agent.status_changed`,
 `assertion.issued` and `agent.revoked`. Only `agent.registered` and `key.published`

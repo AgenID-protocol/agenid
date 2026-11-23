@@ -162,7 +162,7 @@ Ranked. Nothing material is omitted.
 
 **Not accepted, tracked, not yet fixed:** ceremony hardening (4), OpenAPI coverage (8), vulnerability reporting (9). Rate limiting (1) is fixed.
 
-**Newly documented, not yet fixed:** the system has no authorization layer, no principal (human/organization) key role, and no revocation path — see [SECURITY-GAP-ANALYSIS.md](SECURITY-GAP-ANALYSIS.md), gaps B1, D1 and A1. These are absences in the object model rather than threats against the current one, which is why they are recorded there rather than as T-numbers here.
+**Newly documented, not yet fixed:** the system has no authorization layer and no principal (human/organization) key role — see [SECURITY-GAP-ANALYSIS.md](SECURITY-GAP-ANALYSIS.md), gaps B1 and D1. **Partly closed 2026-10-19:** gap A1 — an operator can now permanently revoke their own agent with its operator key; propagation semantics and key revocation remain open. These are absences in the object model rather than threats against the current one, which is why they are recorded there rather than as T-numbers here.
 
 **Structurally unresolved until v1.2:** root-compromise blast radius (3). A delegation object is the fix; it is designed and undecided.
 

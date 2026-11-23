@@ -177,10 +177,13 @@ Supabase Postgres, reached through `RegistryStore`. `MemoryStore` is the dev/tes
 | `keys` | `key_id` | `document` jsonb; `role` and `controller` are generated columns extracted from the jsonb, indexed on `role` |
 | `assertions` | `assertion_id` | `document` jsonb; `manifest_digest` generated from jsonb; `verified_at` a **plain** timestamptz; indexed on `subject` |
 | `events` | `event_id` | Append-only ledger: `type`, `occurred_at`, `detail_ref` jsonb — **pointers and hashes only, never raw evidence** |
+| `revocations` | `revocation_id` | Operator-signed `Revocation` objects (`document` jsonb), `revokes`, `revokes_type`, `revoked_at` (signed), `recorded_at` (registry clock); at most one per agent (partial unique index). Public read, no write policies (migration `0006`) |
 
 Relationships are by identifier, not by foreign key. Verification never relies on referential integrity; it re-derives everything from signatures.
 
 **Consistency.** `createAgent` is an atomic insert that reports `false` on a unique violation rather than overwriting — a replayed registration is a `409`. There are no multi-statement transactions: a registration writes the agent, the key and two events as separate statements, so a mid-sequence failure can leave an agent without its ledger events. That is an accepted trade today; it degrades the audit trail, not the verifiability of the identity, because the envelope is reconstructed from the agent and key rows alone.
+
+**Revocation is the exception, deliberately.** `revoke_agent` (migration `0006`) stores the signed revocation, sets `status = 'REVOKED'` and appends `agent.revoked` inside one Postgres transaction, locking the agent row first so two concurrent revocations serialize and the second reports `already_revoked`. A revocation recorded without its status change — or the reverse — would make the public record disagree with the signed object it depends on, which is worse than a missing audit event. `SECURITY INVOKER`, with `EXECUTE` revoked from `PUBLIC`.
 
 Two constraints learned the hard way, both from defects that reached the repository:
 

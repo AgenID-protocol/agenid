@@ -30,6 +30,7 @@ const DOCS = [
   "docs/trust-model.md",
   "docs/threat-model.md",
   "docs/api.md",
+  "docs/revocation-propagation.md",
   "docs/ECOSYSTEM-LOGO-REGISTRY.md",
   "docs/brand-compliance-audit.md",
 ];
@@ -172,6 +173,11 @@ const CLAIMS = [
   // Sec-Fetch-Site, which is exactly the headerless caller the gate must refuse — and
   // it must refuse with the gate's own code, before the (empty) body is even read.
   ["POST", "/api/retell/agents", 403, "the Retell relay refuses a request that is not same-origin", "cross_origin_refused"],
+  // Agent revocation. An empty body must fail schema validation with the route's own
+  // code — which can only come from a deployed route that ran, not from a 404 or a
+  // framework error — and an unknown agent with a well-formed but unsigned body is never
+  // reached: schema validation runs first and nothing is looked up.
+  ["POST", "/api/v1/agents/agenid:01JZZZZZZZZZZZZZZZZZZZZZZZ/revocation", 400, "agent revocation is deployed and validates before any lookup", "invalid_revocation"],
 ];
 
 if (LIVE) {

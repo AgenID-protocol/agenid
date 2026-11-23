@@ -17,7 +17,7 @@ const CEILING =
   "Issuance ceiling: the reference deployment at agenid.com issues nothing above L1_REGISTERED today. The specification defines L2_DOMAIN_VERIFIED, L3_ORGANIZATION_VERIFIED and L4_DEPLOYMENT_VERIFIED, but each requires a VerificationAssertion signed by a root authority key, and that key has not been created yet. L1_REGISTERED is a self-declaration: it means an operator-signed manifest is in the registry, not that anyone checked the operator. L5 is reserved and not issuable.";
 
 const NO_REVOCATION =
-  "No revocation flow is deployed. Agent status values such as SUSPENDED and REVOKED exist in the schema so the envelope shape is stable, but nothing in production writes them, so every registered agent reads ACTIVE. The specification keeps retired and revoked keys resolvable permanently so that historical signatures remain checkable.";
+  "Only operator-signed agent revocation is deployed: an operator can permanently mark their own agent REVOKED with its operator key, and the envelope carries the signed revocation. No other status (CHANGED, STALE, SUSPENDED) is written, and there is no key-revocation flow. The specification keeps retired and revoked keys resolvable permanently so that historical signatures remain checkable.";
 
 const NO_AUTHORIZATION =
   "No authorization object exists in v1.1.1. The DECLARED, VERIFIED and AUTHORIZED claim states are never inferred from one another, AUTHORIZED has no signed object, and `permissions` and `authorizations` are reserved manifest keys that a v1.1.1 validator rejects. A v1.2 authorization layer is a draft in development, not something available.";
@@ -207,7 +207,7 @@ export const COMPARISONS: readonly ComparisonPage[] = [
         ["Keys and cryptography", "Pure Ed25519 over RFC 8785 canonical JSON", "OAuth 2.0 access tokens requested with blueprint credentials"],
         ["Scope", "Public and portable; no tenant or account needed to verify", "Tenant-scoped, for resources that accept Microsoft Entra tokens"],
         ["Authorization model", "None in v1.1.1; a v1.2 authorization layer is a draft", "Delegated and application permissions, admin consent, blocked high-privilege roles, inheritable permissions"],
-        ["Governance and monitoring", "Append-only registry event ledger; no revocation flow deployed", "Conditional Access, ID Protection, identity governance, sign-in and audit logs"],
+        ["Governance and monitoring", "Append-only registry event ledger; operator-signed agent revocation; no key revocation or suspension", "Conditional Access, ID Protection, identity governance, sign-in and audit logs"],
         ["Openness and license", "Specification MIT-licensed; independent conformance suite MIT", "Microsoft service; Microsoft states Entra security features for agents require Microsoft Agent 365"],
         ["Deployment status", "Live at www.agenid.com; ceiling L1_REGISTERED", "Microsoft states Agent ID is available for all Microsoft Entra customers"],
       ],

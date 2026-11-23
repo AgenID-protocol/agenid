@@ -508,7 +508,7 @@ export const GLOSSARY_A: readonly GlossaryTerm[] = [
       {
         heading: "What it does not mean",
         body: [
-          "Holding the key proves control of the key, not honesty. No revocation flow is deployed today: the status values exist in the schema, and retired or revoked keys would stay resolvable so old signatures remain checkable, but nothing currently writes them. The key also signs identity claims only; it is not a credential for what the agent is allowed to do.",
+          "Holding the key proves control of the key, not honesty. No key-revocation flow is deployed today: retired or revoked keys would stay resolvable so old signatures remain checkable, but nothing currently writes those key states. If the key is compromised, its holder can permanently revoke the agent it controls. The key also signs identity claims only; it is not a credential for what the agent is allowed to do.",
         ],
       },
     ],

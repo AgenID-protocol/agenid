@@ -97,7 +97,7 @@ export const GUIDES: readonly ContentPage[] = [
           "A key document carries `status` (`active`, `retired` or `revoked`) and the timestamps `retired_at` and `revoked_at`. Evaluate the key against the instant the proof claims to have been signed, its `created_at`, not against the current time. A proof created before a key was retired stays valid; a proof created after `revoked_at` fails regardless of its signature. The failure is `key_not_active_at_signing_time`. The [key rotation and revocation](/glossary/key-rotation-and-revocation) entry covers the model.",
           "Retired and revoked keys stay resolvable forever. Historical signatures must remain checkable. A 200 from the key endpoint is therefore not a statement that the key is usable today. Read the fields.",
           "Then check the proof's own window: `created_at` must be at or before now, and now must be at or before `expires_at`. Proofs expire, so operators re-sign. Verification applies no clock leeway. Pass the current time in explicitly so the result is reproducible. Outcomes are `not_yet_valid` and `expired`.",
-          "One limit belongs here. The key model can express retirement and revocation, but the reference deployment has no write path that retires or revokes a key, and no agent revocation or suspension flow. Agent status values exist in the schema, and nothing writes them today. Every registered agent shows `ACTIVE`. Treat that field as unpopulated, not as an assurance.",
+          "One limit belongs here. The key model can express retirement and revocation, but the reference deployment has no write path that retires or revokes a key, and no suspension flow. The one status it writes is `REVOKED`, and only when the agent's own operator key signs a revocation; the envelope then carries the signed object so you can check who made the change. `CHANGED`, `STALE` and `SUSPENDED` are never set, so treat `ACTIVE` as meaning only that its operator has not revoked it, not as an assurance.",
         ],
       },
       {
@@ -146,7 +146,7 @@ export const GUIDES: readonly ContentPage[] = [
         bullets: [
           "L1 ceiling: " + CEILING,
           "One-source case: if the operator's domain serves no `.well-known/agenid/keys.json`, two-path discovery gives you one source and the substitution defense does not apply.",
-          "No revocation flow: agent statuses are stored but never written, and there is no deployed path to retire or revoke a key.",
+          "Revocation is operator-only: an operator can permanently revoke their own agent with its operator key, but no other status is ever written and there is no deployed path to retire or revoke a key.",
           "Operator attestations such as `discloses_to_user` and `human_escalation` are self-declared and unverifiable by anyone, including AgenID.",
           "Object, not request: a valid proof shows who signed a declaration, not that the live request in front of you came from that agent. See [agent-to-agent authentication](/learn/agent-to-agent-authentication).",
         ],
@@ -195,7 +195,7 @@ export const GUIDES: readonly ContentPage[] = [
       },
       {
         q: "Can I check whether an agent has been revoked?",
-        a: "Not through an agent revocation flow, because none is deployed. Agent status values exist in the schema but nothing writes them. Key documents do carry status, retired_at and revoked_at, and you should evaluate them against the proof's signing time.",
+        a: "Yes, for operator revocation. Resolve the agent: a revoked one has `status: REVOKED` and its envelope carries the operator-signed revocation, which you should verify against the envelope's operator key. No other status is written. Key documents carry status, retired_at and revoked_at, but no key-revocation flow is deployed.",
       },
       {
         q: "How do I test my own verifier implementation?",
@@ -285,7 +285,7 @@ export const GUIDES: readonly ContentPage[] = [
             ["Provenance", "A ManifestProof binding the manifest by SHA-256 digest, a registration time from the registry's clock, and an append-only event ledger", "Any check that the declared content is true"],
             ["Operator accountability", "Operator name, domain and contact, signed by the operator; domain-control evidence via a DNS TXT record at /verify/domain", "A verified binding to a legal entity or a person. L2 and L3 are defined but not issuable today"],
             ["Authorization", "Nothing. v1.1.1 reserves the `permissions` and `authorizations` keys and defines no signed authorization object", "Scopes, grants, delegation limits. A v1.2 authorization layer is a draft in development"],
-            ["Monitoring", "Stable identifiers that logs and reputation can attach to; key documents with status fields", "Behavioral monitoring, agent revocation or suspension. L5 is reserved and no revocation flow is deployed"],
+            ["Monitoring", "Stable identifiers that logs and reputation can attach to; key documents with status fields", "Behavioral monitoring, suspension, or revocation by anyone but the operator. L5 is reserved; only operator-signed agent revocation is deployed"],
           ],
         },
       },
@@ -453,7 +453,7 @@ export const GUIDES: readonly ContentPage[] = [
             ["Identifier permanence", "If an identifier can be reassigned, history and reputation can be hijacked", "Immutable for the life of the record and never reissued, even for a revoked agent"],
             ["Platform independence", "An identity tied to one platform breaks when the agent moves", "The identifier is non-semantic and survives platform and deployment changes"],
             ["Key rotation", "Keys must change without breaking historical signatures", "A new key gets its own ULID; retired and revoked keys stay resolvable forever. No rotation write path is deployed yet"],
-            ["Status and revocation", "Relying parties need to know when to stop accepting an agent", "Status values are defined, but nothing writes them today and no revocation flow is deployed"],
+            ["Status and revocation", "Relying parties need to know when to stop accepting an agent", "Operator-signed agent revocation is deployed and permanent; no other status is written and no key-revocation flow exists"],
             ["Who can write", "Open registration scales but admits anything; gated registration concentrates power", "Anyone holding an operator key may register, rate limited. Registration is a self-declaration at L1"],
             ["What an answer means", "A registry answer can be an assertion or just a pointer", "A pointer to signed material the verifier re-checks"],
           ],

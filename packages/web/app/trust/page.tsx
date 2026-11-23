@@ -106,8 +106,10 @@ export default function TrustPage() {
           <span className="font-mono">active</span>. The same is true one level up: agent status transitions
           (<span className="font-mono">CHANGED</span>, <span className="font-mono">STALE</span>,{" "}
           <span className="font-mono">SUSPENDED</span>, <span className="font-mono">REVOKED</span>) are defined in the
-          protocol and stored in the registry&rsquo;s schema, and no write path sets them. There is no revocation
-          flow today, and this page will say so until there is.
+          protocol and stored in the registry&rsquo;s schema. Exactly one is written: an operator can permanently revoke
+          their own agent at <Link href="/revoke" className="text-paper underline hover:no-underline">/revoke</Link>, and only with its operator key. The
+          resolution envelope then carries the signed revocation so anyone can check who made the change. The others are
+          never set, and there is no key-revocation flow.
         </p>
         <div className="pt-2"><TwoPathDiagram /></div>
       </Section>

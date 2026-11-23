@@ -35,6 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/docs/onboarding`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/badge`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/agents`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE_URL}/revoke`, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   // The long-form library (glossary, guides, comparisons, use cases, blog, report). Static

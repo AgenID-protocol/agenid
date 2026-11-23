@@ -40,6 +40,7 @@ Capabilities that exist in code. Implemented is not the same as deployed, and ne
 | Site, `/issue`, resolver, badges, and the deployed API routes | `@agenid/web` |
 | Browser Ed25519 signer with an independent JCS implementation | `packages/web/lib/client-crypto.ts` |
 | Assertion write path (`POST /v1/agents/:id/assertions`) | `@agenid/api` — **not deployed** |
+| Operator-signed agent revocation — `POST /api/v1/agents/{agenid}/revocation`, `/revoke`, envelope `revocation` member, atomic `revoke_agent` | Rules in `packages/api/src/revoke.ts` (one implementation, shared by the Fastify registry and `packages/web`); uses the v1.2-draft `Revocation` object |
 | Domain-control evidence — `POST /api/verify-dns` (real `_agenid.<domain>` TXT lookup) and `POST /api/domain/status` (provider detection, Domain Connect, and the operator's `.well-known` key document — reported `published` only when it strictly parses as a `KeysDocument` for that domain, never merely because the server answered 200) | `packages/web`. **No DNS write path exists:** `/api/dns/auto-add` is deleted, not unconfigured, and AgenID holds no provider credential |
 | Ecosystem registry and validator — 25 platforms, one reviewable JSON file each | `packages/web/data/ecosystem/`, `lib/ecosystem.ts` |
 | Long-form content library — 34-term glossary, 4 pillar guides, 6 sourced comparisons, voice-agent use-case hub, `/why-agent-identity` hub, research report, release-notes blog + RSS, `/badge` embed docs, and 17 `/how-it-works` scenarios (up from 9). One renderer that states the L1 issuance ceiling on every page; guarded by `test/content.test.ts` | `packages/web/lib/content/`, `components/content/`, `app/{glossary,learn,compare,use-cases,blog,state-of-agent-identity,badge}` |
@@ -93,7 +94,8 @@ Exists in code, unavailable in production.
 | `/.well-known/agenid/authorities.json` | Correctly absent — publishing a pin for a nonexistent key would be the worst possible false claim |
 | `@agenid/api` as a running service | Production serves the equivalent routes from `packages/web`; the Fastify server is not deployed anywhere |
 | `0002_onboarding_tables.sql` | Written, deliberately unapplied. Wizard-specific state only; the wizard persists to the canonical tables today. |
-| Agent statuses `CHANGED`, `STALE`, `SUSPENDED`, `REVOKED` | The column and enum exist so the envelope shape is stable, but no transition writes them. Every registered agent is `ACTIVE`. |
+| Agent statuses `CHANGED`, `STALE`, `SUSPENDED` | The column and enum exist so the envelope shape is stable, but no transition writes them. `REVOKED` is written, and only by an operator-signed revocation. |
+| Key rotation and key revocation | `KeyDocument` models `retired`/`revoked` correctly; no write path sets them, so every key is `active`. |
 
 ## Deprecated
 
@@ -126,7 +128,7 @@ Full reference, verified live: [docs/api.md](docs/api.md).
 
 ## Current data model
 
-Supabase Postgres. Applied migrations (confirmed 2026-10-19 against production): `0001_registry_store`, `0003_rate_limit`, `0004_rate_limit_grants`, `0005_directory_listings`. `0002_onboarding_tables` is deliberately unapplied. RLS is enabled on every table; the four registry tables have public-read policies and all writes go through the service role. The rate-limit and directory tables are described in their migrations.
+Supabase Postgres. Applied migrations (confirmed 2026-10-19 against production): `0001_registry_store`, `0003_rate_limit`, `0004_rate_limit_grants`, `0005_directory_listings`, `0006_revocations`. `0002_onboarding_tables` is deliberately unapplied. RLS is enabled on every table; the four registry tables have public-read policies and all writes go through the service role. The rate-limit and directory tables are described in their migrations.
 
 | Table | Key | Contents |
 |---|---|---|
@@ -134,12 +136,13 @@ Supabase Postgres. Applied migrations (confirmed 2026-10-19 against production):
 | `keys` | `key_id` (ULID) | `document` jsonb; `role` and `controller` are **generated columns** extracted from the jsonb (immutable, so they are legal generated expressions), indexed on `role` |
 | `assertions` | `assertion_id` | `subject`, `level`, `key_id`, `document` jsonb, `manifest_digest` generated from the jsonb, `verified_at` as a **plain** timestamptz column, indexed on `subject` |
 | `events` | `event_id` | Append-only ledger: `agent_id`, `type`, `occurred_at`, `detail_ref` jsonb — **pointers and hashes only, never raw evidence** |
+| `revocations` | `revocation_id` | Operator-signed `Revocation` objects; at most one per agent; written only by the transactional `revoke_agent` function (migration `0006`) |
 
 Relationships are by identifier rather than by foreign key: an assertion's `subject` names an agent, and both a proof and an assertion name a `key_id`. Verification never relies on referential integrity — it re-derives everything from signatures.
 
 `verified_at` is deliberately **not** stored as `text`: `Rfc3339Utc` permits optional fractional seconds, and lexicographic order disagrees with chronological order across mixed precision. It is equally deliberately not a generated column cast from jsonb, which Postgres rejects as non-immutable (`42P17`).
 
-Ledger event types: `agent.registered`, `key.published`, `assertion.issued`, `manifest.changed`, `agent.status_changed`, `agent.revoked`. Only the first two are written today.
+Ledger event types: `agent.registered`, `key.published`, `assertion.issued`, `manifest.changed`, `agent.status_changed`, `agent.revoked`. `agent.registered`, `key.published` and `agent.revoked` are written today.
 
 ## Current integrations
 
@@ -160,7 +163,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 **Controls in place.** Strict schema validation rejecting unknown members · Ed25519 signature and digest-binding verification on every write · key role and controller enforcement · bounded forward clock skew at registration with none at verification · operator keys generated and held client-side only, never transmitted or stored · RLS enabled on every table with public-read policies and service-role writes · append-only event ledger storing pointers, never evidence · a public-surface test suite that makes each honesty rule a build-breaking assertion.
 
-**Known gaps.** No request-level authentication on public write endpoints (they are rate limited as of 2026-09-18, and every write is signature-verified, but nothing ties a live request to a registered agent) · no authorization model at all: verification levels say how carefully an identity was checked, never what an agent may do · no revocation path for an agent or a key · `/api/retell/agents` forwards a caller-supplied key to a third-party API from AgenID's domain — rate limited and refused unless same-origin, but a non-browser client can forge the origin headers · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
+**Known gaps.** No request-level authentication on public write endpoints (they are rate limited as of 2026-09-18, and every write is signature-verified, but nothing ties a live request to a registered agent) · no authorization model at all: verification levels say how carefully an identity was checked, never what an agent may do · agent revocation is operator-only, and its propagation to relying parties is unspecified · no key rotation or key revocation · `/api/retell/agents` forwards a caller-supplied key to a third-party API from AgenID's domain — rate limited and refused unless same-origin, but a non-browser client can forge the origin headers · no trust root, so nothing above L1 can be signed · an operator who publishes no `.well-known` key copy leaves two-path discovery with a single source · no `security@` mailbox, because the `agenid.com` zone publishes no MX records.
 
 ## Known limitations
 
@@ -171,7 +174,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 5. **Public write endpoints are unauthenticated.** Every write is signature-verified and self-attributed and every POST route is rate limited (since 2026-09-18), but the bound is per client-address range, so a widely distributed source is limited only in proportion to its ranges. `/api/retell/bind` caps its array at 25.
 6. **`packages/web` carries a second registry implementation** mirroring `@agenid/api`'s validation, because `zod` is not resolvable inside `packages/web`. Equivalence is held by test, not by shared code.
 7. **`/onboarding/retell` cannot complete a one-click DNS setup.** Its `apply_url` is null until AgenID's Domain Connect service template is registered with providers, so the operator adds the TXT record by hand. This is the correct failure mode — the alternative was a link that 404s on someone else's dashboard — but it is a real gap in that flow.
-8. **Agent lifecycle statuses are stored but never written.** Every agent is `ACTIVE`; there is no revocation or status-change path in production.
+8. **Only one lifecycle transition is written: operator-signed revocation.** `CHANGED`, `STALE` and `SUSPENDED` are never set, nothing but the operator can revoke an agent, and how fast a revocation reaches a relying party that cached `ACTIVE` is not specified ([docs/revocation-propagation.md](docs/revocation-propagation.md) is a proposal).
 9. **Some content is mirrored rather than shared** — the v1.1.1 schemas and §8 vectors are copies of `AgenID-protocol/spec` (the `spec-sync` CI job fails on any difference), and `content/partners/` and `content/onboarding.md` are copies of `docs/` (`check:docs` fails on any difference, since 2026-10-19). The copies are enforced, not hand-checked, but they are still copies.
 10. **`/onboarding/retell` has never been rendered in a browser.** It has been exercised over HTTP and by grepping the shipped JS bundle only.
 11. **A malformed percent-escape is a `500` on a self-hosted `next start`.** `/v1/keys/%ZZ` and `/v1/keys/%` make Next's own parameter decoding throw before the route handler runs, so the raw-target rule never gets to answer them. It cannot be fixed inside a route handler. Production is unaffected: Vercel's edge refuses those targets with its own plain `400 Bad Request` first — verified by sending the raw target directly, since curl will not transmit it.
@@ -192,6 +195,7 @@ Full treatment: [docs/trust-model.md](docs/trust-model.md) and [docs/threat-mode
 
 | Date | Change |
 |---|---|
+| 2026-10-19 | **Operator-signed agent revocation** — the first lifecycle transition this deployment writes. Only the agent's own operator key has standing; status, stored revocation and ledger event are written in one transaction; the envelope carries the signed object; every public surface that said "no revocation flow" now says what is and is not deployed. Propagation semantics proposed in `docs/revocation-propagation.md` |
 | 2026-10-19 | **Retell relay is same-origin only** — `/api/retell/agents` refuses cross-site and non-JSON requests before reading the body; a test asserts a refused request never reaches Retell. **Mirrored docs enforced** — `check:docs` fails if the site's onboarding guide or any partner brief drifts from `docs/`, or a package LICENSE from the root |
 | 2026-09-28 | Editorial homepage redesign (`b2dff44`, PR #2); BugLoop feedback widget (`acd99ad`, PR #1) |
 | 2026-09-23 | **Opt-in agent directory (S9)** — `/agents` and `/api/v1/directory`; operator-signed, replay-bounded listing consent; migration `0005` applied; registration alone lists nothing |
